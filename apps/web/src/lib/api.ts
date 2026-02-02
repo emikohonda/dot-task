@@ -1,4 +1,5 @@
 // apps/web/src/lib/api.ts
+import { safeJson } from "@/lib/safeFetch";
 
 export type Site = {
   id: string;
@@ -12,21 +13,14 @@ export type Site = {
   companyName: string | null;
 };
 
+// ✅ 本番で 127.0.0.1 に逃がさない（＝落ちる原因を潰す）
 const API_BASE_URL =
-  process.env.API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  'http://127.0.0.1:3001';
+  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-console.log('API_BASE_URL =', API_BASE_URL);
-
+// ✅ 一覧：失敗しても落とさない（常に配列を返す）
 export async function fetchSites(): Promise<Site[]> {
-  const res = await fetch(`${API_BASE_URL}/sites`, {
-    cache: 'no-store',
-  });
+  if (!API_BASE_URL) return [];
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch sites: ${res.status} ${res.statusText}`);
-  }
-
-  return res.json();
+  const data = await safeJson<Site[]>(`${API_BASE_URL}/sites`);
+  return data ?? [];
 }
