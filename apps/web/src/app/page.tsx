@@ -2,6 +2,15 @@
 import Link from "next/link";
 import { fetchSites } from "@/lib/api";
 
+type Site = {
+  id: string;
+  name: string;
+  companyName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt?: string | null;
+};
+
 function formatToday() {
   const today = new Date();
   return new Intl.DateTimeFormat('ja-JP', {
@@ -12,21 +21,28 @@ function formatToday() {
   }).format(today);
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '-';
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return "-";
   const d = new Date(dateStr);
-  return d.toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return d.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
   });
 }
 
 export default async function HomePage() {
   const todayLabel = formatToday();
 
-  //追加：現場データ取得（最大３件プレビュー）
-  const sites = await fetchSites();
+  // ✅ API が死んでてもトップを落とさない
+  let sites: Site[] = [];
+  try {
+    sites = await fetchSites();
+  } catch (e) {
+    // 本番でAPI未接続の間はここに落ちるのが正常
+    sites = [];
+  }
+
   const previewSites = sites.slice(0, 3);
 
   return (
