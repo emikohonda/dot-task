@@ -16,6 +16,11 @@ function formatDateTime(dateStr: string | null) {
     });
 }
 
+type ScheduleStatus = "TODO" | "DOING" | "HOLD" | "DONE" | "CANCELLED";
+
+const isScheduleStatus = (v: unknown): v is ScheduleStatus =>
+    v === "TODO" || v === "DOING" || v === "HOLD" || v === "DONE" || v === "CANCELLED";
+
 function Card({
     title,
     children,
@@ -93,7 +98,8 @@ export default async function SiteSchedulesPage({
                                     </div>
 
                                     {(() => {
-                                        const meta = getStatusMeta(s.status);
+                                        const status: ScheduleStatus = isScheduleStatus(s.status) ? s.status : "TODO";
+                                        const meta = getStatusMeta(status);
                                         if (!meta) return null;
 
                                         return (
