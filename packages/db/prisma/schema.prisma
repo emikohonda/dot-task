@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// Enum 定義
+// ================================
+enum ScheduleStatus {
+  TODO
+  DOING
+  DONE
+  HOLD
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH           // 現金
+  BANK_TRANSFER  // 振込
+  BILL           // 手形
+}
+
+// ================================
+// モデル定義
+// ================================
+
+//
+// 既存：元請会社（Company）
+// ------------------------------------------
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  postalCode    String?  @map("postal_code")
+  address       String?
+  phone         String?
+  email         String?
+  contactPerson String?  @map("contact_person")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // この元請が担当している現場一覧
+  sites     Site[]
+
+  // この元請に紐づく請求書一覧
+  invoices  Invoice[]
+
+  @@map("companies")
+}
+
+//
+// 現場（Site）
+// ------------------------------------------
+model Site {
+  id          String           @id @default(uuid())
+  name        String
+  address     String?
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // この現場の元請
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id])
+
+  schedules   Schedule[]
+  contractors SiteContractor[]
+
+  workRecords WorkRecord[]
+  invoices    Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sites")
+  @@index([companyId])
+}
+
+//
+// 外注（Contractor）
+// ------------------------------------------
+model Contractor {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+
+  sites       SiteContractor[]
+  schedules   Schedule[]
+  workRecords WorkRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contractors")
+}
+
+//
+// 中間テーブル（現場×外注）
+// ------------------------------------------
+model SiteContractor {
+  id            String @id @default(uuid())
+  siteId        String
+  contractorId  String
+
+  contactName   String?
+  contactPhone  String?
+  contactEmail  String?
+
+  site        Site       @relation(fields: [siteId], references: [id])
+  contractor  Contractor @relation(fields: [contractorId], references: [id])
+
+  @@unique([siteId, contractorId])
+  @@index([siteId])
+  @@index([contractorId])
+  @@map("site_contractors")
+}
+
+//
+// 進捗（Schedule）
+// ------------------------------------------
+model Schedule {
+  id            String   @id @default(uuid())
+  siteId        String
+  contractorId  String?   // ← 外注は付いてない場合もあるので ? のままでOK
+
+  title         String
+  description   String?
+  date          DateTime
+  status        ScheduleStatus @default(TODO)
+
+  site        Site         @relation(fields: [siteId], references: [id])
+  contractor  Contractor?  @relation(fields: [contractorId], references: [id])
+
+  // このスケジュールに紐づく作業記録
+  workRecords WorkRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("schedules")
+  @@index([siteId, date])
+  @@index([contractorId])
+}
+
+//
+// 作業記録（WorkRecord）
+// ------------------------------------------
+model WorkRecord {
+  id           String   @id @default(uuid())
+  siteId       String
+  scheduleId   String?
+  contractorId String?
+
+  workDate     DateTime      // 作業日
+  description  String?       // 業務内容
+  workersCount Int?          // 人員数
+  workHours    Float?        // 工数（時間 / 人日など）
+  unitPrice    Int?          // 単価（円）
+  amount       Int?          // 金額（円）
+  memo         String?       // 備考
+
+  site       Site        @relation(fields: [siteId], references: [id])
+  schedule   Schedule?   @relation(fields: [scheduleId], references: [id])
+  contractor Contractor? @relation(fields: [contractorId], references: [id])
+
+  // この作業記録から作られた請求明細
+  invoiceItems InvoiceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("work_records")
+  @@index([siteId, workDate])
+  @@index([contractorId])
+}
+
+//
+// 請求書（Invoice）
+// ------------------------------------------
+model Invoice {
+  id          String   @id @default(uuid())
+  companyId   String   // 請求先の元請
+  siteId      String   // 対象現場
+
+  issueDate   DateTime // 発行日
+  dueDate     DateTime?
+  status      InvoiceStatus @default(DRAFT) // draft / sent / paid など
+  totalAmount Int?     // 合計金額（あとで自動計算してもOK）
+
+  company  Company @relation(fields: [companyId], references: [id])
+  site     Site    @relation(fields: [siteId], references: [id])
+  items    InvoiceItem[]
+  receipts Receipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invoices")
+  @@index([companyId])
+  @@index([siteId, issueDate])
+}
+
+//
+// 請求明細（InvoiceItem）
+// ------------------------------------------
+model InvoiceItem {
+  id           String   @id @default(uuid())
+  invoiceId    String
+  workRecordId String?
+
+  description  String        // 明細の内容（「◯◯工事」「◯月分人工」など）
+  quantity     Float?        // 数量（人日, 式 など）
+  unit         String?       // 単位（"人日", "式" など）
+  unitPrice    Int?          // 単価（円）
+  amount       Int?          // 金額（円）
+
+  invoice    Invoice     @relation(fields: [invoiceId], references: [id])
+  workRecord WorkRecord? @relation(fields: [workRecordId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invoice_items")
+  @@index([invoiceId])
+  @@index([workRecordId])
+}
+
+//
+// 入金（Receipt）
+// ------------------------------------------
+model Receipt {
+  id          String   @id @default(uuid())
+  invoiceId   String
+
+  receiptDate DateTime // 入金日
+  amount      Int      // 入金額（円）
+  method      PaymentMethod?  // 現金 / 振込 / 手形 など
+  memo        String?  // 備考
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("receipts")
+  @@index([invoiceId, receiptDate])
+}
