@@ -1,3 +1,4 @@
+import type React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchSites } from "@/lib/api";
@@ -26,6 +27,11 @@ function formatDateTime(dateStr: string | null) {
         minute: "2-digit",
     });
 }
+
+type ScheduleStatus = "TODO" | "DOING" | "HOLD" | "DONE" | "CANCELLED";
+
+const isScheduleStatus = (v: unknown): v is ScheduleStatus =>
+    v === "TODO" || v === "DOING" || v === "HOLD" || v === "DONE" || v === "CANCELLED";
 
 function EmptySchedule() {
     return (
@@ -149,13 +155,13 @@ export default async function SiteDetailPage({
                                         </p>
                                     </div>
                                     {(() => {
-                                        const meta = getStatusMeta(s.status);
+                                        const status: ScheduleStatus = isScheduleStatus(s.status) ? s.status : "TODO";
+                                        const meta = getStatusMeta(status);
                                         if (!meta) return null;
 
                                         return (
                                             <span
-                                                className={`rounded-full px-2 py-1 text-xs font-medium ${meta.className}`}
-                                            >
+                                                className={`rounded-full px-2 py-1 text-xs font-medium ${meta.className}`}>
                                                 {meta.label}
                                             </span>
                                         );
