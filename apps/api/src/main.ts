@@ -6,8 +6,11 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 追加：ブラウザからの PATCH 通信を許可
-  app.enableCors();
+  // ブラウザからの通信を許可（後で origin を絞れる形）
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -21,6 +24,6 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 
-  console.log(`✅ API listening on http://localhost:${port}`);
+  console.log(`✅ API listening on port ${port}`);
 }
 bootstrap();
