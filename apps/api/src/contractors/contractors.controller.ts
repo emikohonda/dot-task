@@ -19,16 +19,16 @@ export class ContractorsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.contractorsService.findOne(+id);
+    return this.contractorsService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateContractorDto: UpdateContractorDto) {
-    return this.contractorsService.update(+id, updateContractorDto);
+    return this.contractorsService.update(id, updateContractorDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.contractorsService.remove(+id);
+    return this.contractorsService.remove(id);
   }
 }
