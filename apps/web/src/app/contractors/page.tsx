@@ -1,6 +1,27 @@
 // apps/web/src/app/contractors/page.tsx
 import Link from "next/link";
 
+type Contractor = {
+  id: string;
+  name: string;
+  postalCode: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  contactPerson: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+async function fetchContractors(): Promise<Contractor[]> {
+  const baseUrl = process.env.API_BASE_URL;
+  if (!baseUrl) throw new Error("API_BASE_URL is not set");
+
+  const res = await fetch(`${baseUrl}/contractors`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch contractors: ${res.status}`);
+  return res.json();
+}
+
 function PageHeader({
   title,
   description,
@@ -47,14 +68,14 @@ function EmptyState({
   );
 }
 
-export default function Page() {
-  const contractors: Array<{ id: string; name: string }> = []; // ✅次のステップで API から取ってくる
+export default async function Page() {
+  const contractors = await fetchContractors();
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <PageHeader
         title="外注先"
-        description="外注先の情報をまとめて管理します。"
+        description="外注先の住所や連絡先をまとめて管理します。"
         action={
           <Link
             href="/contractors/new"
@@ -68,7 +89,7 @@ export default function Page() {
       {contractors.length === 0 ? (
         <EmptyState
           title="まだ外注先が登録されていません"
-          description="最初の外注先を登録しておくと、人員・単価・請求の入力がラクになります。"
+          description="最初の1社を登録しておくと、人員・単価・請求の入力がラクになります。"
           cta={
             <Link
               href="/contractors/new"
@@ -80,7 +101,62 @@ export default function Page() {
         />
       ) : (
         <Card>
-          <div className="text-sm text-slate-700">（ここに一覧UIが入ります）</div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] border-separate border-spacing-0">
+              <thead>
+                <tr className="text-left text-xs font-medium text-slate-500">
+                  <th className="border-b border-slate-200 pb-3">外注先名</th>
+                  <th className="border-b border-slate-200 pb-3">担当</th>
+                  <th className="border-b border-slate-200 pb-3">住所</th>
+                  <th className="border-b border-slate-200 pb-3">連絡先</th>
+                  <th className="border-b border-slate-200 pb-3 text-right">詳細</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm text-slate-900">
+                {contractors.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/70">
+                    <td className="py-4 pr-4">
+                      <div className="font-medium">{c.name}</div>
+                      {c.postalCode || c.address ? (
+                        <div className="mt-1 text-xs text-slate-500">
+                          {c.postalCode ? `〒${c.postalCode}` : ""}
+                          {c.postalCode && c.address ? " " : ""}
+                          {c.address ?? ""}
+                        </div>
+                      ) : null}
+                    </td>
+
+                    <td className="py-4 pr-4 text-slate-700">{c.contactPerson ?? "—"}</td>
+
+                    <td className="py-4 pr-4 text-slate-700">
+                      {c.address ? (
+                        <>
+                          {c.postalCode ? <span className="text-xs text-slate-500">〒{c.postalCode} </span> : null}
+                          {c.address}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    <td className="py-4 pr-4 text-slate-700">
+                      <div>{c.phone ?? "—"}</div>
+                      <div className="text-xs text-slate-500">{c.email ?? "—"}</div>
+                    </td>
+
+                    <td className="py-4 text-right">
+                      <Link
+                        href={`/contractors/${c.id}`}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 hover:bg-slate-50"
+                      >
+                        開く
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>
