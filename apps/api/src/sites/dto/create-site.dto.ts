@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+// apps/api/src/sites/dto/create-site.dto.ts
+import { IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
 
 export class CreateSiteDto {
   @IsString()
@@ -19,4 +20,9 @@ export class CreateSiteDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  contactIds?: string[];
 }

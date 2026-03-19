@@ -1,25 +1,25 @@
+// apps/web/src/lib/fetchers/sites.ts
+import type { Site } from "@/lib/api";
+import type { SiteDetail } from "@/types/site";
+import { safeJson } from "@/lib/safeFetch";
+
 const API_BASE_URL =
   process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-export type Site = {
-  id: string;
-  name: string;
-};
-
-// 一覧は必ず配列を返す
+// 一覧は必ず配列を返す（pagination形式・配列の両方に対応）
 export async function fetchSites(limit = 200): Promise<Site[]> {
   if (!API_BASE_URL) return [];
+  const data = await safeJson<{ items: Site[] } | Site[]>(`${API_BASE_URL}/sites?limit=${limit}`);
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.items)) return data.items;
+  return [];
+}
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/sites?limit=${limit}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
-  }
+export async function fetchSite(siteId: string): Promise<SiteDetail | null> {
+  if (!API_BASE_URL) return null;
+  const data = await safeJson<SiteDetail>(`${API_BASE_URL}/sites/${siteId}`);
+  return data ?? null;
 }
 
 export type SiteSchedule = {
@@ -27,25 +27,15 @@ export type SiteSchedule = {
   title: string;
   date: string;
   status: string | null;
-  contractor: { name: string } | null;
+
+  contractors?: { contractor: { id: string; name: string } | null }[];
+  employees?: { employee: { id: string; name: string } | null }[];
 };
 
-// 現場スケジュールも同様
-export async function fetchSiteSchedules(
-  siteId: string,
-  limit = 3
-): Promise<SiteSchedule[]> {
+export async function fetchSiteSchedules(siteId: string, limit = 3): Promise<SiteSchedule[]> {
   if (!API_BASE_URL) return [];
-
-  try {
-    const res = await fetch(
-      `${API_BASE_URL}/sites/${siteId}/schedules?limit=${limit}`,
-      { cache: "no-store" }
-    );
-
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
-  }
+  const data = await safeJson<SiteSchedule[]>(
+    `${API_BASE_URL}/sites/${siteId}/schedules?limit=${limit}`
+  );
+  return data ?? [];
 }

@@ -55,7 +55,23 @@ model Company {
   // この元請に紐づく請求書一覧
   invoices  Invoice[]
 
+  contacts  CompanyContact[]
+
   @@map("companies")
+}
+
+model CompanyContact {
+  id        String  @id @default(uuid())
+  companyId String  @map("company_id")
+
+  name      String?
+  phone     String?
+  email     String?
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_contacts")
 }
 
 //
@@ -91,8 +107,13 @@ model Site {
 model Contractor {
   id        String   @id @default(uuid())
   name      String
+  postalCode String? @map("postal_code")
+  address    String?
   phone     String?
   email     String?
+
+  // ✅ 追加：複数担当者
+  contacts  ContractorContact[]
 
   sites       SiteContractor[]
   schedules   Schedule[]
@@ -102,6 +123,20 @@ model Contractor {
   updatedAt DateTime @updatedAt
 
   @@map("contractors")
+}
+
+model ContractorContact {
+  id           String @id @default(uuid())
+  contractorId String @map("contractor_id")
+
+  name      String?
+  phone     String?
+  email     String?
+
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+
+  @@index([contractorId])
+  @@map("contractor_contacts")
 }
 
 //
@@ -131,17 +166,19 @@ model SiteContractor {
 model Schedule {
   id            String   @id @default(uuid())
   siteId        String
-  contractorId  String?   // ← 外注は付いてない場合もあるので ? のままでOK
+  contractorId  String?
 
   title         String
   description   String?
   date          DateTime
   status        ScheduleStatus @default(TODO)
 
+  startTime     String?
+  endTime       String?
+
   site        Site         @relation(fields: [siteId], references: [id])
   contractor  Contractor?  @relation(fields: [contractorId], references: [id])
 
-  // このスケジュールに紐づく作業記録
   workRecords WorkRecord[]
 
   createdAt DateTime @default(now())

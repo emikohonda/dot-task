@@ -1,0 +1,338 @@
+// packages/db/prisma/schema.prisma
+
+// ⚠️3/2追記：混乱を避けるために、グレーアウト。prisma/schema.prismaが本番
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// Enum 定義
+// ================================
+enum ScheduleStatus {
+  TODO
+  DOING
+  DONE
+  HOLD
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  BILL
+}
+
+// ================================
+// Company
+// ================================
+model Company {
+  id            String  @id @default(uuid())
+  name          String
+  postalCode    String? @map("postal_code")
+  address       String?
+  phone         String?
+  email         String?
+  contactPerson String? @map("contact_person")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sites    Site[]
+  invoices Invoice[]
+  contacts CompanyContact[]
+
+  @@map("companies")
+}
+
+// ================================
+// CompanyContact（元請担当者）
+// ================================
+model CompanyContact {
+  id        String @id @default(uuid())
+  companyId String @map("company_id")
+
+  name  String?
+  phone String?
+  email String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // ★ 追加（Siteとの多対多）
+  sites SiteCompanyContact[]
+
+  @@index([companyId])
+  @@map("company_contacts")
+}
+
+// ================================
+// Site
+// ================================
+model Site {
+  id        String    @id @default(uuid())
+  name      String
+  address   String?
+  startDate DateTime?
+  endDate   DateTime?
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  schedules   Schedule[]
+  contractors SiteContractor[]
+  workRecords WorkRecord[]
+  invoices    Invoice[]
+
+  // ★ 追加（CompanyContactとの多対多）
+  companyContacts SiteCompanyContact[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("sites")
+}
+
+// ================================
+// ★ 新規：Site × CompanyContact 中間
+// ================================
+model SiteCompanyContact {
+  siteId           String @map("site_id")
+  companyContactId String @map("company_contact_id")
+
+  site           Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  companyContact CompanyContact @relation(fields: [companyContactId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([siteId, companyContactId])
+  @@index([siteId])
+  @@index([companyContactId])
+  @@map("site_company_contacts")
+}
+
+// ================================
+// Contractor
+// ================================
+model Contractor {
+  id         String  @id @default(uuid())
+  name       String
+  postalCode String? @map("postal_code")
+  address    String?
+  phone      String?
+  email      String?
+
+  contacts ContractorContact[]
+  sites    SiteContractor[]
+
+  // いったん残す（移行中の単数リレーション用）
+  schedules Schedule[]
+
+  // ★追加：ScheduleContractor の逆側（これが必要）
+  scheduleLinks ScheduleContractor[]
+
+  workRecords WorkRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contractors")
+}
+
+model ContractorContact {
+  id           String @id @default(uuid())
+  contractorId String @map("contractor_id")
+
+  name  String?
+  phone String?
+  email String?
+
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+
+  @@index([contractorId])
+  @@map("contractor_contacts")
+}
+
+// ================================
+// Site × Contractor
+// ================================
+model SiteContractor {
+  id           String @id @default(uuid())
+  siteId       String
+  contractorId String
+
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+
+  site       Site       @relation(fields: [siteId], references: [id])
+  contractor Contractor @relation(fields: [contractorId], references: [id])
+
+  @@unique([siteId, contractorId])
+  @@index([siteId])
+  @@index([contractorId])
+  @@map("site_contractors")
+}
+
+// ================================
+// Schedule
+// ================================
+model Schedule {
+  id     String @id @default(uuid())
+  siteId String
+
+  // いったん残す（移行用）
+  contractorId String?
+  contractor   Contractor? @relation(fields: [contractorId], references: [id])
+
+  title       String
+  description String?
+  date        DateTime
+  status      ScheduleStatus @default(TODO)
+
+  startTime String?
+  endTime   String?
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  contractors ScheduleContractor[]
+
+  workRecords WorkRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([siteId, date])
+  @@index([contractorId])
+  @@map("schedules")
+}
+
+model ScheduleContractor {
+  scheduleId   String @map("schedule_id")
+  contractorId String @map("contractor_id")
+
+  schedule   Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([scheduleId, contractorId])
+  @@index([scheduleId])
+  @@index([contractorId])
+  @@map("schedule_contractors")
+}
+
+// ================================
+// WorkRecord
+// ================================
+model WorkRecord {
+  id           String  @id @default(uuid())
+  siteId       String
+  scheduleId   String?
+  contractorId String?
+
+  workDate     DateTime
+  description  String?
+  workersCount Int?
+  workHours    Float?
+  unitPrice    Int?
+  amount       Int?
+  memo         String?
+
+  site       Site        @relation(fields: [siteId], references: [id])
+  schedule   Schedule?   @relation(fields: [scheduleId], references: [id])
+  contractor Contractor? @relation(fields: [contractorId], references: [id])
+
+  invoiceItems InvoiceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([siteId, workDate])
+  @@index([contractorId])
+  @@map("work_records")
+}
+
+// ================================
+// Invoice
+// ================================
+model Invoice {
+  id        String @id @default(uuid())
+  companyId String
+  siteId    String
+
+  issueDate   DateTime
+  dueDate     DateTime?
+  status      InvoiceStatus @default(DRAFT)
+  totalAmount Int?
+
+  company  Company       @relation(fields: [companyId], references: [id])
+  site     Site          @relation(fields: [siteId], references: [id])
+  items    InvoiceItem[]
+  receipts Receipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([siteId, issueDate])
+  @@map("invoices")
+}
+
+// ================================
+// InvoiceItem
+// ================================
+model InvoiceItem {
+  id           String  @id @default(uuid())
+  invoiceId    String
+  workRecordId String?
+
+  description String
+  quantity    Float?
+  unit        String?
+  unitPrice   Int?
+  amount      Int?
+
+  invoice    Invoice     @relation(fields: [invoiceId], references: [id])
+  workRecord WorkRecord? @relation(fields: [workRecordId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([workRecordId])
+  @@map("invoice_items")
+}
+
+// ================================
+// Receipt
+// ================================
+model Receipt {
+  id        String @id @default(uuid())
+  invoiceId String
+
+  receiptDate DateTime
+  amount      Int
+  method      PaymentMethod?
+  memo        String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId, receiptDate])
+  @@map("receipts")
+}

@@ -1,6 +1,21 @@
 // apps/web/src/app/companies/page.tsx
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PageHeader } from "@/components/PageHeader";
+import { CardSection } from "@/components/CardSection";
+import { ToastHandler } from "./ToastHandler";
+import { KeywordSearchBox } from "@/components/KeywordSearchBox";
+import { SearchActionRow } from "@/components/SearchActionRow";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+
+const PAGE_LIMIT = 20;
+
+type Contact = { name: string; phone?: string; email?: string };
 type Company = {
   id: string;
   name: string;
@@ -9,156 +24,211 @@ type Company = {
   phone: string | null;
   email: string | null;
   contactPerson: string | null;
+  contacts?: Contact[];
   createdAt: string;
   updatedAt: string;
 };
 
-async function fetchCompanies(): Promise<Company[]> {
-  const baseUrl = process.env.API_BASE_URL;
-  if (!baseUrl) throw new Error("API_BASE_URL is not set");
+type PaginatedCompanies = {
+  items: Company[];
+  total: number;
+  limit: number;
+  offset: number;
+};
 
-  const res = await fetch(`${baseUrl}/companies`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Failed to fetch companies: ${res.status}`);
-  return res.json();
+async function fetchCompanies(params: URLSearchParams): Promise<PaginatedCompanies> {
+  try {
+    const res = await fetch(`${API_BASE}/companies?${params.toString()}`, { cache: "no-store" });
+    if (!res.ok) return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
+    const data = await res.json();
+    if (data && Array.isArray(data.items)) return data as PaginatedCompanies;
+    if (Array.isArray(data)) return { items: data, total: data.length, limit: PAGE_LIMIT, offset: 0 };
+    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
+  } catch {
+    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
+  }
 }
 
-function PageHeader({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
-        <p className="text-sm text-slate-600">{description}</p>
-      </div>
-      {action ? <div className="sm:shrink-0">{action}</div> : null}
-    </div>
-  );
+function formatDateJp(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-      {children}
-    </div>
-  );
+function formatPrimaryContact(contacts?: Contact[]) {
+  const list = contacts ?? [];
+  const firstName = list[0]?.name?.trim();
+  if (!firstName) return "担当者が登録されていません";
+  const rest = list.slice(1).filter((c) => (c.name ?? "").trim()).length;
+  return rest > 0 ? `👤 ${firstName} +${rest}` : `👤 ${firstName}`;
 }
 
-function EmptyState({
-  title,
-  description,
-  cta,
-}: {
-  title: string;
-  description: string;
-  cta?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-      <p className="text-base font-medium text-slate-900">{title}</p>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
-      {cta ? <div className="mt-5 flex justify-center">{cta}</div> : null}
-    </div>
-  );
-}
+function CompaniesPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-export default async function Page() {
-  const companies = await fetchCompanies();
+  const [keyword, setKeyword] = React.useState(searchParams.get("keyword") ?? "");
+  const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
+  const [total, setTotal] = React.useState(0);
+  const [companies, setCompanies] = React.useState<Company[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("limit", String(PAGE_LIMIT));
+    if (!params.has("offset")) params.set("offset", "0");
+    setLoading(true);
+    fetchCompanies(params).then((data) => {
+      setCompanies(data.items);
+      setTotal(data.total);
+      setLoading(false);
+    });
+  }, [searchParams]);
+
+  React.useEffect(() => {
+    setKeyword(searchParams.get("keyword") ?? "");
+    const nextOffset = Number(searchParams.get("offset") ?? "0");
+    setOffset(Number.isFinite(nextOffset) ? nextOffset : 0);
+  }, [searchParams]);
+
+  const isDirty = keyword !== (searchParams.get("keyword") ?? "");
+
+  const applyFilter = React.useCallback(() => {
+    const params = new URLSearchParams();
+    if (keyword) params.set("keyword", keyword);
+    params.set("offset", "0");
+    router.replace(`/companies?${params.toString()}`, { scroll: false });
+  }, [keyword, router]);
+
+  const resetFilter = () => {
+    setKeyword("");
+    router.replace("/companies", { scroll: false });
+  };
+
+  const goToOffset = (nextOffset: number) => {
+    const params = new URLSearchParams();
+    if (keyword) params.set("keyword", keyword);
+    params.set("offset", String(nextOffset));
+    router.replace(`/companies?${params.toString()}`, { scroll: false });
+  };
+
+  const hasFilter = !!keyword;
+  const hasAny = companies.length > 0;
+  const hasPrev = offset > 0;
+  const hasNext = offset + PAGE_LIMIT < total;
+  const rangeStart = total === 0 ? 0 : offset + 1;
+  const rangeEnd   = Math.min(offset + PAGE_LIMIT, total);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        title="取引先"
-        description="元請会社（取引先）の住所や連絡先をまとめて管理します。"
-        action={
-          <Link
-            href="/companies/new"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 active:bg-slate-900"
-          >
-            追加する
+        eyebrow="元請会社"
+        title="取引先一覧"
+        right={
+          <Link href="/companies/new" className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">
+            ＋ 取引先を追加
           </Link>
         }
       />
 
-      {companies.length === 0 ? (
-        <EmptyState
-          title="まだ取引先が登録されていません"
-          description="まずは1社登録しておくと、現場や予定の紐付けがスムーズになります。"
-          cta={
-            <Link
-              href="/companies/new"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50"
-            >
-              最初の1社を登録
-            </Link>
-          }
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="max-w-sm">
+          <KeywordSearchBox
+            placeholder="会社名・住所・担当者名"
+            value={keyword}
+            onChange={setKeyword}
+            onSearch={applyFilter}
+          />
+        </div>
+        <SearchActionRow
+          onSearch={applyFilter}
+          onReset={resetFilter}
+          showReset={hasFilter}
+          loading={loading}
+          isDirty={isDirty}
+          hasFilter={hasFilter}
+          count={total}
         />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] border-separate border-spacing-0">
-              <thead>
-                <tr className="text-left text-xs font-medium text-slate-500">
-                  <th className="border-b border-slate-200 pb-3">会社名</th>
-                  <th className="border-b border-slate-200 pb-3">担当</th>
-                  <th className="border-b border-slate-200 pb-3">住所</th>
-                  <th className="border-b border-slate-200 pb-3">連絡先</th>
-                  <th className="border-b border-slate-200 pb-3 text-right">詳細</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm text-slate-900">
-                {companies.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/70">
-                    <td className="py-4 pr-4">
-                      <div className="font-medium">{c.name}</div>
-                      {c.postalCode || c.address ? (
-                        <div className="mt-1 text-xs text-slate-500">
-                          {c.postalCode ? `〒${c.postalCode}` : ""}
-                          {c.postalCode && c.address ? " " : ""}
-                          {c.address ?? ""}
-                        </div>
-                      ) : null}
-                    </td>
+      </div>
 
-                    <td className="py-4 pr-4 text-slate-700">{c.contactPerson ?? "—"}</td>
-
-                    <td className="py-4 pr-4 text-slate-700">
-                      {c.address ? (
-                        <>
-                          {c.postalCode ? <span className="text-xs text-slate-500">〒{c.postalCode} </span> : null}
-                          {c.address}
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-
-                    <td className="py-4 pr-4 text-slate-700">
-                      <div>{c.phone ?? "—"}</div>
-                      <div className="text-xs text-slate-500">{c.email ?? ""}</div>
-                    </td>
-
-                    <td className="py-4 text-right">
-                      <Link
-                        href={`/companies/${c.id}`}
-                        className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 hover:bg-slate-50"
-                      >
-                        開く
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <CardSection>
+        {loading ? (
+          <div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>
+        ) : !hasAny ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+            <p className="text-sm font-medium text-slate-900">
+              {hasFilter ? "条件に一致する取引先はありません" : "まだ取引先が登録されていません"}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              {hasFilter ? "絞り込み条件を変えてみてください。" : "右上の「＋ 取引先を追加」から登録できます。"}
+            </p>
           </div>
-        </Card>
-      )}
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[920px] border-separate border-spacing-0">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-slate-500">
+                    <th className="border-b border-slate-200 pb-3">会社名</th>
+                    <th className="border-b border-slate-200 pb-3">担当</th>
+                    <th className="border-b border-slate-200 pb-3">住所</th>
+                    <th className="border-b border-slate-200 pb-3">連絡先</th>
+                    <th className="border-b border-slate-200 pb-3">登録日</th>
+                    <th className="w-[88px] border-b border-slate-200 pb-3 text-center">詳細</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm text-slate-900">
+                  {companies.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-100/60 [&>td]:border-b [&>td]:border-dashed [&>td]:border-slate-200 last:[&>td]:border-b-0">
+                      <td className="py-4 pr-4"><div className="font-medium">{item.name}</div></td>
+                      <td className="py-4 pr-4 text-slate-700">{formatPrimaryContact(item.contacts)}</td>
+                      <td className="py-4 pr-4 text-slate-700">
+                        {item.postalCode || item.address ? (
+                          <>{item.postalCode && <span className="text-xs text-slate-500">〒{item.postalCode} </span>}{item.address ?? ""}</>
+                        ) : "—"}
+                      </td>
+                      <td className="py-4 pr-4 text-slate-700">
+                        <div>{item.phone ?? "—"}</div>
+                        <div className="text-xs text-slate-500">{item.email ?? "—"}</div>
+                      </td>
+                      <td className="py-4 pr-4 text-slate-700">{formatDateJp(item.createdAt)}</td>
+                      <td className="w-[88px] py-4 text-center">
+                        <Link href={`/companies/${item.id}`} className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 hover:bg-slate-50">
+                          開く
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {total > PAGE_LIMIT && (
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500">{rangeStart}〜{rangeEnd}件 / 全{total}件</p>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => goToOffset(offset - PAGE_LIMIT)} disabled={!hasPrev || loading}
+                    className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                    ← 前へ
+                  </button>
+                  <button type="button" onClick={() => goToOffset(offset + PAGE_LIMIT)} disabled={!hasNext || loading}
+                    className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                    次へ →
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardSection>
+      <ToastHandler />
     </div>
+  );
+}
+
+export default function CompaniesPage() {
+  return (
+    <React.Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
+      <CompaniesPageInner />
+    </React.Suspense>
   );
 }

@@ -1,3 +1,4 @@
+// apps/web/src/app/calendar/page.tsx
 import { Suspense } from "react";
 import CalendarClient from "./CalendarClient";
 import { fetchSchedules } from "@/lib/fetchers/schedules";
@@ -24,6 +25,8 @@ function buildHolidaysForYears(years: number[]) {
 
   return map;
 }
+
+export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
   const [initialSchedules, sites] = await Promise.all([

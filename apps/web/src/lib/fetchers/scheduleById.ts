@@ -1,12 +1,12 @@
-import type { Schedule } from "@/lib/fetchers/schedules";
+// apps/web/src/lib/fetchers/scheduleById.ts
+import type { ScheduleApi } from "@/lib/validations/scheduleSchemas";
+import { safeJson } from "@/lib/safeFetch";
 
 const API_BASE_URL =
-  process.env.API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://127.0.0.1:3001";
+  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-export async function fetchScheduleById(id: string): Promise<Schedule> {
-  const res = await fetch(`${API_BASE_URL}/schedules/${id}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Failed to fetch schedule: ${res.status} ${res.statusText}`);
-  return res.json();
+export async function fetchScheduleById(id: string): Promise<ScheduleApi | null> {
+  if (!API_BASE_URL) return null;
+  const data = await safeJson<ScheduleApi>(`${API_BASE_URL}/schedules/${id}`);
+  return data ?? null;
 }

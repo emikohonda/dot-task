@@ -482,7 +482,7 @@ export default function CalendarClient({ initialSchedules, sites, holidays }: Pr
                             <div className="mt-1 text-xs text-slate-600">
                               {formatTime(s.date)}
                               {s.site?.name ? ` / ${s.site.name}` : ""}
-                              {s.contractor?.name ? ` / ${s.contractor.name}` : ""}
+                              {s.contractors?.[0]?.contractor?.name ? ` / ${s.contractors[0].contractor.name}` : ""}
                             </div>
                           </div>
 

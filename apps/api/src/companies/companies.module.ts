@@ -1,3 +1,4 @@
+// apps/api/src/companies/companies.module.ts
 import { Module } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CompaniesController } from './companies.controller';

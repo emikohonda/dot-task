@@ -1,15 +1,8 @@
+// apps/api/src/schedules/schedules.controller.ts
 import {
-  Controller,
-  Get,
-  Patch,
-  Post,
-  Delete,
-  Param,
-  Body,
-  Query,
-  DefaultValuePipe,
-  ParseIntPipe,
-  ParseUUIDPipe,
+  Controller, Get, Patch, Post, Delete,
+  Param, Body, Query,
+  ParseIntPipe, ParseUUIDPipe,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { UpdateScheduleStatusDto } from './dto/update-schedule-status.dto';
@@ -22,9 +15,21 @@ export class SchedulesController {
 
   @Get()
   findAll(
-    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number
+    @Query('limit',  new ParseIntPipe({ optional: true })) limit?:  number,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
+    @Query('date')         date?:         string,
+    @Query('keyword')      keyword?:      string,
+    @Query('status')       status?:       string,
+    @Query('dateFrom')     dateFrom?:     string,
+    @Query('dateTo')       dateTo?:       string,
+    @Query('siteId')       siteId?:       string,
+    @Query('employeeId')   employeeId?:   string,
+    @Query('contractorId') contractorId?: string,
   ) {
-    return this.schedulesService.findAll(limit);
+    return this.schedulesService.findAll({
+      limit, offset, date, keyword, status,
+      dateFrom, dateTo, siteId, employeeId, contractorId,
+    });
   }
 
   @Get(':id')
@@ -35,25 +40,28 @@ export class SchedulesController {
   @Post()
   create(@Body() dto: CreateScheduleDto) {
     return this.schedulesService.create({
-      title: dto.title,
-      date: dto.date,
-      siteId: dto.siteId,
+      title: dto.title, date: dto.date, siteId: dto.siteId,
+      status: dto.status,
+      contractorIds: dto.contractorIds ?? [],
+      employeeIds: dto.employeeIds ?? [],
+      description: dto.description ?? null,
+      startTime: dto.startTime ?? null,
+      endTime: dto.endTime ?? null,
     });
   }
 
   @Patch(':id')
-  update(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateScheduleDto
-  ) {
-    return this.schedulesService.update(id, dto);
+  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateScheduleDto) {
+    return this.schedulesService.update(id, {
+      title: dto.title, date: dto.date, siteId: dto.siteId,
+      status: dto.status, contractorIds: dto.contractorIds,
+      employeeIds: dto.employeeIds, description: dto.description,
+      startTime: dto.startTime, endTime: dto.endTime,
+    });
   }
 
   @Patch(':id/status')
-  updateStatus(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateScheduleStatusDto
-  ) {
+  updateStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateScheduleStatusDto) {
     return this.schedulesService.updateStatus(id, dto.status);
   }
 

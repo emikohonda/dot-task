@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// apps/api/src/contractors/contractors.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseUUIDPipe, ParseIntPipe } from '@nestjs/common';
 import { ContractorsService } from './contractors.service';
 import { CreateContractorDto } from './dto/create-contractor.dto';
 import { UpdateContractorDto } from './dto/update-contractor.dto';
@@ -13,22 +14,26 @@ export class ContractorsController {
   }
 
   @Get()
-  findAll() {
-    return this.contractorsService.findAll();
+  findAll(
+    @Query('keyword') keyword?: string,
+    @Query('limit',  new ParseIntPipe({ optional: true })) limit?:  number,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
+  ) {
+    return this.contractorsService.findAll({ keyword, limit, offset });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.contractorsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateContractorDto: UpdateContractorDto) {
+  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() updateContractorDto: UpdateContractorDto) {
     return this.contractorsService.update(id, updateContractorDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.contractorsService.remove(id);
   }
 }

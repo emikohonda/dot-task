@@ -1,8 +1,13 @@
 {
 	"devDependencies": {
-		"prisma": "^6.17.1"
+		"@types/node": "^25.3.2",
+		"prisma": "^6.17.1",
+		"ts-node": "^10.9.2"
 	},
 	"dependencies": {
 		"@prisma/client": "6.17.1"
+	},
+	"prisma": {
+		"seed": "ts-node prisma/seed.ts"
 	}
 }

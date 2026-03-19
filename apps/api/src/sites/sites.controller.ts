@@ -1,19 +1,21 @@
+// apps/api/src/sites/sites.controller.ts
 import {
   Controller,
   Get,
   Post,
-  Body,
-  Param,
   Patch,
   Delete,
+  Param,
+  Body,
   Query,
-  ParseIntPipe
-} from '@nestjs/common';
-import { SitesService } from './sites.service';
-import { CreateSiteDto } from './dto/create-site.dto';
-import { UpdateSiteDto } from './dto/update-site.dto';
+  ParseUUIDPipe,
+  ParseIntPipe,
+} from "@nestjs/common";
+import { SitesService } from "./sites.service";
+import { CreateSiteDto } from "./dto/create-site.dto";
+import { UpdateSiteDto } from "./dto/update-site.dto";
 
-@Controller('sites')
+@Controller("sites")
 export class SitesController {
   constructor(private readonly sitesService: SitesService) {}
 
@@ -23,30 +25,39 @@ export class SitesController {
   }
 
   @Get()
-  findAll() {
-    return this.sitesService.findAll();
+  findAll(
+    @Query("keyword")   keyword?:   string,
+    @Query("companyId") companyId?: string,
+    @Query("status")    status?:    string,
+    @Query("limit",  new ParseIntPipe({ optional: true })) limit?:  number,
+    @Query("offset", new ParseIntPipe({ optional: true })) offset?: number,
+  ) {
+    return this.sitesService.findAll({ keyword, companyId, status, limit, offset });
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id", new ParseUUIDPipe()) id: string) {
     return this.sitesService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSiteDto: UpdateSiteDto) {
+  @Patch(":id")
+  update(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() updateSiteDto: UpdateSiteDto,
+  ) {
     return this.sitesService.update(id, updateSiteDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id", new ParseUUIDPipe()) id: string) {
     return this.sitesService.remove(id);
   }
 
-  //　現場の予定を取得（最大 limit 件）
-  @Get(':id/schedules')
-  findSchedulesBySitedId(
-    @Param('id') id: string,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  // 現場の予定を取得（最大 limit 件）
+  @Get(":id/schedules")
+  findSchedulesBySiteId(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
   ) {
     return this.sitesService.findSchedulesBySiteId(id, limit ?? 3);
   }

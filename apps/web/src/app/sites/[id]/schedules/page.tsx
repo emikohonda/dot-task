@@ -93,7 +93,7 @@ export default async function SiteSchedulesPage({
                                         <p className="font-medium text-slate-900">{s.title}</p>
                                         <p className="text-sm text-slate-600">
                                             {formatDateTime(s.date)}
-                                            {s.contractor?.name ? ` / ${s.contractor.name}` : ""}
+                                            {s.contractors?.[0]?.contractor?.name ? ` / ${s.contractors[0].contractor.name}` : ""}
                                         </p>
                                     </div>
 
