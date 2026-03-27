@@ -120,22 +120,22 @@ export default async function HomePage() {
             <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               今日は予定が空いてます。現場の流れを整えるチャンス！
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <Link
                 href="/schedules/new"
-                className="inline-flex items-center rounded-lg border border-sky-200 bg-sky-50 px-4 py-1.5 text-sm font-semibold text-sky-700 hover:bg-sky-100"
+                className="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-semibold text-sky-700 hover:bg-sky-100"
               >
                 ＋ 予定を追加
               </Link>
               <Link
                 href="/schedules"
-                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 予定一覧
               </Link>
               <Link
                 href="/calendar"
-                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 カレンダー
               </Link>
