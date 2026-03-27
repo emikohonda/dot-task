@@ -16,6 +16,8 @@ function uniq(arr: string[]) {
 }
 
 const VALID_STATUSES: ScheduleStatus[] = ['TODO', 'DOING', 'HOLD', 'DONE', 'CANCELLED'];
+const VALID_TABS    = ['active', 'done'] as const;
+const VALID_SORTS   = ['asc', 'desc']   as const;
 
 function assertValidYmd(value: string, fieldName: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -50,6 +52,8 @@ export class SchedulesService {
     date?: string;
     keyword?: string;
     status?: string;
+    tab?: string;       // 追加：'active' | 'done'
+    sortDate?: string;  // 追加：'asc' | 'desc'
     dateFrom?: string;
     dateTo?: string;
     siteId?: string;
@@ -57,12 +61,20 @@ export class SchedulesService {
     contractorId?: string;
   }) {
     const {
-      date, keyword, status, dateFrom, dateTo,
-      siteId, employeeId, contractorId,
+      date, keyword, status, tab, sortDate,
+      dateFrom, dateTo, siteId, employeeId, contractorId,
     } = params;
 
     const limit  = Math.min(params.limit  ?? 20, 200);
     const offset = params.offset ?? 0;
+
+    // ── バリデーション ──
+    if (tab && !VALID_TABS.includes(tab as (typeof VALID_TABS)[number])) {
+      throw new BadRequestException(`tab must be one of ${VALID_TABS.join(', ')}`);
+    }
+    if (sortDate && !VALID_SORTS.includes(sortDate as (typeof VALID_SORTS)[number])) {
+      throw new BadRequestException(`sortDate must be one of ${VALID_SORTS.join(', ')}`);
+    }
 
     const where: Prisma.ScheduleWhereInput = {};
 
@@ -102,10 +114,25 @@ export class SchedulesService {
       ];
     }
 
-    // ── ステータス ──
+    // ── タブ（未完了 / 完了済）──
+    // tab が来た場合はまずタブで大分類する
+    if (tab === 'done') {
+      where.status = 'DONE';
+    } else if (tab === 'active') {
+      where.status = { not: 'DONE' };
+    }
+
+    // ── ステータス（単一指定）──
     if (status) {
       if (!VALID_STATUSES.includes(status as ScheduleStatus)) {
         throw new BadRequestException(`status must be one of ${VALID_STATUSES.join(', ')}`);
+      }
+      // tab との組み合わせ矛盾をガード
+      if (tab === 'active' && status === 'DONE') {
+        throw new BadRequestException('status=DONE cannot be used with tab=active');
+      }
+      if (tab === 'done' && status !== 'DONE') {
+        throw new BadRequestException('done tab only allows status=DONE');
       }
       where.status = status as ScheduleStatus;
     }
@@ -114,11 +141,19 @@ export class SchedulesService {
     if (employeeId)   where.employees   = { some: { employeeId } };
     if (contractorId) where.contractors = { some: { contractorId } };
 
+    // ── orderBy：sortDate で切り替え ──
+    const dateOrder = sortDate === 'desc' ? 'desc' : 'asc';
+    const orderBy: Prisma.ScheduleOrderByWithRelationInput[] = [
+      { date: dateOrder },
+      { startTime: 'asc' },
+      { createdAt: 'desc' },
+    ];
+
     // ── 朝礼DX用（dateクエリあり）はpagination不要 ──
     if (date) {
       const items = await this.prisma.schedule.findMany({
         where,
-        orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { createdAt: 'desc' }],
+        orderBy,
         include: this.includeForSchedule(),
       });
       return { items, total: items.length, limit: items.length, offset: 0 };
@@ -131,7 +166,7 @@ export class SchedulesService {
         where,
         skip: offset,
         take: limit,
-        orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { createdAt: 'desc' }],
+        orderBy,
         include: this.includeForSchedule(),
       }),
     ]);

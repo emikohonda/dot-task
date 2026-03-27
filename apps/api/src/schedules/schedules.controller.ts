@@ -17,17 +17,19 @@ export class SchedulesController {
   findAll(
     @Query('limit',  new ParseIntPipe({ optional: true })) limit?:  number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
-    @Query('date')         date?:         string,
-    @Query('keyword')      keyword?:      string,
-    @Query('status')       status?:       string,
-    @Query('dateFrom')     dateFrom?:     string,
-    @Query('dateTo')       dateTo?:       string,
-    @Query('siteId')       siteId?:       string,
-    @Query('employeeId')   employeeId?:   string,
-    @Query('contractorId') contractorId?: string,
+    @Query('date')          date?:          string,
+    @Query('keyword')       keyword?:       string,
+    @Query('status')        status?:        string,
+    @Query('tab')           tab?:           string,  // 追加：'active' | 'done'
+    @Query('sortDate')      sortDate?:      string,  // 追加：'asc' | 'desc'
+    @Query('dateFrom')      dateFrom?:      string,
+    @Query('dateTo')        dateTo?:        string,
+    @Query('siteId')        siteId?:        string,
+    @Query('employeeId')    employeeId?:    string,
+    @Query('contractorId')  contractorId?:  string,
   ) {
     return this.schedulesService.findAll({
-      limit, offset, date, keyword, status,
+      limit, offset, date, keyword, status, tab, sortDate,
       dateFrom, dateTo, siteId, employeeId, contractorId,
     });
   }
