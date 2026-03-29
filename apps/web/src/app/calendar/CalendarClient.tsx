@@ -234,7 +234,7 @@ export default function CalendarClient({
                   key={ymd}
                   onClick={() => router.push(`/calendar/day/${ymd}`)}
                   className={[
-                    "flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors",
+                    "flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
                     isToday
                       ? "bg-white ring-2 ring-inset ring-slate-700"
                       : isHoliday || isSunday
