@@ -1,12 +1,27 @@
 // apps/web/src/app/calendar/day/[date]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Clock, MapPin, User, Building2, ChevronLeft } from "lucide-react";
+import { Clock, MapPin, User, Building2, ChevronLeft } from "lucide-react";
 import { STATUS_META } from "@/lib/scheduleStatus";
 import type { Schedule } from "@/lib/fetchers/schedules";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
+
+function isValidYmd(ymd: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+
+  const [y, m, d] = ymd.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d
+  );
+}
 
 function formatDateLabel(ymd: string): string {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -58,14 +73,14 @@ async function fetchDaySchedules(date: string): Promise<Schedule[]> {
 export const dynamic = "force-dynamic";
 
 type Props = {
-  params: { date: string };
+  params: Promise<{ date: string }>;
 };
 
 export default async function CalendarDayPage({ params }: Props) {
-  const { date } = params;
+  const { date } = await params;
 
   // YYYY-MM-DD バリデーション
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
+  if (!isValidYmd(date)) notFound();
 
   const schedules = await fetchDaySchedules(date);
   const dateLabel = formatDateLabel(date);
