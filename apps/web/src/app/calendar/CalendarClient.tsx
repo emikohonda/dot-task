@@ -4,17 +4,16 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Schedule } from "@/lib/fetchers/schedules";
-import { STATUS_META } from "@/lib/scheduleStatus";
 import {
   ymdLocal,
   formatMonthTitle,
   buildCalendarCells,
   groupByDate,
   addMonths,
-  monthRange,
+  gridRange,
 } from "./_components/calendar";
 
 const API_BASE =
@@ -22,9 +21,9 @@ const API_BASE =
 
 const WEEK_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
-async function fetchMonthSchedules(year: number, month0: number): Promise<Schedule[]> {
+async function fetchGridSchedules(year: number, month0: number): Promise<Schedule[]> {
   try {
-    const { from, to } = monthRange(year, month0);
+    const { from, to } = gridRange(year, month0);
     const params = new URLSearchParams({ dateFrom: from, dateTo: to, limit: "200" });
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, { cache: "no-store" });
     if (!res.ok) return [];
@@ -37,27 +36,33 @@ async function fetchMonthSchedules(year: number, month0: number): Promise<Schedu
   }
 }
 
-type Props = {
-  initialSchedules: Schedule[];
-  initialYear: number;
-  initialMonth0: number;
-  holidays?: Record<string, string>;
-};
-
-// dir=0（今月ボタン）はフェードのみ、dir=±1は左右スライド
 const variants = {
   enter: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
     opacity: 0,
   }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
+  center: { x: 0, opacity: 1 },
   exit: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "-100%" : "100%",
     opacity: 0,
   }),
+};
+
+function formatTimeBlock(s: Schedule): { line1: string; line2: string } {
+  if (!s.startTime) return { line1: "終日", line2: "" };
+  return { line1: s.startTime, line2: s.endTime ?? "" };
+}
+
+function companyName(s: Schedule): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (s.site as any)?.company?.name ?? "元請未設定";
+}
+
+type Props = {
+  initialSchedules: Schedule[];
+  initialYear: number;
+  initialMonth0: number;
+  holidays?: Record<string, string>;
 };
 
 export default function CalendarClient({
@@ -76,7 +81,8 @@ export default function CalendarClient({
   const [month0, setMonth0] = React.useState(initialMonth0);
   const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
   const [loading, setLoading] = React.useState(false);
-  const [direction, setDirection] = React.useState(0); // 1=次月, -1=前月, 0=今月
+  const [direction, setDirection] = React.useState(0);
+  const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
 
   const [cache, setCache] = React.useState<Record<string, Schedule[]>>({
     [`${initialYear}-${String(initialMonth0 + 1).padStart(2, "0")}`]: initialSchedules,
@@ -91,16 +97,14 @@ export default function CalendarClient({
       setDirection(dir);
       setYear(y);
       setMonth0(m0);
-
       const key = monthKey(y, m0);
       if (cache[key]) {
         setSchedules(cache[key]);
         return;
       }
-
       setLoading(true);
       try {
-        const data = await fetchMonthSchedules(y, m0);
+        const data = await fetchGridSchedules(y, m0);
         setSchedules(data);
         setCache((prev) => ({ ...prev, [key]: data }));
       } finally {
@@ -120,13 +124,10 @@ export default function CalendarClient({
     goToMonth(next.year, next.month0, 1);
   };
 
-  // スワイプ検出
   const touchStartX = React.useRef<number | null>(null);
-
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
-
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
@@ -140,24 +141,35 @@ export default function CalendarClient({
   const cells = React.useMemo(() => buildCalendarCells(year, month0), [year, month0]);
   const monthTitle = formatMonthTitle(year, month0);
 
-  return (
-    <div className="relative flex h-[calc(100dvh-136px)] flex-col gap-0 overflow-hidden bg-white">
+  const selectedList = React.useMemo(
+    () => byDate.get(selectedYmd) ?? [],
+    [byDate, selectedYmd]
+  );
 
-      {/* 月見出し */}
-      <div className="flex shrink-0 items-center justify-between px-4 pt-1">
+  const selectedLabel = React.useMemo(() => {
+    const [y, m, d] = selectedYmd.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString("ja-JP", {
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    });
+  }, [selectedYmd]);
+
+  return (
+    <div className="relative flex h-[calc(100dvh-136px)] flex-col overflow-hidden bg-white">
+
+      {/* ── 月見出し ── */}
+      <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-            {monthTitle}
-          </h1>
-          {loading && (
-            <span className="animate-pulse text-xs text-slate-400">更新中…</span>
-          )}
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
+          {loading && <span className="animate-pulse text-xs text-slate-400">更新中…</span>}
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={goPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
             aria-label="前月"
           >
             ‹
@@ -172,7 +184,7 @@ export default function CalendarClient({
           <button
             type="button"
             onClick={goNext}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
             aria-label="次月"
           >
             ›
@@ -180,13 +192,13 @@ export default function CalendarClient({
         </div>
       </div>
 
-      {/* 曜日ヘッダー：固定 */}
+      {/* ── 曜日ヘッダー ── */}
       <div className="grid shrink-0 grid-cols-7 border-b border-slate-100">
         {WEEK_LABELS.map((w, i) => (
           <div
             key={w}
             className={[
-              "py-1.5 text-center text-[11px] font-semibold",
+              "py-1 text-center text-[11px] font-semibold",
               i === 0 ? "text-rose-400" : i === 6 ? "text-sky-500" : "text-slate-400",
             ].join(" ")}
           >
@@ -195,9 +207,9 @@ export default function CalendarClient({
         ))}
       </div>
 
-      {/* カレンダー本体：スライドアニメーション */}
+      {/* ── カレンダーグリッド（上部 約60%） ── */}
       <div
-        className="relative min-h-0 flex-1 overflow-hidden"
+        className="relative min-h-0 flex-[6] overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -213,79 +225,110 @@ export default function CalendarClient({
               x: { type: "spring", stiffness: 300, damping: 30 },
               opacity: { duration: 0.15 },
             }}
-            className="absolute inset-0 grid grid-cols-7 grid-rows-6 gap-px bg-white"
+            className="absolute inset-0 grid grid-cols-7 grid-rows-6 gap-px bg-slate-100"
           >
             {cells.map((date, idx) => {
-              if (!date) {
-                return <div key={`empty-${idx}`} className="bg-white" />;
-              }
-
               const ymd = ymdLocal(date);
+              const isCurrentMonth = date.getMonth() === month0;
               const dow = date.getDay();
               const isSunday = dow === 0;
               const isSaturday = dow === 6;
               const isToday = ymd === todayYmd;
+              const isSelected = ymd === selectedYmd;
               const isHoliday = !!holidays[ymd];
               const list = byDate.get(ymd) ?? [];
-              const overCount = Math.max(0, list.length - 2);
+              // 当月：2件、前後月：1件
+              const maxChips = isCurrentMonth ? 2 : 1;
+              const overCount = Math.max(0, list.length - maxChips);
 
               return (
                 <div
-                  key={ymd}
-                  onClick={() => router.push(`/calendar/day/${ymd}`)}
+                  key={`${ymd}-${idx}`}
+                  onClick={() => setSelectedYmd(ymd)}
                   className={[
-                    "flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
-                    isToday
-                      ? "bg-white ring-2 ring-inset ring-slate-700"
-                      : isHoliday || isSunday
-                        ? "bg-rose-50"
-                        : isSaturday
-                          ? "bg-sky-100/60"
-                          : "bg-white hover:bg-slate-50",
+                    "relative flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
+
+                    // 背景色：当月外 > 今日 > 選択中 > 曜日色
+                    !isCurrentMonth
+                      ? "bg-slate-50"
+                      : isToday
+                        ? "bg-emerald-50"   // 今日は薄緑（土曜の水色と被らない）
+                        : isSelected
+                          ? "bg-sky-100"      // 選択中は水色
+                          : isHoliday || isSunday
+                            ? "bg-rose-50"
+                            : isSaturday
+                              ? "bg-sky-100/60"
+                              : "bg-white hover:bg-slate-50",
+
+                    // 今日の太枠：選択状態に関わらず常に表示
+                    isCurrentMonth && isToday ? "ring-2 ring-inset ring-emerald-600" : "",
                   ].join(" ")}
                 >
-                  {/* 日付 */}
+                  {/* 日付：中央寄せ
+                      通常: text-[11px]
+                      小画面(h≤740px): text-[10px] に縮小 */}
                   <div
                     className={[
-                      "pr-0.5 text-right text-[11px] font-semibold leading-none",
-                      isToday
-                        ? "text-sky-600"
+                      "text-center font-semibold leading-none",
+                      "text-[11px] [@media(max-height:740px)]:text-[10px]",
+                      !isCurrentMonth
+                        ? "text-slate-300"
+                        : isToday
+                        ? "text-slate-700"
                         : isHoliday
-                          ? "text-rose-500"
-                          : isSunday
-                            ? "text-rose-400"
-                            : isSaturday
-                              ? "text-sky-500"
-                              : "text-slate-700",
+                        ? "text-rose-500"
+                        : isSunday
+                        ? "text-rose-400"
+                        : isSaturday
+                        ? "text-sky-500"
+                        : "text-slate-700",
                     ].join(" ")}
                   >
                     {date.getDate()}
                   </div>
 
-                  {/* 予定チップ：2件まで */}
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                    {list.slice(0, 2).map((s) => {
-                      const meta = STATUS_META[s.status];
-                      return (
-                        <div
-                          key={s.id}
-                          className={[
-                            "mb-px truncate rounded-[2px] px-0.5 text-[9px] leading-[14px]",
-                            // Site.color 将来ここに色を反映
-                            meta.className,
-                          ].join(" ")}
-                          title={s.title}
-                        >
-                          {s.title}
-                        </div>
-                      );
-                    })}
-                    {overCount > 0 && (
-                      <div className="text-center text-[8px] leading-3 text-slate-400">
-                        +{overCount}
+                  {/* 予定チップ
+                      通常: text-[9px] leading-[14px] pb-3
+                      小画面: text-[8px] leading-[11px] pb-2 */}
+                  <div
+                    className={[
+                      "mt-0.5 min-h-0 flex-1 overflow-hidden",
+                      "pb-3 [@media(max-height:740px)]:pb-2",
+                    ].join(" ")}
+                  >
+                    {list.slice(0, maxChips).map((s) => (
+                      <div
+                        key={s.id}
+                        className={[
+                          "mb-px truncate rounded-[2px] px-0.5",
+                          "text-[9px] leading-[14px] [@media(max-height:740px)]:text-[8px] [@media(max-height:740px)]:leading-[11px]",
+                          !isCurrentMonth
+                            ? "bg-slate-200 text-slate-400"
+                            : "bg-sky-500/20 text-sky-800",
+                        ].join(" ")}
+                        title={s.site?.name ?? s.title}
+                      >
+                        {s.site?.name ?? s.title}
                       </div>
-                    )}
+                    ))}
                   </div>
+
+                  {/* +N：中央下固定（全端末共通レイアウト）
+                      通常: text-[8px] bottom-0.5
+                      小画面: text-[7px] bottom-0 */}
+                  {overCount > 0 && (
+                    <div
+                      className={[
+                        "absolute left-1/2 -translate-x-1/2 text-center font-bold",
+                        "bottom-0.5 text-[8px] leading-3",
+                        "[@media(max-height:740px)]:bottom-0 [@media(max-height:740px)]:text-[7px]",
+                        !isCurrentMonth ? "text-slate-300" : "text-slate-400",
+                      ].join(" ")}
+                    >
+                      +{overCount}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -293,9 +336,76 @@ export default function CalendarClient({
         </AnimatePresence>
       </div>
 
+      {/* ── 下部：選択日の予定一覧（約40%） ── */}
+      <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
+
+        {/* 下部ヘッダー */}
+        <div className="flex shrink-0 items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
+            <span className="text-xs text-slate-400">{selectedList.length}件</span>
+          </div>
+          <Link
+            href={`/calendar/day/${selectedYmd}`}
+            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            一覧を見る
+          </Link>
+        </div>
+
+        {/* 予定リスト */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {selectedList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+              <p className="text-sm">予定はありません</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {selectedList.map((s) => {
+                const { line1, line2 } = formatTimeBlock(s);
+                const company = companyName(s);
+                const siteName = s.site?.name ?? "";
+
+                return (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/schedules/${s.id}`)}
+                      className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
+                    >
+                      {/* 左：時間エリア */}
+                      <div className="w-[52px] shrink-0 pr-2 text-right">
+                        <p className="text-[13px] font-semibold leading-5 text-slate-700">{line1}</p>
+                        <p className="text-[13px] font-semibold leading-5 text-slate-700">{line2}</p>
+                      </div>
+
+                      {/* 縦区切り線 */}
+                      <div className="mx-2 w-px shrink-0 self-stretch bg-slate-200" />
+
+                      {/* 右：元請 + 現場名 */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] leading-5 text-slate-500">
+                          {company}
+                        </p>
+                        {siteName && (
+                          <p className="flex items-center gap-1 truncate text-[15px] font-semibold leading-5 text-slate-800">
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-400" />
+                            {siteName}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {/* スマホ用FAB */}
       <Link
-        href="/schedules/new"
+        href={`/schedules/new?date=${selectedYmd}`}
         className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
         aria-label="予定を追加"
       >

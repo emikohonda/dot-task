@@ -47,23 +47,49 @@ export function addMonths(year: number, month0: number, delta: number): { year: 
   return { year: d.getFullYear(), month0: d.getMonth() };
 }
 
-/** 月グリッドのセル配列を返す（空セルは null） */
-export function buildCalendarCells(year: number, month0: number): Array<Date | null> {
-  const first = startOfMonth(year, month0);
+/**
+ * 月グリッド用のセル配列を返す（常に42セル = 6行×7列）
+ * 前月末・次月初も含む
+ */
+export function buildCalendarCells(year: number, month0: number): Date[] {
+  const first = new Date(year, month0, 1);
   const firstDow = first.getDay(); // 0=日
+
+  const cells: Date[] = [];
+
+  // 前月の末日を埋める
+  for (let i = firstDow - 1; i >= 0; i--) {
+    const d = new Date(year, month0, -i);
+    cells.push(d);
+  }
+
+  // 当月
   const total = daysInMonth(year, month0);
-
-  const cells: Array<Date | null> = [];
-
-  // 月初前の空セル
-  for (let i = 0; i < firstDow; i++) cells.push(null);
-
-  // 日付セル
   for (let d = 1; d <= total; d++) {
     cells.push(new Date(year, month0, d));
   }
 
+  // 次月で42セルに揃える
+  const remaining = 42 - cells.length;
+  for (let d = 1; d <= remaining; d++) {
+    cells.push(new Date(year, month0 + 1, d));
+  }
+
   return cells;
+}
+
+/**
+ * グリッドの表示範囲（前月末〜次月初を含む）を返す
+ * データ取得範囲として使う
+ */
+export function gridRange(year: number, month0: number): { from: string; to: string } {
+  const cells = buildCalendarCells(year, month0);
+  const first = cells[0];
+  const last = cells[cells.length - 1];
+  return {
+    from: ymdLocal(first),
+    to: ymdLocal(last),
+  };
 }
 
 /** Schedule[] を "YYYY-MM-DD" → Schedule[] の Map に変換 */

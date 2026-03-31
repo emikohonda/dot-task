@@ -97,7 +97,7 @@ export default async function CalendarDayPage({ params }: Props) {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <p className="text-xs text-slate-500">カレンダー</p>
+          {/* <p className="text-xs text-slate-500">カレンダー</p> */}
           <h1 className="text-lg font-bold text-slate-900">{dateLabel}</h1>
         </div>
       </div>

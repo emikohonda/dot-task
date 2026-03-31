@@ -40,7 +40,19 @@ export class SchedulesService {
 
   private includeForSchedule() {
     return {
-      site: { select: { id: true, name: true } },
+      // site に company（元請会社）を追加
+      site: {
+        select: {
+          id: true,
+          name: true,
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       contractors: { include: { contractor: { select: { id: true, name: true } } } },
       employees: { include: { employee: { select: { id: true, name: true } } } },
     } as const;
@@ -52,8 +64,8 @@ export class SchedulesService {
     date?: string;
     keyword?: string;
     status?: string;
-    tab?: string;       // 追加：'active' | 'done'
-    sortDate?: string;  // 追加：'asc' | 'desc'
+    tab?: string;
+    sortDate?: string;
     dateFrom?: string;
     dateTo?: string;
     siteId?: string;
@@ -68,7 +80,6 @@ export class SchedulesService {
     const limit  = Math.min(params.limit  ?? 20, 200);
     const offset = params.offset ?? 0;
 
-    // ── バリデーション ──
     if (tab && !VALID_TABS.includes(tab as (typeof VALID_TABS)[number])) {
       throw new BadRequestException(`tab must be one of ${VALID_TABS.join(', ')}`);
     }
@@ -82,7 +93,6 @@ export class SchedulesService {
       throw new BadRequestException('date cannot be combined with dateFrom/dateTo');
     }
 
-    // ── 単日フィルタ（後方互換：朝礼DX用）──
     if (date) {
       assertValidYmd(date, 'date');
       where.date = {
@@ -91,7 +101,6 @@ export class SchedulesService {
       };
     }
 
-    // ── 日付範囲フィルタ ──
     if (dateFrom || dateTo) {
       if (dateFrom) assertValidYmd(dateFrom, 'dateFrom');
       if (dateTo)   assertValidYmd(dateTo,   'dateTo');
@@ -104,7 +113,6 @@ export class SchedulesService {
       };
     }
 
-    // ── キーワード ──
     if (keyword?.trim()) {
       const kw = keyword.trim();
       where.OR = [
@@ -114,20 +122,18 @@ export class SchedulesService {
       ];
     }
 
-    // ── タブ（未完了 / 完了済）──
-    // tab が来た場合はまずタブで大分類する
+    // タブ（未完了 / 完了済）
     if (tab === 'done') {
       where.status = 'DONE';
     } else if (tab === 'active') {
       where.status = { not: 'DONE' };
     }
 
-    // ── ステータス（単一指定）──
+    // ステータス単一指定（タブより優先）
     if (status) {
       if (!VALID_STATUSES.includes(status as ScheduleStatus)) {
         throw new BadRequestException(`status must be one of ${VALID_STATUSES.join(', ')}`);
       }
-      // tab との組み合わせ矛盾をガード
       if (tab === 'active' && status === 'DONE') {
         throw new BadRequestException('status=DONE cannot be used with tab=active');
       }
@@ -141,7 +147,6 @@ export class SchedulesService {
     if (employeeId)   where.employees   = { some: { employeeId } };
     if (contractorId) where.contractors = { some: { contractorId } };
 
-    // ── orderBy：sortDate で切り替え ──
     const dateOrder = sortDate === 'desc' ? 'desc' : 'asc';
     const orderBy: Prisma.ScheduleOrderByWithRelationInput[] = [
       { date: dateOrder },
@@ -149,7 +154,6 @@ export class SchedulesService {
       { createdAt: 'desc' },
     ];
 
-    // ── 朝礼DX用（dateクエリあり）はpagination不要 ──
     if (date) {
       const items = await this.prisma.schedule.findMany({
         where,
@@ -159,7 +163,6 @@ export class SchedulesService {
       return { items, total: items.length, limit: items.length, offset: 0 };
     }
 
-    // ── 通常一覧：pagination対応 ──
     const [total, items] = await Promise.all([
       this.prisma.schedule.count({ where }),
       this.prisma.schedule.findMany({
