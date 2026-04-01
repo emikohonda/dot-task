@@ -1,8 +1,7 @@
 // apps/web/src/app/calendar/day/[date]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, MapPin, User, Building2, ChevronLeft } from "lucide-react";
-import { STATUS_META } from "@/lib/scheduleStatus";
+import { MapPin, ChevronLeft, Plus } from "lucide-react";
 import type { Schedule } from "@/lib/fetchers/schedules";
 
 const API_BASE =
@@ -12,10 +11,8 @@ const API_BASE =
 
 function isValidYmd(ymd: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
-
   const [y, m, d] = ymd.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-
   return (
     date.getFullYear() === y &&
     date.getMonth() === m - 1 &&
@@ -34,24 +31,14 @@ function formatDateLabel(ymd: string): string {
   });
 }
 
-function formatTime(startTime: string | null, endTime: string | null): string {
-  if (!startTime) return "終日";
-  if (!endTime) return startTime;
-  return `${startTime} 〜 ${endTime}`;
+function formatTimeBlock(s: Schedule): { line1: string; line2: string } {
+  if (!s.startTime) return { line1: "終日", line2: "" };
+  return { line1: s.startTime, line2: s.endTime ?? "" };
 }
 
-function contractorLabel(s: Schedule): string | null {
-  const names = s.contractors
-    ?.map((x) => x.contractor?.name ?? null)
-    .filter((n): n is string => Boolean(n?.trim())) ?? [];
-  return names.length ? names.join(" / ") : null;
-}
-
-function employeesLabel(s: Schedule): string | null {
-  const names = s.employees
-    ?.map((x) => x.employee?.name ?? null)
-    .filter((n): n is string => Boolean(n?.trim())) ?? [];
-  return names.length ? names.join(" / ") : null;
+function companyName(s: Schedule): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (s.site as any)?.company?.name ?? "元請未設定";
 }
 
 async function fetchDaySchedules(date: string): Promise<Schedule[]> {
@@ -79,26 +66,26 @@ type Props = {
 export default async function CalendarDayPage({ params }: Props) {
   const { date } = await params;
 
-  // YYYY-MM-DD バリデーション
   if (!isValidYmd(date)) notFound();
 
   const schedules = await fetchDaySchedules(date);
   const dateLabel = formatDateLabel(date);
 
   return (
-    <div className="space-y-4">
-      {/* ヘッダー */}
+    <div className="relative space-y-3">
+
+      {/* ヘッダー：戻るボタン + 日付 + 件数 */}
       <div className="flex items-center gap-3">
         <Link
           href="/calendar"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           aria-label="カレンダーに戻る"
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <div>
-          {/* <p className="text-xs text-slate-500">カレンダー</p> */}
+        <div className="flex items-baseline gap-2">
           <h1 className="text-lg font-bold text-slate-900">{dateLabel}</h1>
+          <span className="text-sm text-slate-400">{schedules.length}件</span>
         </div>
       </div>
 
@@ -107,100 +94,58 @@ export default async function CalendarDayPage({ params }: Props) {
         {schedules.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm font-medium text-slate-900">この日は予定がありません</p>
-            <Link
-              href={`/schedules/new?date=${date}`}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
-            >
-              ＋ 予定を追加
-            </Link>
           </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <p className="text-sm text-slate-500">{schedules.length}件</p>
-              <Link
-                href={`/schedules/new?date=${date}`}
-                className="rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
-              >
-                ＋ 予定を追加
-              </Link>
-            </div>
+          <ul className="divide-y divide-slate-100">
+            {schedules.map((s) => {
+              const { line1, line2 } = formatTimeBlock(s);
+              const company = companyName(s);
+              const siteName = s.site?.name ?? "";
 
-            <ul className="divide-y divide-slate-100">
-              {schedules.map((s) => {
-                const meta = STATUS_META[s.status];
-                const cancelled = !!meta.isCancelled;
-                const empText = employeesLabel(s);
-                const conText = contractorLabel(s);
+              return (
+                <li key={s.id}>
+                  <Link
+                    href={`/schedules/${s.id}`}
+                    className="flex w-full items-stretch gap-0 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                  >
+                    {/* 左：時間エリア（固定幅・縦並び） */}
+                    <div className="w-[48px] shrink-0 pr-2 text-right">
+                      <p className="text-[14px] font-semibold leading-5 text-slate-700">{line1}</p>
+                      <p className="text-[14px] font-semibold leading-5 text-slate-500">{line2}</p>
+                    </div>
 
-                return (
-                  <li key={s.id}>
-                    <Link
-                      href={`/schedules/${s.id}`}
-                      className={[
-                        "block px-4 py-4 transition-colors hover:bg-slate-50",
-                        cancelled ? "opacity-60" : "",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        {/* 左：情報 */}
-                        <div className="min-w-0 flex-1">
-                          {/* タイトル */}
-                          <p
-                            className={[
-                              "font-bold text-[18px] leading-snug text-slate-900",
-                              cancelled ? "line-through text-slate-400" : "",
-                            ].join(" ")}
-                          >
-                            {s.title}
-                          </p>
+                    {/* 縦区切り線 */}
+                    <div className="mx-2 w-px shrink-0 self-stretch bg-slate-200" />
 
-                          {/* 現場名 */}
-                          {s.site?.name && (
-                            <p className="mt-1 flex items-center gap-1.5 font-semibold text-[16px] leading-6 text-slate-700">
-                              <MapPin className="h-4 w-4 shrink-0 text-sky-400" />
-                              {s.site.name}
-                            </p>
-                          )}
-
-                          {/* 時刻 */}
-                          <p className="mt-0.5 flex items-center gap-1.5 text-[15px] text-slate-500">
-                            <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-                            {formatTime(s.startTime ?? null, s.endTime ?? null)}
-                          </p>
-
-                          {/* 担当者 */}
-                          {empText && (
-                            <p className="mt-0.5 flex items-center gap-1.5 text-[14px] text-slate-600">
-                              <User className="h-4 w-4 shrink-0 text-slate-400" />
-                              {empText}
-                            </p>
-                          )}
-
-                          {/* 協力会社 */}
-                          {conText && (
-                            <p className="mt-0.5 flex items-center gap-1.5 text-[14px] text-slate-600">
-                              <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
-                              {conText}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* 右：ステータスバッジ */}
-                        <span
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${meta.className}`}
-                        >
-                          {meta.label}
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
+                    {/* 右：元請 + 現場名 */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] leading-5 text-slate-500">
+                        {company}
+                      </p>
+                      {siteName && (
+                        <p className="flex items-center gap-1.5 truncate text-[16px] font-semibold leading-6 text-slate-800">
+                          <MapPin className="h-4 w-4 shrink-0 text-sky-400" />
+                          {siteName}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
+
+      {/* 右下固定FAB */}
+      <Link
+        href={`/schedules/new?date=${date}`}
+        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
+        aria-label="予定を追加"
+      >
+        <Plus className="h-5 w-5" />
+        <span>予定を追加</span>
+      </Link>
     </div>
   );
 }

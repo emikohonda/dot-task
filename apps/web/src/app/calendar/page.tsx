@@ -1,4 +1,5 @@
 // apps/web/src/app/calendar/page.tsx
+import { gridRange } from "./_components/calendar";
 import { Suspense } from "react";
 import CalendarClient from "./CalendarClient";
 import { between } from "holiday-jp";
@@ -21,13 +22,12 @@ function buildHolidays(years: number[]): Record<string, string> {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
 
-async function fetchMonthSchedules(year: number, month0: number) {
+async function fetchInitialSchedules(year: number, month0: number) {
   try {
-    const mm = String(month0 + 1).padStart(2, "0");
-    const last = new Date(year, month0 + 1, 0).getDate();
+    const { from, to } = gridRange(year, month0); // ← gridRange に変更
     const params = new URLSearchParams({
-      dateFrom: `${year}-${mm}-01`,
-      dateTo: `${year}-${mm}-${String(last).padStart(2, "0")}`,
+      dateFrom: from,
+      dateTo: to,
       limit: "200",
     });
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
@@ -51,7 +51,7 @@ export default async function CalendarPage() {
   const month0 = now.getMonth();
 
   const [initialSchedules, holidays] = await Promise.all([
-    fetchMonthSchedules(year, month0),
+    fetchInitialSchedules(year, month0),
     Promise.resolve(buildHolidays([year - 1, year, year + 1])),
   ]);
 
