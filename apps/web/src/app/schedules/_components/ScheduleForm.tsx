@@ -29,6 +29,7 @@ type Props = {
   contractors: ContractorLite[];
   employees: EmployeeLite[];
   schedule: ScheduleApi | null;
+  initialDate?: string | null;
 };
 
 const statusLabel: Record<ScheduleStatus, string> = {
@@ -42,7 +43,7 @@ const statusLabel: Record<ScheduleStatus, string> = {
 // ISO → YYYY-MM-DD
 const toYmd = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null);
 
-export default function ScheduleForm({ mode, sites, contractors, employees, schedule }: Props) {
+export default function ScheduleForm({ mode, sites, contractors, employees, schedule, initialDate }: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,10 +51,11 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
     const v = fromScheduleToFormValues(schedule);
     return {
       ...v,
+      date: mode === "create" && initialDate ? initialDate : v.date,
       contractorIds: v.contractorIds ?? [],
       employeeIds: v.employeeIds ?? [],
     };
-  }, [schedule]);
+  }, [schedule, initialDate, mode]);
 
   const [selectedSiteRange, setSelectedSiteRange] = useState<SiteRange>({
     startDate: null,

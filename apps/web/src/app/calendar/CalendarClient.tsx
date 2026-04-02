@@ -114,28 +114,85 @@ export default function CalendarClient({
     [cache]
   );
 
-  const goPrev = () => {
+  const goPrev = React.useCallback(() => {
     const next = addMonths(year, month0, -1);
     goToMonth(next.year, next.month0, -1);
-  };
+  }, [year, month0, goToMonth]);
 
-  const goNext = () => {
+  const goNext = React.useCallback(() => {
     const next = addMonths(year, month0, 1);
     goToMonth(next.year, next.month0, 1);
-  };
+  }, [year, month0, goToMonth]);
 
+  // ── スワイプ検出（安全版）──
   const touchStartX = React.useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) < 50) return;
-    if (diff > 0) goNext();
-    else goPrev();
+  const touchStartY = React.useRef<number | null>(null);
+  const isMultiTouch = React.useRef(false);
+  const swipeLockRef = React.useRef(false);
+
+  const resetTouchState = React.useCallback(() => {
     touchStartX.current = null;
-  };
+    touchStartY.current = null;
+    isMultiTouch.current = false;
+  }, []);
+
+  const onTouchStart = React.useCallback(
+    (e: React.TouchEvent) => {
+      if (swipeLockRef.current) {
+        resetTouchState();
+        return;
+      }
+      if (e.touches.length !== 1) {
+        isMultiTouch.current = true;
+        touchStartX.current = null;
+        touchStartY.current = null;
+        return;
+      }
+      isMultiTouch.current = false;
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    },
+    [resetTouchState]
+  );
+
+  // 途中で2本指になったらキャンセル
+  const onTouchMove = React.useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 1) {
+      isMultiTouch.current = true;
+    }
+  }, []);
+
+  const onTouchEnd = React.useCallback(
+    (e: React.TouchEvent) => {
+      if (
+        swipeLockRef.current ||
+        isMultiTouch.current ||
+        touchStartX.current === null ||
+        touchStartY.current === null
+      ) {
+        resetTouchState();
+        return;
+      }
+
+      const diffX = touchStartX.current - e.changedTouches[0].clientX;
+      const diffY = touchStartY.current - e.changedTouches[0].clientY;
+      const absX = Math.abs(diffX);
+      const absY = Math.abs(diffY);
+
+      // 横移動50px以上 かつ 縦移動40px以下 かつ 横>縦×1.2
+      if (absX < 50) { resetTouchState(); return; }
+      if (absY > 40) { resetTouchState(); return; }
+      if (absX <= absY * 1.2) { resetTouchState(); return; }
+
+      // 月移動ロック（350ms連打防止）
+      swipeLockRef.current = true;
+      if (diffX > 0) goNext();
+      else goPrev();
+      resetTouchState();
+      window.setTimeout(() => { swipeLockRef.current = false; }, 350);
+    },
+    [goNext, goPrev, resetTouchState]
+  );
 
   const byDate = React.useMemo(() => groupByDate(schedules), [schedules]);
   const cells = React.useMemo(() => buildCalendarCells(year, month0), [year, month0]);
@@ -207,10 +264,11 @@ export default function CalendarClient({
         ))}
       </div>
 
-      {/* ── カレンダーグリッド（上部 約60%） ── */}
+      {/* ── カレンダーグリッド（上部 約60%）── */}
       <div
         className="relative min-h-0 flex-[6] overflow-hidden"
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
         <AnimatePresence initial={false} custom={direction}>
@@ -237,7 +295,6 @@ export default function CalendarClient({
               const isSelected = ymd === selectedYmd;
               const isHoliday = !!holidays[ymd];
               const list = byDate.get(ymd) ?? [];
-              // 当月：2件、前後月：1件
               const maxChips = isCurrentMonth ? 2 : 1;
               const overCount = Math.max(0, list.length - maxChips);
 
@@ -247,27 +304,21 @@ export default function CalendarClient({
                   onClick={() => setSelectedYmd(ymd)}
                   className={[
                     "relative flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
-
-                    // 背景色：当月外 > 今日 > 選択中 > 曜日色
                     !isCurrentMonth
                       ? "bg-slate-50"
                       : isToday
-                        ? "bg-emerald-50"   // 今日は薄緑（土曜の水色と被らない）
-                        : isSelected
-                          ? "bg-sky-100"      // 選択中は水色
-                          : isHoliday || isSunday
-                            ? "bg-rose-50"
-                            : isSaturday
-                              ? "bg-sky-100/60"
-                              : "bg-white hover:bg-slate-50",
-
-                    // 今日の太枠：選択状態に関わらず常に表示
+                      ? "bg-emerald-50"
+                      : isSelected
+                      ? "bg-sky-100"
+                      : isHoliday || isSunday
+                      ? "bg-rose-50"
+                      : isSaturday
+                      ? "bg-sky-100/60"
+                      : "bg-white hover:bg-slate-50",
                     isCurrentMonth && isToday ? "ring-2 ring-inset ring-emerald-600" : "",
                   ].join(" ")}
                 >
-                  {/* 日付：中央寄せ
-                      通常: text-[11px]
-                      小画面(h≤740px): text-[10px] に縮小 */}
+                  {/* 日付 */}
                   <div
                     className={[
                       "text-center font-semibold leading-none",
@@ -288,9 +339,7 @@ export default function CalendarClient({
                     {date.getDate()}
                   </div>
 
-                  {/* 予定チップ
-                      通常: text-[9px] leading-[14px] pb-3
-                      小画面: text-[8px] leading-[11px] pb-2 */}
+                  {/* 予定チップ */}
                   <div
                     className={[
                       "mt-0.5 min-h-0 flex-1 overflow-hidden",
@@ -314,9 +363,7 @@ export default function CalendarClient({
                     ))}
                   </div>
 
-                  {/* +N：中央下固定（全端末共通レイアウト）
-                      通常: text-[8px] bottom-0.5
-                      小画面: text-[7px] bottom-0 */}
+                  {/* +N：中央下固定 */}
                   {overCount > 0 && (
                     <div
                       className={[
@@ -336,10 +383,8 @@ export default function CalendarClient({
         </AnimatePresence>
       </div>
 
-      {/* ── 下部：選択日の予定一覧（約40%） ── */}
+      {/* ── 下部：選択日の予定一覧（約40%）── */}
       <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
-
-        {/* 下部ヘッダー */}
         <div className="flex shrink-0 items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
@@ -353,8 +398,8 @@ export default function CalendarClient({
           </Link>
         </div>
 
-        {/* 予定リスト */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* 下部一覧：スクロール可・上への伝播を防ぐ */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {selectedList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-slate-400">
               <p className="text-sm">予定はありません</p>
@@ -373,20 +418,13 @@ export default function CalendarClient({
                       onClick={() => router.push(`/schedules/${s.id}`)}
                       className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
                     >
-                      {/* 左：時間エリア */}
                       <div className="w-[52px] shrink-0 pr-2 text-right">
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line1}</p>
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line2}</p>
                       </div>
-
-                      {/* 縦区切り線 */}
                       <div className="mx-2 w-px shrink-0 self-stretch bg-slate-200" />
-
-                      {/* 右：元請 + 現場名 */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] leading-5 text-slate-500">
-                          {company}
-                        </p>
+                        <p className="truncate text-[14px] leading-5 text-slate-500">{company}</p>
                         {siteName && (
                           <p className="flex items-center gap-1 truncate text-[15px] font-semibold leading-5 text-slate-800">
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-400" />
