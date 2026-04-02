@@ -36,6 +36,27 @@ async function fetchGridSchedules(year: number, month0: number): Promise<Schedul
   }
 }
 
+// 下部一覧専用：選択日の1日分だけ取得
+async function fetchSchedulesByDate(ymd: string): Promise<Schedule[]> {
+  try {
+    const params = new URLSearchParams({
+      dateFrom: ymd,
+      dateTo: ymd,
+      limit: "200",
+    });
+    const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 const variants = {
   enter: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
@@ -81,8 +102,10 @@ export default function CalendarClient({
   const [month0, setMonth0] = React.useState(initialMonth0);
   const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
   const [loading, setLoading] = React.useState(false);
+  const [selectedLoading, setSelectedLoading] = React.useState(false);
   const [direction, setDirection] = React.useState(0);
   const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
+  const [selectedSchedules, setSelectedSchedules] = React.useState<Schedule[]>([]);
 
   const [cache, setCache] = React.useState<Record<string, Schedule[]>>({
     [`${initialYear}-${String(initialMonth0 + 1).padStart(2, "0")}`]: initialSchedules,
@@ -97,11 +120,13 @@ export default function CalendarClient({
       setDirection(dir);
       setYear(y);
       setMonth0(m0);
+
       const key = monthKey(y, m0);
       if (cache[key]) {
         setSchedules(cache[key]);
         return;
       }
+
       setLoading(true);
       try {
         const data = await fetchGridSchedules(y, m0);
@@ -114,6 +139,8 @@ export default function CalendarClient({
     [cache]
   );
 
+  const byDate = React.useMemo(() => groupByDate(schedules), [schedules]);
+
   const goPrev = React.useCallback(() => {
     const next = addMonths(year, month0, -1);
     goToMonth(next.year, next.month0, -1);
@@ -123,6 +150,32 @@ export default function CalendarClient({
     const next = addMonths(year, month0, 1);
     goToMonth(next.year, next.month0, 1);
   }, [year, month0, goToMonth]);
+
+  React.useEffect(() => {
+    // グリッド内の日付は即表示
+    if (byDate.has(selectedYmd)) {
+      setSelectedSchedules(byDate.get(selectedYmd) ?? []);
+      setSelectedLoading(false);
+      return;
+    }
+
+    // グリッド外の日付だけfetch
+    let cancelled = false;
+    setSelectedLoading(true);
+
+    (async () => {
+      try {
+        const data = await fetchSchedulesByDate(selectedYmd);
+        if (!cancelled) setSelectedSchedules(data);
+      } finally {
+        if (!cancelled) setSelectedLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedYmd, byDate]);
 
   // ── スワイプ検出（安全版）──
   const touchStartX = React.useRef<number | null>(null);
@@ -155,7 +208,6 @@ export default function CalendarClient({
     [resetTouchState]
   );
 
-  // 途中で2本指になったらキャンセル
   const onTouchMove = React.useCallback((e: React.TouchEvent) => {
     if (e.touches.length > 1) {
       isMultiTouch.current = true;
@@ -179,34 +231,41 @@ export default function CalendarClient({
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      // 横移動50px以上 かつ 縦移動40px以下 かつ 横>縦×1.2
-      if (absX < 50) { resetTouchState(); return; }
-      if (absY > 40) { resetTouchState(); return; }
-      if (absX <= absY * 1.2) { resetTouchState(); return; }
+      if (absX < 50) {
+        resetTouchState();
+        return;
+      }
+      if (absY > 40) {
+        resetTouchState();
+        return;
+      }
+      if (absX <= absY * 1.2) {
+        resetTouchState();
+        return;
+      }
 
-      // 月移動ロック（350ms連打防止）
       swipeLockRef.current = true;
       if (diffX > 0) goNext();
       else goPrev();
       resetTouchState();
-      window.setTimeout(() => { swipeLockRef.current = false; }, 350);
+      window.setTimeout(() => {
+        swipeLockRef.current = false;
+      }, 350);
     },
     [goNext, goPrev, resetTouchState]
   );
 
-  const byDate = React.useMemo(() => groupByDate(schedules), [schedules]);
   const cells = React.useMemo(() => buildCalendarCells(year, month0), [year, month0]);
   const monthTitle = formatMonthTitle(year, month0);
 
-  const selectedList = React.useMemo(
-    () => byDate.get(selectedYmd) ?? [],
-    [byDate, selectedYmd]
-  );
+  // 下部一覧は selectedSchedules を使う
+  const selectedList = selectedSchedules;
 
   const selectedLabel = React.useMemo(() => {
     const [y, m, d] = selectedYmd.split("-").map(Number);
     const date = new Date(y, m - 1, d);
     return date.toLocaleDateString("ja-JP", {
+      // year: "numeric",  // ← 追加
       month: "long",
       day: "numeric",
       weekday: "short",
@@ -215,12 +274,11 @@ export default function CalendarClient({
 
   return (
     <div className="relative flex h-[calc(100dvh-136px)] flex-col overflow-hidden bg-white">
-
       {/* ── 月見出し ── */}
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
-          {loading && <span className="animate-pulse text-xs text-slate-400">更新中…</span>}
+          {loading && <span className="animate-pulse text-xs text-slate-400">読み込み中…</span>}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -307,14 +365,14 @@ export default function CalendarClient({
                     !isCurrentMonth
                       ? "bg-slate-50"
                       : isToday
-                      ? "bg-emerald-50"
-                      : isSelected
-                      ? "bg-sky-100"
-                      : isHoliday || isSunday
-                      ? "bg-rose-50"
-                      : isSaturday
-                      ? "bg-sky-100/60"
-                      : "bg-white hover:bg-slate-50",
+                        ? "bg-emerald-50"
+                        : isSelected
+                          ? "bg-sky-100"
+                          : isHoliday || isSunday
+                            ? "bg-rose-50"
+                            : isSaturday
+                              ? "bg-sky-100/60"
+                              : "bg-white hover:bg-slate-50",
                     isCurrentMonth && isToday ? "ring-2 ring-inset ring-emerald-600" : "",
                   ].join(" ")}
                 >
@@ -326,14 +384,14 @@ export default function CalendarClient({
                       !isCurrentMonth
                         ? "text-slate-300"
                         : isToday
-                        ? "text-slate-700"
-                        : isHoliday
-                        ? "text-rose-500"
-                        : isSunday
-                        ? "text-rose-400"
-                        : isSaturday
-                        ? "text-sky-500"
-                        : "text-slate-700",
+                          ? "text-slate-700"
+                          : isHoliday
+                            ? "text-rose-500"
+                            : isSunday
+                              ? "text-rose-400"
+                              : isSaturday
+                                ? "text-sky-500"
+                                : "text-slate-700",
                     ].join(" ")}
                   >
                     {date.getDate()}
@@ -389,6 +447,7 @@ export default function CalendarClient({
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
             <span className="text-xs text-slate-400">{selectedList.length}件</span>
+            {selectedLoading && <span className="text-xs text-slate-400">読み込み中…</span>}
           </div>
           <Link
             href={`/calendar/day/${selectedYmd}`}
