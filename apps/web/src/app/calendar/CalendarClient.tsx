@@ -235,10 +235,10 @@ export default function CalendarClient({
         resetTouchState();
         return;
       }
-      if (absY > 48) {
-        resetTouchState();
-        return;
-      }
+      // if (absY > 48) {
+      //   resetTouchState();
+      //   return;
+      // }
       if (absX <= absY * 1.1) {
         resetTouchState();
         return;
