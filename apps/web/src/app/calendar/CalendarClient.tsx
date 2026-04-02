@@ -231,15 +231,15 @@ export default function CalendarClient({
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      if (absX < 50) {
+      if (absX < 40) {
         resetTouchState();
         return;
       }
-      if (absY > 40) {
+      if (absY > 48) {
         resetTouchState();
         return;
       }
-      if (absX <= absY * 1.2) {
+      if (absX <= absY * 1.1) {
         resetTouchState();
         return;
       }
@@ -278,7 +278,7 @@ export default function CalendarClient({
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
-          {loading && <span className="animate-pulse text-xs text-slate-400">読み込み中…</span>}
+          {/* {loading && <span className="animate-pulse text-xs text-slate-400">読み込み中…</span>} */}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -447,7 +447,7 @@ export default function CalendarClient({
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
             <span className="text-xs text-slate-400">{selectedList.length}件</span>
-            {selectedLoading && <span className="text-xs text-slate-400">読み込み中…</span>}
+            {/* {selectedLoading && <span className="text-xs text-slate-400">読み込み中…</span>} */}
           </div>
           <Link
             href={`/calendar/day/${selectedYmd}`}
