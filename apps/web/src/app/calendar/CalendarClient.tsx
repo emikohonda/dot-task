@@ -373,40 +373,43 @@ export default function CalendarClient({
                   key={`${ymd}-${idx}`}
                   onClick={() => selectYmd(ymd)}
                   className={[
-                    "relative flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
+                    // ① overflow-hidden → overflow-visible に変更
+                    "relative flex cursor-pointer flex-col overflow-visible p-0.5 transition-colors active:bg-slate-200",
+
                     !isCurrentMonth
                       ? "bg-slate-50"
                       : isToday
-                        ? "bg-emerald-50"
+                        ? "bg-rose-50"
                         : isSelected
-                          ? "bg-sky-100"
-                          : isHoliday || isSunday
-                            ? "bg-rose-50"
-                            : isSaturday
-                              ? "bg-sky-100/60"
-                              : "bg-white hover:bg-slate-50",
-                    isCurrentMonth && isToday ? "ring-2 ring-inset ring-emerald-600" : "",
+                          ? "bg-white"
+                          : "bg-white hover:bg-slate-50",
+
+                    isCurrentMonth && isSelected
+                      ? "ring-2 ring-inset ring-rose-500"
+                      : "",
                   ].join(" ")}
                 >
                   {/* 日付 */}
-                  <div
-                    className={[
-                      "text-center font-semibold leading-none",
-                      "text-[11px] [@media(max-height:740px)]:text-[10px]",
-                      !isCurrentMonth
-                        ? "text-slate-300"
-                        : isToday
-                          ? "text-slate-700"
-                          : isHoliday
-                            ? "text-rose-500"
-                            : isSunday
-                              ? "text-rose-400"
-                              : isSaturday
-                                ? "text-sky-500"
-                                : "text-slate-700",
-                    ].join(" ")}
-                  >
-                    {date.getDate()}
+                  <div className="flex justify-center">
+                    <span
+                      className={[
+                        "inline-flex items-center justify-center rounded-full font-semibold leading-none",
+                        "h-4 min-w-4 px-1 text-[11px] [@media(max-height:740px)]:h-4 [@media(max-height:740px)]:min-w-4 [@media(max-height:740px)]:text-[10px]",
+                        isToday
+                          ? "bg-slate-900 text-white"
+                          : !isCurrentMonth
+                            ? "text-slate-300"
+                            : isHoliday
+                              ? "text-rose-500"
+                              : isSunday
+                                ? "text-rose-400"
+                                : isSaturday
+                                  ? "text-sky-500"
+                                  : "text-slate-700",
+                      ].join(" ")}
+                    >
+                      {date.getDate()}
+                    </span>
                   </div>
 
                   {/* 予定チップ */}
