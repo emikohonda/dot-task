@@ -20,6 +20,7 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
 
 const WEEK_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
+const STORAGE_KEY = "calendar:selectedYmd";
 
 async function fetchGridSchedules(year: number, month0: number): Promise<Schedule[]> {
   try {
@@ -110,6 +111,18 @@ export default function CalendarClient({
   const [cache, setCache] = React.useState<Record<string, Schedule[]>>({
     [`${initialYear}-${String(initialMonth0 + 1).padStart(2, "0")}`]: initialSchedules,
   });
+
+  React.useEffect(() => {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      setSelectedYmd(saved);
+    }
+  }, []);
+
+  const selectYmd = React.useCallback((ymd: string) => {
+    setSelectedYmd(ymd);
+    sessionStorage.setItem(STORAGE_KEY, ymd);
+  }, []);
 
   function monthKey(y: number, m0: number) {
     return `${y}-${String(m0 + 1).padStart(2, "0")}`;
@@ -287,10 +300,13 @@ export default function CalendarClient({
           </button>
           <button
             type="button"
-            onClick={() => goToMonth(now.getFullYear(), now.getMonth(), 0)}
+            onClick={() => {
+              goToMonth(now.getFullYear(), now.getMonth(), 0);
+              selectYmd(todayYmd);
+            }}
             className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
           >
-            今月
+            今日
           </button>
           <button
             type="button"
@@ -355,7 +371,7 @@ export default function CalendarClient({
               return (
                 <div
                   key={`${ymd}-${idx}`}
-                  onClick={() => setSelectedYmd(ymd)}
+                  onClick={() => selectYmd(ymd)}
                   className={[
                     "relative flex cursor-pointer flex-col overflow-hidden p-0.5 transition-colors active:bg-slate-200",
                     !isCurrentMonth
