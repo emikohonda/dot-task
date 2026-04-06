@@ -280,7 +280,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
           ].join(" ")}
         >
           <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
               <KeywordSearchBox
                 placeholder="現場名"
                 value={keyword}
@@ -294,22 +294,22 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
                 onChange={setCompanyId}
                 placeholder="元請会社で絞り込む"
               />
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1">
                 <p className="text-xs font-medium text-slate-500">開始月</p>
                 <input
                   type="month"
                   value={monthFrom}
                   onChange={(e) => setMonthFrom(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="min-h-[44px] min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1">
                 <p className="text-xs font-medium text-slate-500">終了月</p>
                 <input
                   type="month"
                   value={monthTo}
                   onChange={(e) => setMonthTo(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="min-h-[44px] min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </div>
             </div>
@@ -326,7 +326,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
         </div>
       </div>
 
-      {/* Fix 3: タブ＆ソートエリア - スマホ縦積み・PC横並び */}
+      {/* タブ＆ソートエリア（横並び） */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           <button

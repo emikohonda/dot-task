@@ -61,10 +61,10 @@ export function Combobox({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="min-w-0 space-y-1">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <div ref={containerRef} className="relative">
-        {/* トリガーボタン（clearと兄弟構造）*/}
+        {/* トリガーボタン */}
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
@@ -76,7 +76,7 @@ export function Combobox({
           }}
           aria-expanded={open}
           aria-haspopup="listbox"
-          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
         >
           <span className={selected ? "text-slate-800" : "text-slate-400"}>
             {selected ? selected.name : placeholder}
@@ -86,7 +86,7 @@ export function Combobox({
           />
         </button>
 
-        {/* clearボタン（絶対配置・兄弟要素）*/}
+        {/* clearボタン（絶対配置） */}
         {selected && (
           <button
             type="button"
@@ -107,12 +107,12 @@ export function Combobox({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="検索..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
               />
             </div>
             <ul role="listbox" className="max-h-52 overflow-y-auto py-1">
               {filtered.length === 0 ? (
-                <li className="px-3 py-2.5 text-sm text-slate-400">該当なし</li>
+                <li className="px-3 py-2.5 text-base text-slate-400">該当なし</li>
               ) : (
                 filtered.map((o) => (
                   <li
@@ -121,7 +121,7 @@ export function Combobox({
                     aria-selected={o.id === value}
                     onClick={() => handleSelect(o.id)}
                     className={[
-                      "cursor-pointer px-3 py-2.5 text-sm transition hover:bg-sky-50",
+                      "cursor-pointer px-3 py-2.5 text-base transition hover:bg-sky-50",
                       o.id === value ? "bg-sky-50 font-semibold text-sky-700" : "text-slate-700",
                     ].join(" ")}
                   >
