@@ -300,7 +300,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
                   type="month"
                   value={monthFrom}
                   onChange={(e) => setMonthFrom(e.target.value)}
-                  className="min-h-[44px] min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="box-border min-h-[44px] min-w-0 w-full max-w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </div>
               <div className="min-w-0 space-y-1">
@@ -309,8 +309,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
                   type="month"
                   value={monthTo}
                   onChange={(e) => setMonthTo(e.target.value)}
-                  className="min-h-[44px] min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
+                  className="box-border min-h-[44px] min-w-0 w-full max-w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100" />
               </div>
             </div>
             <SearchActionRow
