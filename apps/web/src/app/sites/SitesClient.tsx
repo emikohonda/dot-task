@@ -386,7 +386,11 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
                 return (
                   <li key={site.id} className="py-4">
                     <Link
-                      href={`/sites/${site.id}`}
+                      href={
+                        searchParams.toString()
+                          ? `/sites/${site.id}?${searchParams.toString()}`
+                          : `/sites/${site.id}`
+                      }
                       className="group flex items-start gap-3 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
                     >
                       <div className="min-w-0 flex-1">

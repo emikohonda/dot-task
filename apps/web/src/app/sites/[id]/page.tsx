@@ -122,10 +122,26 @@ function ContactChip({
 
 export default async function SiteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+
+  const sp = (await searchParams) ?? {};
+
+  const backQuery = new URLSearchParams(
+    Object.entries(sp).flatMap(([key, value]) =>
+      Array.isArray(value)
+        ? value.map((v) => [key, v] as [string, string])
+        : value
+          ? [[key, value]]
+          : []
+    )
+  ).toString();
+
+  const backHref = backQuery ? `/sites?${backQuery}` : "/sites";
 
   const site = await fetchSite(id);
   if (!site) return notFound();
@@ -152,7 +168,7 @@ export default async function SiteDetailPage({
             </Link>
 
             <Link
-              href="/sites"
+              href={backHref}
               className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
             >
               一覧に戻る
