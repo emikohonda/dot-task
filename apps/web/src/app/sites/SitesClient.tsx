@@ -119,6 +119,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   const [companyOptions, setCompanyOptions] = React.useState<ComboboxOption[]>([]);
   const [sites,          setSites]          = React.useState<Site[]>(initialSites);
   const [loading,        setLoading]        = React.useState(false);
+  const [isResetting,    setIsResetting]    = React.useState(false);
 
   const isFirstRender = React.useRef(true);
 
@@ -168,6 +169,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
     // 絞り込み中ならフィルターを開く（ユーザー操作時は開閉ボタンが優先）
     const nextHasFilter = !!(nextKeyword || nextCompanyId || nextMonthFrom || nextMonthTo);
     if (nextHasFilter) setFilterOpen(true);
+    setIsResetting(false);
   }, [searchParams]);
 
   // ── フィルターパラメータのベース ──
@@ -191,6 +193,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
 
   // ── Fix 2: リセットは初期値（tab=active, sortDate=desc）に戻す ──
   const resetFilter = () => {
+    setIsResetting(true);
     setKeyword(""); setCompanyId(null); setMonthFrom(""); setMonthTo("");
     const params = new URLSearchParams();
     params.set("tab",      "active");
@@ -317,8 +320,8 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
               onSearch={applyFilter}
               onReset={resetFilter}
               showReset={hasFilter}
-              loading={loading}
-              isDirty={isDirty}
+              loading={isResetting ? false : loading}
+              isDirty={isResetting ? false : isDirty}
               hasFilter={hasFilter}
               count={total}
             />
