@@ -29,10 +29,24 @@ export class SitesController {
     @Query("keyword")   keyword?:   string,
     @Query("companyId") companyId?: string,
     @Query("status")    status?:    string,
+    @Query("tab")       tab?:       string,       // "active" | "done"
+    @Query("sortDate")  sortDate?:  string,       // "asc" | "desc"
+    @Query("monthFrom") monthFrom?: string,       // "YYYY-MM"
+    @Query("monthTo")   monthTo?:   string,       // "YYYY-MM"
     @Query("limit",  new ParseIntPipe({ optional: true })) limit?:  number,
     @Query("offset", new ParseIntPipe({ optional: true })) offset?: number,
   ) {
-    return this.sitesService.findAll({ keyword, companyId, status, limit, offset });
+    return this.sitesService.findAll({
+      keyword,
+      companyId,
+      status,
+      tab,
+      sortDate,
+      monthFrom,
+      monthTo,
+      limit,
+      offset,
+    });
   }
 
   @Get(":id")
@@ -53,7 +67,6 @@ export class SitesController {
     return this.sitesService.remove(id);
   }
 
-  // 現場の予定を取得（最大 limit 件）
   @Get(":id/schedules")
   findSchedulesBySiteId(
     @Param("id", new ParseUUIDPipe()) id: string,

@@ -5,6 +5,10 @@ import { CreateSiteDto } from "./dto/create-site.dto";
 import { UpdateSiteDto } from "./dto/update-site.dto";
 import type { Prisma } from "@prisma/client";
 
+type SiteTabType    = "active" | "done";
+type SiteSortType   = "asc" | "desc";
+type SiteStatusType = "upcoming" | "active" | "completed";
+
 @Injectable()
 export class SitesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -16,8 +20,7 @@ export class SitesService {
       data: {
         ...rest,
         startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-
+        endDate:   endDate   ? new Date(endDate)   : undefined,
         ...(contactIds?.length
           ? {
               companyContacts: {
@@ -33,63 +36,126 @@ export class SitesService {
   }
 
   async findAll(params: {
-    keyword?: string;
+    keyword?:   string;
     companyId?: string;
-    status?: string;
-    limit?: number;
-    offset?: number;
+    status?:    string;
+    tab?:       string;       // "active" | "done"
+    sortDate?:  string;       // "asc" | "desc"
+    monthFrom?: string;       // "YYYY-MM"
+    monthTo?:   string;       // "YYYY-MM"
+    limit?:     number;
+    offset?:    number;
   } = {}) {
-    const { keyword, companyId, status } = params;
+    const { keyword, companyId, status, tab, sortDate, monthFrom, monthTo } = params;
     const limit  = Math.min(params.limit  ?? 20, 100);
     const offset = params.offset ?? 0;
 
-    const where: Prisma.SiteWhereInput = {};
+    const today = new Date();
+    const now   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    // ── キーワード（現場名 / 住所）──
+    const andClauses: Prisma.SiteWhereInput[] = [];
+
+    // ── バリデーション ──
+    const validTabs:     SiteTabType[]    = ["active", "done"];
+    const validSorts:    SiteSortType[]   = ["asc", "desc"];
+    const validStatuses: SiteStatusType[] = ["upcoming", "active", "completed"];
+    const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+    if (tab && !validTabs.includes(tab as SiteTabType)) {
+      throw new BadRequestException("tab must be one of active, done");
+    }
+    if (sortDate && !validSorts.includes(sortDate as SiteSortType)) {
+      throw new BadRequestException("sortDate must be one of asc, desc");
+    }
+    if (status && !validStatuses.includes(status as SiteStatusType)) {
+      throw new BadRequestException("status must be one of upcoming, active, completed");
+    }
+    if (monthFrom && !monthPattern.test(monthFrom)) {
+      throw new BadRequestException("monthFrom must be in YYYY-MM format");
+    }
+    if (monthTo && !monthPattern.test(monthTo)) {
+      throw new BadRequestException("monthTo must be in YYYY-MM format");
+    }
+    if (monthFrom && monthTo && monthFrom > monthTo) {
+      throw new BadRequestException("monthFrom must be earlier than or equal to monthTo");
+    }
+
+    // ── キーワード（現場名・住所）──
     if (keyword?.trim()) {
       const kw = keyword.trim();
-      where.OR = [
-        { name:    { contains: kw, mode: "insensitive" } },
-        { address: { contains: kw, mode: "insensitive" } },
-      ];
+      andClauses.push({
+        OR: [
+          { name:    { contains: kw, mode: "insensitive" } },
+          { address: { contains: kw, mode: "insensitive" } },
+        ],
+      });
     }
 
     // ── 元請会社 ──
     if (companyId) {
-      where.companyId = companyId;
+      andClauses.push({ companyId });
     }
 
-    // ── 進行状態（独自ステータス）──
-    const VALID_SITE_STATUSES = ["upcoming", "active", "completed"] as const;
-    if (status) {
-      if (!VALID_SITE_STATUSES.includes(status as (typeof VALID_SITE_STATUSES)[number])) {
-        throw new BadRequestException("status must be one of upcoming, active, completed");
-      }
-      // 日単位比較（時刻を除いた今日の 00:00）
-      const today = new Date();
-      const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    // ── tab（未完了 / 完了済）── tab が指定されている場合は status より優先
+    if (tab === "active") {
+      // 未完了 = upcoming（開始前）+ active（進行中）
+      andClauses.push({
+        OR: [
+          // upcoming: 開始日が今日より後
+          { startDate: { gt: now } },
+          // active: 開始日が今日以前 かつ 終了日が今日以降またはnull
+          {
+            AND: [
+              { startDate: { lte: now } },
+              { OR: [{ endDate: { gte: now } }, { endDate: null }] },
+            ],
+          },
+        ],
+      });
+    } else if (tab === "done") {
+      // 完了済 = 終了日が今日より前
+      andClauses.push({ endDate: { lt: now } });
+    } else if (status) {
+      // tab 未指定時は従来の status パラメータにフォールバック
       if (status === "upcoming") {
-        // 未着工：開始日が今日より後
-        where.startDate = { gt: now };
+        andClauses.push({ startDate: { gt: now } });
       } else if (status === "active") {
-        // 進行中：開始日が今日以前 かつ 終了日が今日以降またはnull
-        // ※日付未設定の現場はフィルタ対象外（B方針）
-        where.AND = [
-          { startDate: { lte: now } },
-          { OR: [{ endDate: { gte: now } }, { endDate: null }] },
-        ];
+        andClauses.push({
+          AND: [
+            { startDate: { lte: now } },
+            { OR: [{ endDate: { gte: now } }, { endDate: null }] },
+          ],
+        });
       } else if (status === "completed") {
-        // 完了：終了日が今日より前
-        where.endDate = { lt: now };
+        andClauses.push({ endDate: { lt: now } });
       }
     }
+
+    // ── 期間絞り込み（startDate 基準・月単位）──
+    if (monthFrom) {
+      const from = new Date(`${monthFrom}-01T00:00:00`);
+      andClauses.push({ startDate: { gte: from } });
+    }
+    if (monthTo) {
+      const [y, m] = monthTo.split("-").map(Number);
+      const to = new Date(y, m, 0, 23, 59, 59, 999); // 月末日
+      andClauses.push({ startDate: { lte: to } });
+    }
+
+    const where: Prisma.SiteWhereInput = andClauses.length ? { AND: andClauses } : {};
+
+    // ── ソート（startDate 基準 + secondary: createdAt）──
+    const order: Prisma.SortOrder = sortDate === "asc" ? "asc" : "desc";
 
     // ── 件数と一覧を並列取得 ──
     const [total, sites] = await Promise.all([
       this.prisma.site.count({ where }),
       this.prisma.site.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: [
+          { startDate: order },
+          { createdAt: "desc" }, // 同日の並びを安定させる
+        ],
         skip: offset,
         take: limit,
         include: {
@@ -99,9 +165,9 @@ export class SitesService {
     ]);
 
     return {
-      items: sites.map((s) => ({
-        ...s,
-        companyName: s.company?.name ?? null,
+      items: sites.map((site) => ({
+        ...site,
+        companyName: site.company?.name ?? null,
       })),
       total,
       limit,
@@ -164,9 +230,7 @@ export class SitesService {
                 ...(contactIds.length
                   ? {
                       createMany: {
-                        data: contactIds.map((cid) => ({
-                          companyContactId: cid,
-                        })),
+                        data: contactIds.map((cid) => ({ companyContactId: cid })),
                         skipDuplicates: true,
                       },
                     }
