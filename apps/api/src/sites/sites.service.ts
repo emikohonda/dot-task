@@ -101,6 +101,8 @@ export class SitesService {
       // 未完了 = upcoming（開始前）+ active（進行中）
       andClauses.push({
         OR: [
+          // 日程未設定の現場も未完了に含める
+          { AND: [{ startDate: null }, { endDate: null }] },
           // upcoming: 開始日が今日より後
           { startDate: { gt: now } },
           // active: 開始日が今日以前 かつ 終了日が今日以降またはnull
