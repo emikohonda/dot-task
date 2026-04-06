@@ -138,7 +138,8 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   React.useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      return;
+      // クエリがない時だけスキップ（リロード時の「検索中…」防止）
+      if (!searchParams.toString()) return;
     }
     const params     = new URLSearchParams(searchParams.toString());
     const nextOffset = Number(searchParams.get("offset") ?? "0");
