@@ -27,15 +27,25 @@ export type SiteSchedule = {
   title: string;
   date: string;
   status: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
 
   contractors?: { contractor: { id: string; name: string } | null }[];
   employees?: { employee: { id: string; name: string } | null }[];
 };
 
-export async function fetchSiteSchedules(siteId: string, limit = 3): Promise<SiteSchedule[]> {
-  if (!API_BASE_URL) return [];
-  const data = await safeJson<SiteSchedule[]>(
+export type SiteScheduleResult = {
+  items: SiteSchedule[];
+  total: number;
+};
+
+export async function fetchSiteSchedules(
+  siteId: string,
+  limit = 3
+): Promise<SiteScheduleResult> {
+  if (!API_BASE_URL) return { items: [], total: 0 };
+  const data = await safeJson<SiteScheduleResult>(
     `${API_BASE_URL}/sites/${siteId}/schedules?limit=${limit}`
   );
-  return data ?? [];
+  return data ?? { items: [], total: 0 };
 }

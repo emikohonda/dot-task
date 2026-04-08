@@ -5,13 +5,13 @@ import { CreateSiteDto } from "./dto/create-site.dto";
 import { UpdateSiteDto } from "./dto/update-site.dto";
 import type { Prisma } from "@prisma/client";
 
-type SiteTabType    = "active" | "done";
-type SiteSortType   = "asc" | "desc";
+type SiteTabType = "active" | "done";
+type SiteSortType = "asc" | "desc";
 type SiteStatusType = "upcoming" | "active" | "completed";
 
 @Injectable()
 export class SitesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(dto: CreateSiteDto) {
     const { contactIds, startDate, endDate, ...rest } = dto;
@@ -20,44 +20,44 @@ export class SitesService {
       data: {
         ...rest,
         startDate: startDate ? new Date(startDate) : undefined,
-        endDate:   endDate   ? new Date(endDate)   : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
         ...(contactIds?.length
           ? {
-              companyContacts: {
-                createMany: {
-                  data: contactIds.map((id) => ({ companyContactId: id })),
-                  skipDuplicates: true,
-                },
+            companyContacts: {
+              createMany: {
+                data: contactIds.map((id) => ({ companyContactId: id })),
+                skipDuplicates: true,
               },
-            }
+            },
+          }
           : {}),
       },
     });
   }
 
   async findAll(params: {
-    keyword?:   string;
+    keyword?: string;
     companyId?: string;
-    status?:    string;
-    tab?:       string;       // "active" | "done"
-    sortDate?:  string;       // "asc" | "desc"
+    status?: string;
+    tab?: string;       // "active" | "done"
+    sortDate?: string;       // "asc" | "desc"
     monthFrom?: string;       // "YYYY-MM"
-    monthTo?:   string;       // "YYYY-MM"
-    limit?:     number;
-    offset?:    number;
+    monthTo?: string;       // "YYYY-MM"
+    limit?: number;
+    offset?: number;
   } = {}) {
     const { keyword, companyId, status, tab, sortDate, monthFrom, monthTo } = params;
-    const limit  = Math.min(params.limit  ?? 20, 100);
+    const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
 
     const today = new Date();
-    const now   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const andClauses: Prisma.SiteWhereInput[] = [];
 
     // ── バリデーション ──
-    const validTabs:     SiteTabType[]    = ["active", "done"];
-    const validSorts:    SiteSortType[]   = ["asc", "desc"];
+    const validTabs: SiteTabType[] = ["active", "done"];
+    const validSorts: SiteSortType[] = ["asc", "desc"];
     const validStatuses: SiteStatusType[] = ["upcoming", "active", "completed"];
     const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -85,7 +85,7 @@ export class SitesService {
       const kw = keyword.trim();
       andClauses.push({
         OR: [
-          { name:    { contains: kw, mode: "insensitive" } },
+          { name: { contains: kw, mode: "insensitive" } },
           { address: { contains: kw, mode: "insensitive" } },
         ],
       });
@@ -227,18 +227,18 @@ export class SitesService {
         }),
         ...(contactIds !== undefined
           ? {
-              companyContacts: {
-                deleteMany: {},
-                ...(contactIds.length
-                  ? {
-                      createMany: {
-                        data: contactIds.map((cid) => ({ companyContactId: cid })),
-                        skipDuplicates: true,
-                      },
-                    }
-                  : {}),
-              },
-            }
+            companyContacts: {
+              deleteMany: {},
+              ...(contactIds.length
+                ? {
+                  createMany: {
+                    data: contactIds.map((cid) => ({ companyContactId: cid })),
+                    skipDuplicates: true,
+                  },
+                }
+                : {}),
+            },
+          }
           : {}),
       },
     });
@@ -255,22 +255,32 @@ export class SitesService {
   }
 
   async findSchedulesBySiteId(siteId: string, limit = 3) {
-    return this.prisma.schedule.findMany({
-      where: { siteId },
-      orderBy: { date: "asc" },
-      take: limit,
-      select: {
-        id: true,
-        title: true,
-        date: true,
-        status: true,
-        contractors: {
-          include: { contractor: { select: { id: true, name: true } } },
+    const [total, items] = await Promise.all([
+      this.prisma.schedule.count({ where: { siteId } }),
+      this.prisma.schedule.findMany({
+        where: { siteId },
+        orderBy: [
+          { date: "asc" },
+          { startTime: "asc" },
+          { createdAt: "desc" },
+        ],
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          date: true,
+          status: true,
+          startTime: true,
+          endTime: true,
+          contractors: {
+            include: { contractor: { select: { id: true, name: true } } },
+          },
+          employees: {
+            include: { employee: { select: { id: true, name: true } } },
+          },
         },
-        employees: {
-          include: { employee: { select: { id: true, name: true } } },
-        },
-      },
-    });
+      }),
+    ]);
+    return { items, total };
   }
 }
