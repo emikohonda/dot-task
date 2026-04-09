@@ -3,7 +3,7 @@ import { IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
 
 export class CreateSiteDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()
