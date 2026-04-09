@@ -213,7 +213,7 @@ export default async function SiteDetailPage({
                   {/* タイトルが空またはnullの場合は「作業内容未入力」と表示 */}
                   <p className="text-base font-semibold text-slate-900 group-hover:text-sky-600">
                     {s.title?.trim() ? s.title : (
-                      <span className="font-normal text-slate-400">作業内容未入力</span>
+                      <span className="font-normal text-slate-400">作業内容 未入力</span>
                     )}
                   </p>
                   {/* 日程・時間のみ表示 */}

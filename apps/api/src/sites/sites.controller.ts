@@ -29,23 +29,15 @@ export class SitesController {
     @Query("keyword")   keyword?:   string,
     @Query("companyId") companyId?: string,
     @Query("status")    status?:    string,
-    @Query("tab")       tab?:       string,       // "active" | "done"
-    @Query("sortDate")  sortDate?:  string,       // "asc" | "desc"
-    @Query("monthFrom") monthFrom?: string,       // "YYYY-MM"
-    @Query("monthTo")   monthTo?:   string,       // "YYYY-MM"
+    @Query("tab")       tab?:       string,
+    @Query("sortDate")  sortDate?:  string,
+    @Query("monthFrom") monthFrom?: string,
+    @Query("monthTo")   monthTo?:   string,
     @Query("limit",  new ParseIntPipe({ optional: true })) limit?:  number,
     @Query("offset", new ParseIntPipe({ optional: true })) offset?: number,
   ) {
     return this.sitesService.findAll({
-      keyword,
-      companyId,
-      status,
-      tab,
-      sortDate,
-      monthFrom,
-      monthTo,
-      limit,
-      offset,
+      keyword, companyId, status, tab, sortDate, monthFrom, monthTo, limit, offset,
     });
   }
 
@@ -71,7 +63,12 @@ export class SitesController {
   findSchedulesBySiteId(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
+    @Query("includeCompleted") includeCompleted?: string, // "true" | undefined
   ) {
-    return this.sitesService.findSchedulesBySiteId(id, limit ?? 3);
+    return this.sitesService.findSchedulesBySiteId(
+      id,
+      limit ?? 3,
+      { includeCompleted: includeCompleted === "true" },
+    );
   }
 }

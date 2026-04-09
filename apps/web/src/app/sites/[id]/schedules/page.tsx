@@ -25,7 +25,7 @@ function formatScheduleDateTime(
   const dateLabel = formatDate(dateStr);
   if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
   if (startTime) return `${dateLabel} ${startTime}`;
-  return dateLabel;
+  return `${dateLabel} 終日`;
 }
 
 // ── ページ ──
@@ -38,9 +38,9 @@ export default async function SiteSchedulesPage({
   const { id } = await params;
 
   const site = await fetchSite(id);
-  if (!site) return notFound();
+  if (!site) notFound();
 
-  const { items: schedules, total: scheduleTotal } = await fetchSiteSchedules(id, 100);
+  const { items: schedules, total: scheduleTotal } = await fetchSiteSchedules(id, 100, { includeCompleted: true });
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
@@ -84,7 +84,9 @@ export default async function SiteSchedulesPage({
               return (
                 <li key={s.id} className="py-3">
                   <div>
-                    <p className="font-medium text-slate-900">{s.title}</p>
+                    <p className="font-medium text-slate-900">
+                      {s.title?.trim() ? s.title : "作業内容 未入力"}
+                    </p>
                     <p className="text-sm text-slate-600">
                       {formatScheduleDateTime(s.date, s.startTime, s.endTime)}
                       {contractorNames.length > 0 && ` / ${contractorNames.join(" / ")}`}

@@ -41,11 +41,14 @@ export type SiteScheduleResult = {
 
 export async function fetchSiteSchedules(
   siteId: string,
-  limit = 3
+  limit = 3,
+  options?: { includeCompleted?: boolean }
 ): Promise<SiteScheduleResult> {
   if (!API_BASE_URL) return { items: [], total: 0 };
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (options?.includeCompleted) query.set("includeCompleted", "true");
   const data = await safeJson<SiteScheduleResult>(
-    `${API_BASE_URL}/sites/${siteId}/schedules?limit=${limit}`
+    `${API_BASE_URL}/sites/${siteId}/schedules?${query.toString()}`
   );
   return data ?? { items: [], total: 0 };
 }
