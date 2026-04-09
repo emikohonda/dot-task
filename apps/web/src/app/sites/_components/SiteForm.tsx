@@ -221,8 +221,8 @@ export default function SiteForm({ mode, site, companies }: Props) {
         </div>
       </CardSection>
 
-      {/* 担当者・現場監督 */}
-      <CardSection title="担当者・現場監督">
+      {/* 現場担当者 */}
+      <CardSection title="現場担当者">
         <div className="space-y-4">
           {/* 元請会社 */}
           <div>
@@ -253,7 +253,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
           {watchedCompanyId && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-700">
-                現場担当者（複数選択可）
+                担当者（複数選択可）
               </label>
 
               {selectedCompany?.contacts?.length === 0 && (
@@ -280,9 +280,6 @@ export default function SiteForm({ mode, site, companies }: Props) {
                         <div className="font-medium text-slate-900">
                           {contact.name ?? "（名前未設定）"}
                         </div>
-                        {contact.phone && (
-                          <div className="text-xs text-slate-500">{contact.phone}</div>
-                        )}
                       </div>
                     </label>
                   ))}
@@ -294,15 +291,18 @@ export default function SiteForm({ mode, site, companies }: Props) {
       </CardSection>
 
       {/* actions */}
-      <div className="flex justify-end gap-3">
-        <Link href="/sites" className="rounded-md border border-slate-200 px-4 py-2 text-sm">
+      <div className="flex gap-3">
+        <Link
+          href={mode === "edit" && site?.id ? `/sites/${site.id}` : "/sites"}
+          className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-center text-sm text-slate-700 hover:bg-slate-50"
+        >
           キャンセル
         </Link>
         <button
           type="submit"
           disabled={isSubmitting}
           className={[
-            "rounded-md px-4 py-2 text-sm font-semibold text-white",
+            "flex-1 rounded-md px-4 py-2 text-sm font-semibold text-white",
             isSubmitting ? "cursor-not-allowed bg-slate-400" : "bg-sky-600 hover:bg-sky-700",
           ].join(" ")}
         >

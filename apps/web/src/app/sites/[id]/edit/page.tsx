@@ -1,8 +1,6 @@
 // apps/web/src/app/sites/[id]/edit/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/PageHeader";
-import { CardSection } from "@/components/CardSection";
 import SiteForm from "../../_components/SiteForm";
 
 const API_BASE =
@@ -10,10 +8,12 @@ const API_BASE =
 
 async function fetchCompanies() {
   try {
-    const res = await fetch(`${API_BASE}/companies`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}/companies?limit=200`, { cache: "no-store" });
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
   } catch {
     return [];
   }
@@ -41,15 +41,18 @@ export default async function SiteEditPage({
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        eyebrow="現場"
-        title="現場を編集"
-        right={
-          <Link href={`/sites/${id}`} className="text-sm text-slate-600 hover:text-slate-900">
-            戻る
-          </Link>
-        }
-      />
+      <div className="space-y-2 px-1">
+        <Link
+          href={`/sites/${id}`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+        >
+          ◀︎ 現場詳細に戻る
+        </Link>
+        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+          現場を編集
+        </h1>
+      </div>
+
       <SiteForm mode="edit" site={site} companies={companies} />
     </div>
   );

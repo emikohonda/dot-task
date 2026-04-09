@@ -18,24 +18,39 @@ import { fetchSite, fetchSiteSchedules } from "@/lib/fetchers/sites";
 
 // ── ユーティリティ ──
 
+// スケジュール用（年月日＋曜日）← 今のformatDateをそのまま使う
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}年${month}月${day}日（${weekday}）`;
 }
 
-// 期間表示：片方だけでも自然に表示
+// 期間用（スラッシュ形式＋曜日）
+function formatDateSlash(dateStr: string | null | undefined) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}/${month}/${day}(${weekday})`;
+}
+
 function formatPeriod(startDate: string | null | undefined, endDate: string | null | undefined) {
-  const start = formatDate(startDate);
-  const end = formatDate(endDate);
+  const start = formatDateSlash(startDate);
+  const end   = formatDateSlash(endDate);
   if (!startDate && !endDate) return "—";
-  if (startDate && !endDate) return `${start} ～`;
-  if (!startDate && endDate) return `～ ${end}`;
+  if (startDate && !endDate)  return `${start} ～`;
+  if (!startDate && endDate)  return `～ ${end}`;
   return `${start} ～ ${end}`;
 }
 
-// 最終更新：日時フォーマット
 function formatDateTime(dateStr: string | null | undefined) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -43,7 +58,6 @@ function formatDateTime(dateStr: string | null | undefined) {
   return d.toLocaleString("ja-JP", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// 予定日時：date + startTime/endTime を組み合わせて表示
 function formatScheduleDateTime(
   dateStr: string | null | undefined,
   startTime?: string | null,
@@ -52,8 +66,8 @@ function formatScheduleDateTime(
   if (!dateStr) return "—";
   const dateLabel = formatDate(dateStr);
   if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
-  if (startTime) return `${dateLabel} ${startTime}`;
-  return dateLabel;
+  if (startTime)            return `${dateLabel} ${startTime}`;
+  return `${dateLabel} 終日`;
 }
 
 // ── サブコンポーネント ──
@@ -114,23 +128,16 @@ function ContactChip({
 }) {
   const Icon = kind === "phone" ? Phone : Mail;
 
-  if (href) {
-    return (
-      <a
-        href={href}
-        className="inline-flex max-w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-      >
-        <Icon className="h-4 w-4 shrink-0 text-slate-400" />
-        <span className="truncate">{text}</span>
-      </a>
-    );
-  }
+  if (!href) return null;
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+    <a
+      href={href}
+      className="inline-flex max-w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+    >
       <Icon className="h-4 w-4 shrink-0 text-slate-400" />
-      <span>—</span>
-    </span>
+      <span className="truncate">{text}</span>
+    </a>
   );
 }
 
@@ -158,7 +165,7 @@ export default async function SiteDetailPage({
   const backHref = backQuery ? `/sites?${backQuery}` : "/sites";
 
   const site = await fetchSite(id);
-  if (!site) return notFound();
+  if (!site) notFound();
 
   const { items: schedules, total: scheduleTotal } = await fetchSiteSchedules(id, 3);
 
@@ -180,6 +187,45 @@ export default async function SiteDetailPage({
           {site.name}
         </h1>
       </div>
+
+      {/* ── 現場スケジュール（一番上に移動）── */}
+      <CardSection
+        title={`現場スケジュール（${scheduleTotal}件）`}
+        right={
+          <Link
+            href={`/sites/${id}/schedules`}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            すべて見る
+          </Link>
+        }
+      >
+        {schedules.length === 0 ? (
+          <EmptySchedule />
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {schedules.map((s) => (
+              <li key={s.id} className="py-3">
+                <Link
+                  href={`/schedules/${s.id}`}
+                  className="group block rounded-xl transition-colors hover:bg-slate-50/60"
+                >
+                  {/* タイトルが空またはnullの場合は「作業内容未入力」と表示 */}
+                  <p className="text-base font-semibold text-slate-900 group-hover:text-sky-600">
+                    {s.title?.trim() ? s.title : (
+                      <span className="font-normal text-slate-400">作業内容未入力</span>
+                    )}
+                  </p>
+                  {/* 日程・時間のみ表示 */}
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {formatScheduleDateTime(s.date, s.startTime, s.endTime)}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardSection>
 
       {/* ── 基本情報 ── */}
       <CardSection title="基本情報">
@@ -207,7 +253,7 @@ export default async function SiteDetailPage({
         </div>
       </CardSection>
 
-      {/* ── 現場担当者 ── */}
+      {/* ── 現場担当者（三重感解消・説明文削除）── */}
       <CardSection title="現場担当者">
         {contacts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
@@ -222,82 +268,26 @@ export default async function SiteDetailPage({
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-slate-100">
             {contacts.map((c) => {
-              const tel = toTelHref(c.phone);
+              const tel  = toTelHref(c.phone);
               const mail = toMailHref(c.email);
               return (
                 <div
                   key={c.id ?? `${c.name ?? ""}-${c.email ?? ""}-${c.phone ?? ""}`}
-                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-base font-semibold text-slate-900">
-                        {c.name ?? "（名前未設定）"}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        連絡先をタップで電話・メールできます
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <ContactChip kind="phone" href={tel} text={c.phone} />
-                      <ContactChip kind="mail" href={mail} text={c.email} />
-                    </div>
+                  <p className="text-base font-semibold text-slate-900">
+                    {c.name ?? "（名前未設定）"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {c.phone && <ContactChip kind="phone" href={tel} text={c.phone} />}
+                    {c.email && <ContactChip kind="mail" href={mail} text={c.email} />}
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
-      </CardSection>
-
-      {/* ── 現場スケジュール ── */}
-      <CardSection
-        title={`現場スケジュール（${scheduleTotal}件）`}
-        right={
-          <Link
-            href={`/sites/${id}/schedules`}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            すべて見る
-          </Link>
-        }
-      >
-
-        {schedules.length === 0 ? (
-          <EmptySchedule />
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {schedules.map((s) => {
-              const contractorNames =
-                s.contractors
-                  ?.map((x) => x.contractor?.name ?? null)
-                  .filter((n): n is string => Boolean(n && n.trim())) ?? [];
-              const employeeNames =
-                s.employees
-                  ?.map((x) => x.employee?.name ?? null)
-                  .filter((n): n is string => Boolean(n && n.trim())) ?? [];
-
-              return (
-                <li key={s.id} className="py-3">
-                  <Link
-                    href={`/schedules/${s.id}`}
-                    className="group block rounded-xl transition-colors hover:bg-slate-50/60"
-                  >
-                    <p className="text-base font-semibold text-slate-900 group-hover:text-sky-600">
-                      {s.title}
-                    </p>
-                    <p className="mt-0.5 text-sm text-slate-500">
-                      {formatScheduleDateTime(s.date, s.startTime, s.endTime)}
-                      {contractorNames.length > 0 && ` / 協力会社：${contractorNames.join(" / ")}`}
-                      {employeeNames.length > 0 && ` / 社員：${employeeNames.join(" / ")}`}
-                    </p>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
         )}
       </CardSection>
 
