@@ -6,7 +6,6 @@ import {
   IsString,
   IsUUID,
   Matches,
-  MinLength,
   IsArray,
 } from 'class-validator';
 
@@ -16,7 +15,6 @@ type Status = (typeof STATUS)[number];
 export class UpdateScheduleDto {
   @IsOptional()
   @IsString()
-  @MinLength(1)
   title?: string;
 
   @IsOptional()
@@ -31,13 +29,11 @@ export class UpdateScheduleDto {
   @IsIn(STATUS)
   status?: Status;
 
-  // ✅ 複数協力会社
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
   contractorIds?: string[];
 
-  // ✅ 複数社員
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })

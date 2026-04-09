@@ -48,8 +48,9 @@ export const scheduleFormSchema = z
     date: ymdSchema,
     title: z
       .string()
-      .min(1, "内容（短いタイトル）は必須です")
-      .max(80, "タイトルは80文字以内にしてください"),
+      .max(80, "タイトルは80文字以内にしてください")
+      .optional()
+      .or(z.literal("")),
     status: scheduleStatusSchema,
 
     // ✅ 複数協力会社（未選択OK＝空配列）
@@ -102,8 +103,8 @@ export type ScheduleFormValues = z.input<typeof scheduleFormSchema>;
 export type ScheduleApi = {
   id: string;
   siteId: string;
-  date: string; // ISO or YYYY-MM-DD
-  title: string;
+  date: string;
+  title: string | null;
   status: ScheduleStatus;
 
   description: string | null;
@@ -169,7 +170,7 @@ export function toScheduleCreatePayload(v: ScheduleFormValues) {
   return {
     siteId: v.siteId,
     date: v.date,
-    title: v.title.trim(),
+    title: v.title?.trim() ?? "",
     status: v.status,
 
     contractorIds: v.contractorIds ?? [],
@@ -226,6 +227,14 @@ export function formatContractorNames(s: ScheduleApi | null | undefined) {
     s?.contractors?.map((x) => x.contractor?.name).filter(Boolean) ?? [];
   return names.length ? names.join(" / ") : "—";
 }
+
+/**
+ * ✅ 表示用：作業内容タイトル
+ */
+export function formatScheduleTitle(title: string | null | undefined) {
+  return title?.trim() ? title : "作業内容未入力";
+}
+
 /**
  * ✅ 表示用：自社社員用
  */

@@ -208,10 +208,7 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
       {/* 内容 */}
       <div>
         <label className="block text-sm font-medium text-slate-700">
-          内容（短いタイトル）
-          <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
-            必須
-          </span>
+          内容
         </label>
 
         <input

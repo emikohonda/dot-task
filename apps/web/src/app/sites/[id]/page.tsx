@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 
 import { CardSection } from "@/components/CardSection";
 import { fetchSite, fetchSiteSchedules } from "@/lib/fetchers/sites";
+import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
 
 // ── ユーティリティ ──
 
@@ -44,10 +45,10 @@ function formatDateSlash(dateStr: string | null | undefined) {
 
 function formatPeriod(startDate: string | null | undefined, endDate: string | null | undefined) {
   const start = formatDateSlash(startDate);
-  const end   = formatDateSlash(endDate);
+  const end = formatDateSlash(endDate);
   if (!startDate && !endDate) return "—";
-  if (startDate && !endDate)  return `${start} ～`;
-  if (!startDate && endDate)  return `～ ${end}`;
+  if (startDate && !endDate) return `${start} ～`;
+  if (!startDate && endDate) return `～ ${end}`;
   return `${start} ～ ${end}`;
 }
 
@@ -66,7 +67,7 @@ function formatScheduleDateTime(
   if (!dateStr) return "—";
   const dateLabel = formatDate(dateStr);
   if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
-  if (startTime)            return `${dateLabel} ${startTime}`;
+  if (startTime) return `${dateLabel} ${startTime}`;
   return `${dateLabel} 終日`;
 }
 
@@ -210,11 +211,15 @@ export default async function SiteDetailPage({
                   href={`/schedules/${s.id}`}
                   className="group block rounded-xl transition-colors hover:bg-slate-50/60"
                 >
-                  {/* タイトルが空またはnullの場合は「作業内容未入力」と表示 */}
-                  <p className="text-base font-semibold text-slate-900 group-hover:text-sky-600">
-                    {s.title?.trim() ? s.title : (
-                      <span className="font-normal text-slate-400">作業内容 未入力</span>
-                    )}
+                  <p
+                    className={[
+                      "text-base group-hover:text-sky-600",
+                      s.title?.trim()
+                        ? "font-semibold text-slate-900"
+                        : "font-normal text-slate-400",
+                    ].join(" ")}
+                  >
+                    {formatScheduleTitle(s.title)}
                   </p>
                   {/* 日程・時間のみ表示 */}
                   <p className="mt-0.5 text-sm text-slate-500">
@@ -270,7 +275,7 @@ export default async function SiteDetailPage({
         ) : (
           <div className="divide-y divide-slate-100">
             {contacts.map((c) => {
-              const tel  = toTelHref(c.phone);
+              const tel = toTelHref(c.phone);
               const mail = toMailHref(c.email);
               return (
                 <div

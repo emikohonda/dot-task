@@ -17,6 +17,7 @@ import { fetchScheduleById } from "@/lib/fetchers/schedules";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ReactNode } from "react";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
+import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "—";
@@ -76,7 +77,7 @@ export default async function ScheduleDetailPage({
     <div className="space-y-4">
       <PageHeader
         eyebrow="予定一覧"
-        title={s.title}
+        title={formatScheduleTitle(s.title)}
         right={
           <div className="flex items-center gap-2">
             <Link

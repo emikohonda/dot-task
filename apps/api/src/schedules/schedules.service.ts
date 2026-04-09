@@ -187,7 +187,7 @@ export class SchedulesService {
   }
 
   async create(input: {
-    title: string;
+    title?: string;
     date: string;
     siteId: string;
     status?: ScheduleStatus;
@@ -197,8 +197,7 @@ export class SchedulesService {
     startTime?: string | null;
     endTime?: string | null;
   }) {
-    const title = input.title?.trim();
-    if (!title) throw new BadRequestException('title is required');
+    const title = input.title?.trim() ?? '';
 
     const dateObj = new Date(input.date);
     if (Number.isNaN(dateObj.getTime())) {
@@ -262,7 +261,6 @@ export class SchedulesService {
     if (dateObj && Number.isNaN(dateObj.getTime())) throw new BadRequestException('date must be ISO8601 string');
 
     const title = input.title !== undefined ? input.title.trim() : undefined;
-    if (input.title !== undefined && !title) throw new BadRequestException('title must not be empty');
 
     const nextStartTime = input.startTime !== undefined ? input.startTime : exists.startTime;
     const nextEndTime   = input.endTime   !== undefined ? input.endTime   : exists.endTime;

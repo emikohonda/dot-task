@@ -19,6 +19,7 @@ import { Calendar, Clock, Sun, MapPin, User, Building2, ArrowUpDown } from "luci
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
+import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -451,7 +452,7 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
                             cancelled ? "text-slate-500" : "",
                           ].join(" ")}
                         >
-                          {s.title}
+                          {formatScheduleTitle(s.title)}
                         </p>
 
                         {/* 現場名：タイトル直下・強調 */}
