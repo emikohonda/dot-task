@@ -1,15 +1,12 @@
 // apps/web/src/app/schedules/[id]/edit/page.tsx
 import Link from "next/link";
 
-import { PageHeader } from "@/components/PageHeader";
-import { CardSection } from "@/components/CardSection";
-
 import { fetchSites } from "@/lib/fetchers/sites";
 import { fetchContractors } from "@/lib/fetchers/contractors";
 import { fetchScheduleById } from "@/lib/fetchers/scheduleById";
 import { fetchEmployees } from "@/lib/fetchers/employees";
-
 import ScheduleForm from "../../_components/ScheduleForm";
+import { notFound } from "next/navigation";
 
 export default async function EditSchedulePage({
   params,
@@ -25,39 +22,20 @@ export default async function EditSchedulePage({
     fetchScheduleById(id),
   ]);
 
-  if (!schedule) {
-    return (
-      <div className="space-y-4">
-        <PageHeader
-          eyebrow="予定一覧"
-          title="予定を編集"
-          right={
-            <Link href="/schedules" className="text-sm text-slate-600 hover:text-slate-900">
-              一覧に戻る
-            </Link>
-          }
-        />
-
-        <CardSection title="エラー">
-          <div className="p-6 text-sm text-slate-700">予定が見つかりませんでした。</div>
-        </CardSection>
-      </div>
-    );
-  }
+  if (!schedule) notFound();
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        eyebrow="予定一覧"
-        title="予定を編集"
-        right={
-          <Link href={`/schedules/${id}`} className="text-sm text-slate-600 hover:text-slate-900">
-            戻る
-          </Link>
-        }
-      />
+      <div className="space-y-2 px-1">
+        <Link
+          href={`/schedules/${id}`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+        >
+          ◀︎ 詳細に戻る
+        </Link>
+        <h1 className="text-2xl font-bold leading-snug text-slate-900">予定を編集</h1>
+      </div>
 
-      <CardSection title="予定内容">
         <ScheduleForm
           mode="edit"
           sites={sites}
@@ -65,7 +43,6 @@ export default async function EditSchedulePage({
           employees={employees}
           schedule={schedule}
         />
-      </CardSection>
     </div>
   );
 }

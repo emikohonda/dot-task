@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Site, ContractorLite } from "@/lib/api";
 import type { EmployeeLite } from "@/lib/fetchers/employees";
+import { CardSection } from "@/components/CardSection";
 
 import {
   makeScheduleSchemaWithSiteRange,
@@ -17,7 +18,6 @@ import {
   type ScheduleApi,
   type ScheduleFormValues,
   type SiteRange,
-  type ScheduleStatus,
 } from "@/lib/validations/scheduleSchemas";
 
 const API_BASE =
@@ -30,14 +30,6 @@ type Props = {
   employees: EmployeeLite[];
   schedule: ScheduleApi | null;
   initialDate?: string | null;
-};
-
-const statusLabel: Record<ScheduleStatus, string> = {
-  TODO: "未着手",
-  DOING: "進行中",
-  HOLD: "保留",
-  DONE: "完了",
-  CANCELLED: "中止",
 };
 
 // ISO → YYYY-MM-DD
@@ -132,7 +124,7 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
         throw new Error(t || `更新に失敗しました。（${res.status}）`);
       }
 
-      router.push(`/schedules?toast=updated`);
+      router.push(`/schedules/${schedule.id}?toast=updated`);
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -144,236 +136,198 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {/* 現場 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          現場名
-          <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
-            必須
-          </span>
-        </label>
 
-        <select
-          {...register("siteId")}
-          disabled={isSubmitting}
-          className={[
-            "mt-1 w-full rounded-md border px-3 py-2",
-            errors.siteId ? "border-rose-300" : "border-slate-200",
-          ].join(" ")}
-        >
-          <option value="">選択してください</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-
-        {errors.siteId?.message && (
-          <p className="mt-1 text-xs text-rose-600">{errors.siteId.message}</p>
-        )}
-
-        {(selectedSiteRange.startDate || selectedSiteRange.endDate) && (
-          <p className="mt-2 text-xs text-slate-500">
-            工期: {selectedSiteRange.startDate ?? "未設定"} 〜{" "}
-            {selectedSiteRange.endDate ?? "未設定"}
-          </p>
-        )}
-      </div>
-
-      {/* 日付 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          日付
-          <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
-            必須
-          </span>
-        </label>
-
-        <input
-          type="date"
-          {...register("date")}
-          disabled={isSubmitting}
-          className={[
-            "mt-1 w-full rounded-md border px-3 py-2",
-            errors.date ? "border-rose-300" : "border-slate-200",
-          ].join(" ")}
-        />
-
-        {errors.date?.message && (
-          <p className="mt-1 text-xs text-rose-600">{errors.date.message}</p>
-        )}
-      </div>
-
-      {/* 内容 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          内容
-        </label>
-
-        <input
-          {...register("title")}
-          disabled={isSubmitting}
-          className={[
-            "mt-1 w-full rounded-md border px-3 py-2",
-            errors.title ? "border-rose-300" : "border-slate-200",
-          ].join(" ")}
-          placeholder="例：配管の仕上げ / 養生 / 検査対応 など"
-        />
-
-        {errors.title?.message && (
-          <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
-        )}
-      </div>
-
-      {/* ステータス */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">状況</label>
-
-        <select
-          {...register("status")}
-          disabled={isSubmitting}
-          className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
-        >
-          {(["TODO", "DOING", "HOLD", "DONE", "CANCELLED"] as const).map((k) => (
-            <option key={k} value={k}>
-              {statusLabel[k]}
-            </option>
-          ))}
-        </select>
-
-        {errors.status?.message && (
-          <p className="mt-1 text-xs text-rose-600">{errors.status.message}</p>
-        )}
-      </div>
-
-      {/* 時刻 */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium text-slate-700">開始時刻</label>
-          <input
-            type="time"
-            {...register("startTime")}
-            disabled={isSubmitting}
-            className={[
-              "mt-1 w-full rounded-md border px-3 py-2",
-              errors.startTime ? "border-rose-300" : "border-slate-200",
-            ].join(" ")}
-          />
-          {errors.startTime?.message && (
-            <p className="mt-1 text-xs text-rose-600">{errors.startTime.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700">終了時刻</label>
-          <input
-            type="time"
-            {...register("endTime")}
-            disabled={isSubmitting}
-            className={[
-              "mt-1 w-full rounded-md border px-3 py-2",
-              errors.endTime ? "border-rose-300" : "border-slate-200",
-            ].join(" ")}
-          />
-          {errors.endTime?.message && (
-            <p className="mt-1 text-xs text-rose-600">{errors.endTime.message}</p>
-          )}
-        </div>
-      </div>
-
-      {/* 社員（複数） */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          社員（自社）
-          {employees.length > 0 && (
-            <span className="ml-2 text-xs font-normal text-slate-400">
-              {employees.length}名
-            </span>
-          )}
-        </label>
-
-        <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 p-3">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {employees.map((e) => (
-              <label key={e.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  value={e.id}
-                  {...register("employeeIds")}
-                  disabled={isSubmitting}
-                />
-                <span>{e.name}</span>
-              </label>
-            ))}
-
-            {employees.length === 0 && (
-              <p className="text-xs text-slate-500 sm:col-span-2">
-                社員がまだ登録されていません
+      <CardSection title="予定内容">
+        <div className="space-y-4">
+          {/* 現場名 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              現場名
+              <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                必須
+              </span>
+            </label>
+            <select
+              {...register("siteId")}
+              disabled={isSubmitting}
+              className={[
+                "mt-1 w-full rounded-md border px-3 py-2",
+                errors.siteId ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
+            >
+              <option value="">選択してください</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            {errors.siteId?.message && (
+              <p className="mt-1 text-xs text-rose-600">{errors.siteId.message}</p>
+            )}
+            {(selectedSiteRange.startDate || selectedSiteRange.endDate) && (
+              <p className="mt-2 text-xs text-slate-500">
+                工期: {selectedSiteRange.startDate ?? "未設定"} 〜{" "}
+                {selectedSiteRange.endDate ?? "未設定"}
               </p>
             )}
           </div>
+
+          {/* 日程 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              日程
+              <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                必須
+              </span>
+            </label>
+            <input
+              type="date"
+              {...register("date")}
+              disabled={isSubmitting}
+              className={[
+                "mt-1 w-full rounded-md border px-3 py-2",
+                errors.date ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
+            />
+            {errors.date?.message && (
+              <p className="mt-1 text-xs text-rose-600">{errors.date.message}</p>
+            )}
+          </div>
+
+          {/* 作業内容 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              作業内容
+            </label>
+            <input
+              {...register("title")}
+              disabled={isSubmitting}
+              className={[
+                "mt-1 w-full rounded-md border px-3 py-2",
+                errors.title ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
+              placeholder="例：配管の仕上げ / 養生 / 検査対応 など"
+            />
+            {errors.title?.message && (
+              <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
+            )}
+          </div>
+
+          {/* 開始・終了時刻 */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">開始時刻</label>
+              <input
+                type="time"
+                {...register("startTime")}
+                disabled={isSubmitting}
+                className={[
+                  "mt-1 w-full rounded-md border px-3 py-2",
+                  errors.startTime ? "border-rose-300" : "border-slate-200",
+                ].join(" ")}
+              />
+              {errors.startTime?.message && (
+                <p className="mt-1 text-xs text-rose-600">{errors.startTime.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">終了時刻</label>
+              <input
+                type="time"
+                {...register("endTime")}
+                disabled={isSubmitting}
+                className={[
+                  "mt-1 w-full rounded-md border px-3 py-2",
+                  errors.endTime ? "border-rose-300" : "border-slate-200",
+                ].join(" ")}
+              />
+              {errors.endTime?.message && (
+                <p className="mt-1 text-xs text-rose-600">{errors.endTime.message}</p>
+              )}
+            </div>
+          </div>
         </div>
+      </CardSection>
 
-        {errors.employeeIds?.message && (
-          <p className="mt-1 text-xs text-rose-600">
-            {String(errors.employeeIds.message)}
-          </p>
-        )}
+      <CardSection title="作業者">
+        <div className="space-y-4">
+          {/* 社員 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              社員（自社）
+              {employees.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-slate-400">
+                  {employees.length}名
+                </span>
+              )}
+            </label>
+            <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 p-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {employees.map((e) => (
+                  <label key={e.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      value={e.id}
+                      {...register("employeeIds")}
+                      disabled={isSubmitting}
+                    />
+                    <span>{e.name}</span>
+                  </label>
+                ))}
+                {employees.length === 0 && (
+                  <p className="text-xs text-slate-500 sm:col-span-2">
+                    社員がまだ登録されていません
+                  </p>
+                )}
+              </div>
+            </div>
+            {errors.employeeIds?.message && (
+              <p className="mt-1 text-xs text-rose-600">{String(errors.employeeIds.message)}</p>
+            )}
+          </div>
 
-        <p className="mt-2 text-xs text-slate-500">※ 複数選択できます（未選択でも保存OK）</p>
-      </div>
-
-      {/* 協力会社（複数） */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          協力会社（外注先）
-          {contractors.length > 0 && (
-            <span className="ml-2 text-xs font-normal text-slate-400">
-              {contractors.length}社
-            </span>
-          )}
-        </label>
-
-        <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 p-3">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {contractors.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  value={c.id}
-                  {...register("contractorIds")}
-                  disabled={isSubmitting}
-                />
-                <span>{c.name}</span>
-              </label>
-            ))}
-
-            {contractors.length === 0 && (
-              <p className="text-xs text-slate-500 sm:col-span-2">
-                協力会社がまだ登録されていません
-              </p>
+          {/* 協力会社 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              協力会社（外注先）
+              {contractors.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-slate-400">
+                  {contractors.length}社
+                </span>
+              )}
+            </label>
+            <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 p-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {contractors.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      value={c.id}
+                      {...register("contractorIds")}
+                      disabled={isSubmitting}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                ))}
+                {contractors.length === 0 && (
+                  <p className="text-xs text-slate-500 sm:col-span-2">
+                    協力会社がまだ登録されていません
+                  </p>
+                )}
+              </div>
+            </div>
+            {errors.contractorIds?.message && (
+              <p className="mt-1 text-xs text-rose-600">{String(errors.contractorIds.message)}</p>
             )}
           </div>
         </div>
+      </CardSection>
 
-        {errors.contractorIds?.message && (
-          <p className="mt-1 text-xs text-rose-600">
-            {String(errors.contractorIds.message)}
-          </p>
-        )}
-
-        <p className="mt-2 text-xs text-slate-500">※ 複数選択できます（未選択でも保存OK）</p>
-      </div>
-
-      {/* メモ */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700">メモ</label>
+      <CardSection title="メモ">
         <textarea
           {...register("note")}
           disabled={isSubmitting}
           className={[
-            "mt-1 w-full rounded-md border px-3 py-2",
+            "w-full rounded-md border px-3 py-2",
             errors.note ? "border-rose-300" : "border-slate-200",
           ].join(" ")}
           rows={4}
@@ -382,13 +336,13 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
         {errors.note?.message && (
           <p className="mt-1 text-xs text-rose-600">{errors.note.message}</p>
         )}
-      </div>
+      </CardSection>
 
       {/* actions */}
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <div className="flex gap-3">
         <Link
-          href="/schedules"
-          className="flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50"
+          href={mode === "edit" && schedule?.id ? `/schedules/${schedule.id}` : "/schedules"}
+          className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-center text-sm text-slate-700 hover:bg-slate-50"
         >
           キャンセル
         </Link>
@@ -396,7 +350,7 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
           type="submit"
           disabled={isSubmitting}
           className={[
-            "rounded-xl px-4 py-3 text-sm font-semibold text-white",
+            "flex-1 rounded-md px-4 py-2 text-sm font-semibold text-white",
             isSubmitting ? "cursor-not-allowed bg-slate-400" : "bg-sky-600 hover:bg-sky-700",
           ].join(" ")}
         >

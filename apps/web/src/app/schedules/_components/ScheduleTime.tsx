@@ -14,7 +14,7 @@ export function ScheduleTime({
   // start/end 両方なし = 終日
   if (!s && !e) {
     return (
-      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+      <span className="text-sm font-medium text-slate-700">
         終日
       </span>
     );
