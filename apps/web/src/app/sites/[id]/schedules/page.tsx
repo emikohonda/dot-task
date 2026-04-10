@@ -45,7 +45,7 @@ export default async function SiteSchedulesPage({
   const { id } = await params;
   const sp = (await searchParams) ?? {};
   const tab = sp.tab === "done" ? "done" : "active";
-  const sort = sp.sort === "asc" ? "asc" : "desc";
+  const sort = sp.sort === "desc" ? "desc" : "asc";
 
   const site = await fetchSite(id);
   if (!site) notFound();
