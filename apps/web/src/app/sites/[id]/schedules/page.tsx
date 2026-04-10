@@ -127,9 +127,12 @@ export default async function SiteSchedulesPage({
 
       {/* スケジュール一覧 */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-bold text-slate-900">
-          現場スケジュール（{sorted.length}件）
-        </h2>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="h-5 w-1 rounded-full bg-sky-600" />
+          <h2 className="text-lg font-bold text-slate-900">
+            現場スケジュール（{sorted.length}件）
+          </h2>
+        </div>
 
         {sorted.length === 0 ? (
           <p className="text-sm text-slate-500">
