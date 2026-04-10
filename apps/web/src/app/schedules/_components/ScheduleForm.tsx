@@ -135,7 +135,9 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
   });
 
   // 全てのフォーム共通で使うクラス（text-[16px] でズーム防止、block bg-white でデザイン安定）
-  const baseInputClass = "mt-1 block min-w-0 w-full bg-white rounded-md border px-3 py-2 text-[16px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 transition-colors";
+  const baseInputClass = "mt-1 block min-w-0 w-full bg-white rounded-md border px-3 py-2 text-[16px] transition-colors focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100";
+
+  const dateTimeInputClass = `${baseInputClass} box-border max-w-full appearance-none overflow-hidden`;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -174,7 +176,7 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
           </div>
 
           {/* 日程 */}
-          <div className="min-w-0">
+          <div className="min-w-0 overflow-hidden">
             <label className="block text-sm font-medium text-slate-700">
                 日程
                 <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
@@ -186,7 +188,7 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
               {...register("date")}
               disabled={isSubmitting}
               className={[
-                baseInputClass,
+                dateTimeInputClass,
                 errors.date ? "border-rose-300" : "border-slate-200",
               ].join(" ")}
             />
@@ -216,14 +218,14 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
 
           {/* 開始・終了時刻 */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <label className="block text-sm font-medium text-slate-700">開始時刻</label>
               <input
                 type="time"
                 {...register("startTime")}
                 disabled={isSubmitting}
                 className={[
-                  baseInputClass,
+                  dateTimeInputClass,
                   errors.startTime ? "border-rose-300" : "border-slate-200",
                 ].join(" ")}
               />
@@ -231,14 +233,14 @@ export default function ScheduleForm({ mode, sites, contractors, employees, sche
                 <p className="mt-1 text-xs text-rose-600">{errors.startTime.message}</p>
               )}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <label className="block text-sm font-medium text-slate-700">終了時刻</label>
               <input
                 type="time"
                 {...register("endTime")}
                 disabled={isSubmitting}
                 className={[
-                  baseInputClass,
+                  dateTimeInputClass,
                   errors.endTime ? "border-rose-300" : "border-slate-200",
                 ].join(" ")}
               />
