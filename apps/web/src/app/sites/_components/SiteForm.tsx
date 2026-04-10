@@ -17,7 +17,8 @@ import {
 } from "@/lib/validations/siteSchemas";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 // --------------------------------
 // 型定義
@@ -118,6 +119,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
 
   const onSubmit = handleSubmit(async (values) => {
     if (isSubmitting) return;
+
     try {
       setIsSubmitting(true);
       const payload = toSitePayload(values);
@@ -128,19 +130,28 @@ export default function SiteForm({ mode, site, companies }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error(await res.text().catch(() => "作成に失敗しました"));
+
+        if (!res.ok) {
+          throw new Error(await res.text().catch(() => "作成に失敗しました"));
+        }
+
         router.push("/sites?toast=created");
         router.refresh();
         return;
       }
 
       if (!site?.id) throw new Error("site.id が見つかりません");
+
       const res = await fetch(`${API_BASE}/sites/${site.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(await res.text().catch(() => "更新に失敗しました"));
+
+      if (!res.ok) {
+        throw new Error(await res.text().catch(() => "更新に失敗しました"));
+      }
+
       router.push(`/sites/${site.id}?toast=updated`);
       router.refresh();
     } catch (e) {
@@ -151,9 +162,15 @@ export default function SiteForm({ mode, site, companies }: Props) {
     }
   });
 
+  // 共通inputクラス（iPhoneズーム防止＋見た目統一）
+  const baseInputClass =
+    "mt-1 block min-w-0 w-full rounded-md border bg-white px-3 py-2 text-[16px] transition-colors focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100";
+
+  // date専用（iPhoneの横はみ出し対策）
+  const dateInputClass = `${baseInputClass} box-border max-w-full appearance-none overflow-hidden`;
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {/* 基本情報 */}
       <CardSection title="基本情報">
         <div className="grid gap-4 sm:grid-cols-2">
           {/* 現場名 */}
@@ -168,8 +185,8 @@ export default function SiteForm({ mode, site, companies }: Props) {
               {...register("name")}
               disabled={isSubmitting}
               className={[
-                "mt-1 w-full rounded-md border px-3 py-2",
-                errors.name ? "border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" : "border-slate-200",
+                baseInputClass,
+                errors.name ? "border-rose-300" : "border-slate-200",
               ].join(" ")}
               placeholder="例：〇〇マンション新築工事"
             />
@@ -180,11 +197,11 @@ export default function SiteForm({ mode, site, companies }: Props) {
 
           {/* 住所 */}
           <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-700">住所</label>
+            <label className="block text-sm font-medium text-slate-700">住所</label>
             <input
               {...register("address")}
               disabled={isSubmitting}
-              className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+              className={[baseInputClass, "border-slate-200"].join(" ")}
             />
             {errors.address?.message && (
               <p className="mt-1 text-xs text-rose-600">{errors.address.message}</p>
@@ -192,13 +209,16 @@ export default function SiteForm({ mode, site, companies }: Props) {
           </div>
 
           {/* 開始日 */}
-          <div>
-            <label className="block text-sm text-slate-700">開始日</label>
+          <div className="min-w-0 overflow-hidden">
+            <label className="block text-sm font-medium text-slate-700">開始日</label>
             <input
               type="date"
               {...register("startDate")}
               disabled={isSubmitting}
-              className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+              className={[
+                dateInputClass,
+                errors.startDate ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
             />
             {errors.startDate?.message && (
               <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>
@@ -206,13 +226,16 @@ export default function SiteForm({ mode, site, companies }: Props) {
           </div>
 
           {/* 終了日 */}
-          <div>
-            <label className="block text-sm text-slate-700">終了日</label>
+          <div className="min-w-0 overflow-hidden">
+            <label className="block text-sm font-medium text-slate-700">終了日</label>
             <input
               type="date"
               {...register("endDate")}
               disabled={isSubmitting}
-              className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+              className={[
+                dateInputClass,
+                errors.endDate ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
             />
             {errors.endDate?.message && (
               <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>
@@ -221,7 +244,6 @@ export default function SiteForm({ mode, site, companies }: Props) {
         </div>
       </CardSection>
 
-      {/* 現場担当者 */}
       <CardSection title="現場担当者">
         <div className="space-y-4">
           {/* 元請会社 */}
@@ -235,7 +257,10 @@ export default function SiteForm({ mode, site, companies }: Props) {
             <select
               {...register("companyId")}
               disabled={isSubmitting}
-              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-300"
+              className={[
+                baseInputClass,
+                errors.companyId ? "border-rose-300" : "border-slate-200",
+              ].join(" ")}
             >
               <option value="">-- 元請会社を選択 --</option>
               {companies.map((comp) => (
