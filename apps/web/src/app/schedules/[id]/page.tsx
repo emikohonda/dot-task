@@ -28,6 +28,20 @@ function formatDate(dateStr: string | null) {
   return `${year}年${month}月${day}日（${weekday}）`;
 }
 
+function formatDateTime(dateStr: string | null | undefined) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function InfoItem({
   icon,
   label,
@@ -151,15 +165,15 @@ export default async function ScheduleDetailPage({
           {s.createdAt ? (
             <InfoItem
               icon={<CalendarClock className="h-4 w-4" />}
-              label="作成日"
-              value={formatDate(s.createdAt)}
+              label="作成日時"
+              value={formatDateTime(s.createdAt)}
             />
           ) : null}
           {s.updatedAt ? (
             <InfoItem
               icon={<CalendarClock className="h-4 w-4" />}
-              label="更新日"
-              value={formatDate(s.updatedAt)}
+              label="最終更新"
+              value={formatDateTime(s.updatedAt)}
             />
           ) : null}
         </div>
