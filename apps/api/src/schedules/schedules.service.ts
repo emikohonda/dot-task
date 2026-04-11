@@ -160,7 +160,7 @@ export class SchedulesService {
       const items = await this.prisma.schedule.findMany({
         where,
         orderBy,
-        include: this.includeForScheduleList(),
+        include: this.includeForScheduleDetail(),
       });
       return { items, total: items.length, limit: items.length, offset: 0 };
     }

@@ -5,7 +5,9 @@ import { fetchSites } from "@/lib/api";
 export const dynamic = "force-dynamic";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 type Site = {
   id: string;
@@ -24,8 +26,8 @@ type Schedule = {
   startTime: string | null;
   endTime: string | null;
   site: { id: string; name: string } | null;
-  employees: Employee[];
-  contractors: Contractor[];
+  employees?: Employee[];
+  contractors?: Contractor[];
 };
 
 function getTodayYmd(): string {
@@ -95,7 +97,7 @@ export default async function HomePage() {
   const totalSchedules = schedules.length;
   const totalSites = new Set(schedules.map((s) => s.site?.id).filter(Boolean)).size;
   const totalEmployees = new Set(
-    schedules.flatMap((s) => s.employees.map((e) => e.employee.id))
+    schedules.flatMap((s) => (s.employees ?? []).map((e) => e.employee.id))
   ).size;
 
   return (
@@ -186,7 +188,7 @@ export default async function HomePage() {
                         </span>
                       </div>
                       <div className="truncate text-[11px] text-slate-500">
-                        {formatEmployeePreview(s.employees)}
+                        {formatEmployeePreview(s.employees ?? [])}
                       </div>
                     </div>
                     {/* 右：矢印 */}
