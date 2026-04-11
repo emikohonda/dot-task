@@ -10,12 +10,11 @@ import {
   SCHEDULE_STATUS,
   type ScheduleStatus,
 } from "@/lib/scheduleStatus";
-import { PageHeader } from "@/components/PageHeader";
 import { CardSection } from "@/components/CardSection";
 import { Combobox } from "@/components/Combobox";
 import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
-import { Calendar, Clock, Sun, MapPin, User, Building2, ArrowUpDown } from "lucide-react";
+import { Calendar, Clock, Sun, MapPin, User, Building2, ArrowUpDown, Plus } from "lucide-react";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
@@ -107,8 +106,11 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
   const [loading, setLoading]     = React.useState(false);
   const [savingId, setSavingId]   = React.useState<string | null>(null);
 
-  const activeTab = (searchParams.get("tab") as TabType) ?? "active";
-  const sortDate  = (searchParams.get("sortDate") as SortType) ?? "desc";
+  const activeTab: TabType =
+    searchParams.get("tab") === "done" ? "done" : "active";
+
+  const sortDate: SortType =
+    searchParams.get("sortDate") === "desc" ? "desc" : "asc";
 
   const hasFilter = !!(keyword || status || dateFrom || dateTo || siteId || employeeId || contractorId);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
@@ -125,8 +127,8 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
     const nextOffset = Number(searchParams.get("offset") ?? "0");
     params.set("limit",    String(PAGE_LIMIT));
     params.set("offset",   String(Number.isFinite(nextOffset) ? nextOffset : 0));
-    params.set("tab",      (searchParams.get("tab") as TabType) ?? "active");
-    params.set("sortDate", (searchParams.get("sortDate") as SortType) ?? "desc");
+    params.set("tab", activeTab);
+    params.set("sortDate", sortDate);
 
     setLoading(true);
     fetchSchedules(params).then((data) => {
@@ -170,11 +172,17 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
   }, [buildFilterParams, activeTab, sortDate, router]);
 
   const resetFilter = () => {
-    setKeyword(""); setStatus(""); setDateFrom(""); setDateTo("");
-    setSiteId(null); setEmployeeId(null); setContractorId(null);
+    setKeyword("");
+    setStatus("");
+    setDateFrom("");
+    setDateTo("");
+    setSiteId(null);
+    setEmployeeId(null);
+    setContractorId(null);
+
     const params = new URLSearchParams();
-    params.set("tab",      activeTab);
-    params.set("sortDate", sortDate);
+    params.set("tab", "active");
+    params.set("sortDate", "asc");
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
     setFilterOpen(false);
   };
@@ -251,26 +259,25 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        eyebrow="予定一覧"
-        title="全現場の予定"
-        right={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link
-              href="/schedules/today"
-              className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100"
-            >
-              <Sun className="h-4 w-4" />今日の予定
-            </Link>
-            <Link
-              href="/schedules/new"
-              className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
-            >
-              ＋ 予定を追加
-            </Link>
-          </div>
-        }
-      />
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-2xl font-bold leading-none text-slate-900">
+          予定一覧
+        </h1>
+        <div className="hidden md:flex items-center gap-2">
+          <Link
+            href="/schedules/today"
+            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100"
+          >
+            <Sun className="h-4 w-4" />今日の予定
+          </Link>
+          <Link
+            href="/schedules/new"
+            className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+          >
+            ＋ 予定を追加
+          </Link>
+        </div>
+      </div>
 
       {/* アコーディオン式フィルターパネル */}
       <div
@@ -296,8 +303,8 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
               <span>絞り込み検索</span>
             )}
           </span>
-          <span className={["text-xs transition-transform duration-300", filterOpen ? "rotate-180" : ""].join(" ")}>
-            ▼
+          <span className="text-xs font-medium text-slate-500">
+            {filterOpen ? "閉じる" : "開く"}
           </span>
         </button>
 
@@ -405,7 +412,7 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"
         >
           <ArrowUpDown className="h-4 w-4" />
-          {sortDate === "asc" ? "古い順" : "新しい順"}
+          {sortDate === "asc" ? "近い順" : "遠い順"}
         </button>
       </div>
 
@@ -422,7 +429,7 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
               {hasFilter ? "条件に一致する予定はありません" : "予定はまだありません"}
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              {hasFilter ? "絞り込み条件を変えてみてください。" : "右上の「＋ 予定を追加」から登録できます。"}
+              {hasFilter ? "絞り込み条件を変えてみてください。" : "「予定を追加」から登録できます。"}
             </p>
           </div>
         ) : (
@@ -576,6 +583,15 @@ export default function SchedulesClient({ initialSchedules }: { initialSchedules
           </>
         )}
       </CardSection>
+
+      <Link
+        href="/schedules/new"
+        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
+        aria-label="予定を追加"
+      >
+        <Plus className="h-5 w-5" />
+        <span>予定を追加</span>
+      </Link>
     </div>
   );
 }

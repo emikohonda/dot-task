@@ -69,9 +69,24 @@ const API_BASE_URL = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BAS
 // =====================
 
 // ✅ 一覧：失敗しても落とさない（常に配列を返す）
-export async function fetchSites(limit = 200): Promise<Site[]> {
+export async function fetchSites(
+  limit = 200,
+  options?: {
+    tab?: "active" | "done";
+    sortDate?: "asc" | "desc";
+  }
+): Promise<Site[]> {
   if (!API_BASE_URL) return [];
-  const data = await safeJson<{ items: Site[] } | Site[]>(`${API_BASE_URL}/sites?limit=${limit}`);
+
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("tab", options?.tab ?? "active");
+  params.set("sortDate", options?.sortDate ?? "asc");
+
+  const data = await safeJson<{ items: Site[] } | Site[]>(
+    `${API_BASE_URL}/sites?${params.toString()}`
+  );
+
   if (!data) return [];
   if (Array.isArray(data)) return data;
   if (Array.isArray(data.items)) return data.items;

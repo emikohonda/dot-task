@@ -125,7 +125,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
 
   // ── Fix 1: as キャストではなく安全な分岐で読み取る ──
   const activeTab: TabType  = searchParams.get("tab")      === "done" ? "done" : "active";
-  const sortDate:  SortType = searchParams.get("sortDate") === "asc"  ? "asc"  : "desc";
+  const sortDate:  SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
 
   const hasFilter = !!(keyword || companyId || monthFrom || monthTo);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
@@ -191,13 +191,13 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   }, [buildFilterParams, activeTab, sortDate, router]);
 
-  // ── Fix 2: リセットは初期値（tab=active, sortDate=desc）に戻す ──
+  // ── Fix 2: リセットは初期値（tab=active, sortDate=asc）に戻す ──
   const resetFilter = () => {
     setIsResetting(true);
     setKeyword(""); setCompanyId(null); setMonthFrom(""); setMonthTo("");
     const params = new URLSearchParams();
     params.set("tab",      "active");
-    params.set("sortDate", "desc");
+    params.set("sortDate", "asc");
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   };
 
@@ -364,7 +364,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"
         >
           <ArrowUpDown className="h-4 w-4" />
-          {sortDate === "asc" ? "古い順" : "新しい順"}
+          {sortDate === "asc" ? "近い順" : "遠い順"}
         </button>
       </div>
 
