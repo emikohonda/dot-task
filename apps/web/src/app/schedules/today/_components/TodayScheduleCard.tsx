@@ -76,8 +76,8 @@ export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) 
     }
   };
 
-  const employeeNames = schedule.employees.map((e) => e.employee.name).filter(Boolean);
-  const contractorNames = schedule.contractors.map((c) => c.contractor.name).filter(Boolean);
+  const employeeNames = (schedule.employees ?? []).map((e) => e.employee.name).filter(Boolean);
+  const contractorNames = (schedule.contractors ?? []).map((c) => c.contractor.name).filter(Boolean);
   const timeLabel = formatTimeRange(schedule.startTime, schedule.endTime);
   const isTimed = !!schedule.startTime;
 

@@ -21,8 +21,8 @@ export type Schedule = {
   endTime: string | null;
   description: string | null;
   site: { id: string; name: string } | null;
-  employees: Employee[];
-  contractors: Contractor[];
+  employees?: Employee[];
+  contractors?: Contractor[];
 };
 
 type SiteGroup = {
@@ -88,7 +88,7 @@ export default async function TodayPage() {
   const totalSchedules = schedules.length;
   const totalSites = groups.length;
   const totalEmployees = new Set(
-    schedules.flatMap((s) => s.employees.map((e) => e.employee.id))
+    schedules.flatMap((s) => (s.employees ?? []).map((e) => e.employee.id))
   ).size;
 
   return (
