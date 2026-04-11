@@ -33,7 +33,7 @@ type PaginatedSites = {
   offset: number;
 };
 
-type TabType  = "active" | "done";
+type TabType = "active" | "done";
 type SortType = "asc" | "desc";
 
 type SiteProgressStatus = "upcoming" | "active" | "completed" | null;
@@ -49,11 +49,11 @@ function getSiteProgressStatus(
 ): SiteProgressStatus {
   if (!startDate && !endDate) return null;
   const today = new Date();
-  const now   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const start = startDate ? toDateOnly(startDate) : null;
-  const end   = endDate   ? toDateOnly(endDate)   : null;
+  const end = endDate ? toDateOnly(endDate) : null;
   if (start && start > now) return "upcoming";
-  if (end   && end   < now) return "completed";
+  if (end && end < now) return "completed";
   return "active";
 }
 
@@ -61,9 +61,9 @@ const SITE_STATUS_META: Record<
   NonNullable<SiteProgressStatus>,
   { label: string; className: string }
 > = {
-  upcoming:  { label: "未着工", className: "bg-slate-100 text-slate-600" },
-  active:    { label: "進行中", className: "bg-sky-100 text-sky-700" },
-  completed: { label: "完了",   className: "bg-emerald-100 text-emerald-700" },
+  upcoming: { label: "未着工", className: "bg-slate-100 text-slate-600" },
+  active: { label: "進行中", className: "bg-sky-100 text-sky-700" },
+  completed: { label: "完了", className: "bg-emerald-100 text-emerald-700" },
 };
 
 async function fetchSites(params: URLSearchParams): Promise<PaginatedSites> {
@@ -105,60 +105,77 @@ function formatPeriod(start?: string | null, end?: string | null) {
 }
 
 export default function SitesClient({ initialSites }: { initialSites: Site[] }) {
-  const router       = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // ── フィルター state ──
-  const [keyword,   setKeyword]   = React.useState(searchParams.get("keyword")   ?? "");
+  const [keyword, setKeyword] = React.useState(searchParams.get("keyword") ?? "");
   const [companyId, setCompanyId] = React.useState<string | null>(searchParams.get("companyId"));
   const [monthFrom, setMonthFrom] = React.useState(searchParams.get("monthFrom") ?? "");
-  const [monthTo,   setMonthTo]   = React.useState(searchParams.get("monthTo")   ?? "");
-  const [offset,    setOffset]    = React.useState(Number(searchParams.get("offset") ?? 0));
+  const [monthTo, setMonthTo] = React.useState(searchParams.get("monthTo") ?? "");
+  const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
 
-  const [total,          setTotal]          = React.useState(initialSites.length);
+  const [total, setTotal] = React.useState(initialSites.length);
   const [companyOptions, setCompanyOptions] = React.useState<ComboboxOption[]>([]);
-  const [sites,          setSites]          = React.useState<Site[]>(initialSites);
-  const [loading,        setLoading]        = React.useState(false);
-  const [isResetting,    setIsResetting]    = React.useState(false);
+  const [sites, setSites] = React.useState<Site[]>(initialSites);
+  const [loading, setLoading] = React.useState(false);
+  const [isResetting, setIsResetting] = React.useState(false);
 
   const isFirstRender = React.useRef(true);
 
   // ── Fix 1: as キャストではなく安全な分岐で読み取る ──
-  const activeTab: TabType  = searchParams.get("tab")      === "done" ? "done" : "active";
-  const sortDate:  SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
+  const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
+  const sortDate: SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
 
   const hasFilter = !!(keyword || companyId || monthFrom || monthTo);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
+
+  const isDefaultState =
+    !searchParams.get("keyword") &&
+    !searchParams.get("companyId") &&
+    !searchParams.get("monthFrom") &&
+    !searchParams.get("monthTo") &&
+    !searchParams.get("offset") &&
+    (searchParams.get("tab") ?? "active") === "active" &&
+    (searchParams.get("sortDate") ?? "asc") === "asc";
+
+  // ── URL変化時にデータ取得 ──
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (isDefaultState) return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    const nextOffset = Number(searchParams.get("offset") ?? "0");
+    params.set("limit", String(PAGE_LIMIT));
+    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
+    params.set("tab", activeTab);
+    params.set("sortDate", sortDate);
+
+    setLoading(true);
+    fetchSites(params)
+      .then((data) => {
+        setSites(data.items);
+        setTotal(data.total);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [searchParams, activeTab, sortDate, isDefaultState]);
 
   // ── 初回だけ会社一覧取得 ──
   React.useEffect(() => {
     fetchOptions("/companies?limit=200").then(setCompanyOptions);
   }, []);
 
-  // ── URL変化時にデータ取得 ──
-  React.useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      // クエリがない時だけスキップ（リロード時の「検索中…」防止）
-      if (!searchParams.toString()) return;
-    }
-    const params     = new URLSearchParams(searchParams.toString());
-    const nextOffset = Number(searchParams.get("offset") ?? "0");
-    params.set("limit",  String(PAGE_LIMIT));
-    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
-    setLoading(true);
-    fetchSites(params)
-      .then((data) => { setSites(data.items); setTotal(data.total); })
-      .finally(()  => { setLoading(false); });
-  }, [searchParams]);
-
   // ── state を URL と同期 ──
   React.useEffect(() => {
-    const nextKeyword   = searchParams.get("keyword")   ?? "";
+    const nextKeyword = searchParams.get("keyword") ?? "";
     const nextCompanyId = searchParams.get("companyId");
     const nextMonthFrom = searchParams.get("monthFrom") ?? "";
-    const nextMonthTo   = searchParams.get("monthTo")   ?? "";
-    const nextOffset    = Number(searchParams.get("offset") ?? "0");
+    const nextMonthTo = searchParams.get("monthTo") ?? "";
+    const nextOffset = Number(searchParams.get("offset") ?? "0");
 
     setKeyword(nextKeyword);
     setCompanyId(nextCompanyId);
@@ -175,19 +192,19 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   // ── フィルターパラメータのベース ──
   const buildFilterParams = React.useCallback(() => {
     const params = new URLSearchParams();
-    if (keyword)   params.set("keyword",   keyword);
+    if (keyword) params.set("keyword", keyword);
     if (companyId) params.set("companyId", companyId);
     if (monthFrom) params.set("monthFrom", monthFrom);
-    if (monthTo)   params.set("monthTo",   monthTo);
+    if (monthTo) params.set("monthTo", monthTo);
     return params;
   }, [keyword, companyId, monthFrom, monthTo]);
 
   // ── 検索 ──
   const applyFilter = React.useCallback(() => {
     const params = buildFilterParams();
-    params.set("tab",      activeTab);
+    params.set("tab", activeTab);
     params.set("sortDate", sortDate);
-    params.set("offset",   "0");
+    params.set("offset", "0");
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   }, [buildFilterParams, activeTab, sortDate, router]);
 
@@ -196,7 +213,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
     setIsResetting(true);
     setKeyword(""); setCompanyId(null); setMonthFrom(""); setMonthTo("");
     const params = new URLSearchParams();
-    params.set("tab",      "active");
+    params.set("tab", "active");
     params.set("sortDate", "asc");
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   };
@@ -204,9 +221,9 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   // ── タブ切り替え ──
   const handleTabChange = (tab: TabType) => {
     const params = buildFilterParams();
-    params.set("tab",      tab);
+    params.set("tab", tab);
     params.set("sortDate", sortDate);
-    params.set("offset",   "0");
+    params.set("offset", "0");
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   };
 
@@ -214,32 +231,32 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   const handleSortToggle = () => {
     const next: SortType = sortDate === "asc" ? "desc" : "asc";
     const params = buildFilterParams();
-    params.set("tab",      activeTab);
+    params.set("tab", activeTab);
     params.set("sortDate", next);
-    params.set("offset",   "0");
+    params.set("offset", "0");
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   };
 
   // ── ページネーション ──
   const goToOffset = (nextOffset: number) => {
     const params = buildFilterParams();
-    params.set("tab",      activeTab);
+    params.set("tab", activeTab);
     params.set("sortDate", sortDate);
-    params.set("offset",   String(nextOffset));
+    params.set("offset", String(nextOffset));
     router.replace(`/sites?${params.toString()}`, { scroll: false });
   };
 
   const isDirty =
-    keyword   !== (searchParams.get("keyword")   ?? "") ||
+    keyword !== (searchParams.get("keyword") ?? "") ||
     monthFrom !== (searchParams.get("monthFrom") ?? "") ||
-    monthTo   !== (searchParams.get("monthTo")   ?? "") ||
+    monthTo !== (searchParams.get("monthTo") ?? "") ||
     (companyId ?? "") !== (searchParams.get("companyId") ?? "");
 
-  const hasAny     = sites.length > 0;
-  const hasPrev    = offset > 0;
-  const hasNext    = offset + PAGE_LIMIT < total;
+  const hasAny = sites.length > 0;
+  const hasPrev = offset > 0;
+  const hasNext = offset + PAGE_LIMIT < total;
   const rangeStart = total === 0 ? 0 : offset + 1;
-  const rangeEnd   = Math.min(offset + PAGE_LIMIT, total);
+  const rangeEnd = Math.min(offset + PAGE_LIMIT, total);
 
   return (
     <div className="space-y-4">
@@ -386,7 +403,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
             <ul className="divide-y divide-slate-100">
               {sites.map((site) => {
                 const progressStatus = getSiteProgressStatus(site.startDate, site.endDate);
-                const statusMeta     = progressStatus ? SITE_STATUS_META[progressStatus] : null;
+                const statusMeta = progressStatus ? SITE_STATUS_META[progressStatus] : null;
                 return (
                   <li key={site.id} className="py-4">
                     <Link
