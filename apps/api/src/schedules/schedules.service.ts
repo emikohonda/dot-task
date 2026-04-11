@@ -38,7 +38,16 @@ function assertValidYmd(value: string, fieldName: string) {
 export class SchedulesService {
   constructor(private readonly prisma: PrismaService) { }
 
-  private includeForSchedule() {
+  // 一覧用（軽量）
+  private includeForScheduleList() {
+    return {
+      site: {
+        select: { id: true, name: true },
+      },
+    } as const;
+  }
+
+  private includeForScheduleDetail() {
     return {
       // site に company（元請会社）を追加
       site: {
@@ -54,7 +63,7 @@ export class SchedulesService {
         },
       },
       contractors: { include: { contractor: { select: { id: true, name: true } } } },
-      employees: { include: { employee: { select: { id: true, name: true } } } },
+      employees:   { include: { employee:   { select: { id: true, name: true } } } },
     } as const;
   }
 
@@ -122,13 +131,6 @@ export class SchedulesService {
       ];
     }
 
-    // タブ（未完了 / 完了済）
-    if (tab === 'done') {
-      where.status = 'DONE';
-    } else if (tab === 'active') {
-      where.status = { not: 'DONE' };
-    }
-
     // ステータス単一指定（タブより優先）
     if (status) {
       if (!VALID_STATUSES.includes(status as ScheduleStatus)) {
@@ -158,7 +160,7 @@ export class SchedulesService {
       const items = await this.prisma.schedule.findMany({
         where,
         orderBy,
-        include: this.includeForSchedule(),
+        include: this.includeForScheduleList(),
       });
       return { items, total: items.length, limit: items.length, offset: 0 };
     }
@@ -170,7 +172,7 @@ export class SchedulesService {
         skip: offset,
         take: limit,
         orderBy,
-        include: this.includeForSchedule(),
+        include: this.includeForScheduleList(),
       }),
     ]);
 
@@ -180,7 +182,7 @@ export class SchedulesService {
   async findOne(id: string) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id },
-      include: this.includeForSchedule(),
+      include: this.includeForScheduleDetail(),
     });
     if (!schedule) throw new NotFoundException('Schedule not found');
     return schedule;
@@ -240,7 +242,7 @@ export class SchedulesService {
         ...(contractorIds.length ? { contractors: { createMany: { data: contractorIds.map((id) => ({ contractorId: id })), skipDuplicates: true } } } : {}),
         ...(employeeIds.length   ? { employees:   { createMany: { data: employeeIds.map((id)   => ({ employeeId:   id })), skipDuplicates: true } } } : {}),
       },
-      include: this.includeForSchedule(),
+      include: this.includeForScheduleDetail(),
     });
   }
 
@@ -295,14 +297,14 @@ export class SchedulesService {
         ...(contractorIds !== undefined ? { contractors: { deleteMany: {}, ...(contractorIds.length ? { createMany: { data: contractorIds.map((cid) => ({ contractorId: cid })), skipDuplicates: true } } : {}) } } : {}),
         ...(employeeIds   !== undefined ? { employees:   { deleteMany: {}, ...(employeeIds.length   ? { createMany: { data: employeeIds.map((eid)   => ({ employeeId:   eid })), skipDuplicates: true } } : {}) } } : {}),
       },
-      include: this.includeForSchedule(),
+      include: this.includeForScheduleDetail(),
     });
   }
 
   async updateStatus(id: string, status: ScheduleStatus) {
     const exists = await this.prisma.schedule.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException('Schedule not found');
-    return this.prisma.schedule.update({ where: { id }, data: { status }, include: this.includeForSchedule() });
+    return this.prisma.schedule.update({ where: { id }, data: { status }, include: this.includeForScheduleDetail() });
   }
 
   async remove(id: string) {
