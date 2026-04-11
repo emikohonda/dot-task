@@ -42,7 +42,16 @@ export class SchedulesService {
   private includeForScheduleList() {
     return {
       site: {
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       },
     } as const;
   }
