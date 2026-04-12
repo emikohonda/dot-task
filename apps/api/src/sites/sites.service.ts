@@ -125,12 +125,22 @@ export class SitesService {
 
     if (monthFrom) {
       const from = new Date(`${monthFrom}-01T00:00:00`);
-      andClauses.push({ startDate: { gte: from } });
+      andClauses.push({
+        OR: [
+          { endDate: { gte: from } },
+          { endDate: null },
+        ],
+      });
     }
     if (monthTo) {
       const [y, m] = monthTo.split("-").map(Number);
       const to = new Date(y, m, 0, 23, 59, 59, 999);
-      andClauses.push({ startDate: { lte: to } });
+      andClauses.push({
+        OR: [
+          { startDate: { lte: to } },
+          { startDate: null },
+        ],
+      });
     }
 
     const where: Prisma.SiteWhereInput = andClauses.length ? { AND: andClauses } : {};

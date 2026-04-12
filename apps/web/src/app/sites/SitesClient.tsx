@@ -315,22 +315,23 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
                 onChange={setCompanyId}
                 placeholder="元請会社で絞り込む"
               />
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-medium text-slate-500">開始月</p>
-                <input
-                  type="month"
-                  value={monthFrom}
-                  onChange={(e) => setMonthFrom(e.target.value)}
-                  className="box-border min-h-[44px] min-w-0 w-full max-w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-medium text-slate-500">終了月</p>
-                <input
-                  type="month"
-                  value={monthTo}
-                  onChange={(e) => setMonthTo(e.target.value)}
-                  className="box-border min-h-[44px] min-w-0 w-full max-w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100" />
+              <div className="sm:col-span-2 min-w-0 space-y-1">
+                <p className="text-xs font-medium text-slate-500">対象期間</p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <input
+                    type="month"
+                    value={monthFrom}
+                    onChange={(e) => setMonthFrom(e.target.value)}
+                    className="box-border min-h-[44px] min-w-0 flex-1 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                  <span className="shrink-0 text-sm text-slate-400">〜</span>
+                  <input
+                    type="month"
+                    value={monthTo}
+                    onChange={(e) => setMonthTo(e.target.value)}
+                    className="box-border min-h-[44px] min-w-0 flex-1 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                </div>
               </div>
             </div>
             <SearchActionRow
