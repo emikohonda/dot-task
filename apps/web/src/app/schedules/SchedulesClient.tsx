@@ -60,6 +60,16 @@ function formatDate(dateStr: string | null) {
   return `${y}/${m}/${d}`;
 }
 
+function getTodayYmd() {
+  return new Date().toLocaleDateString("sv-SE");
+}
+
+function getYesterdayYmd() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toLocaleDateString("sv-SE");
+}
+
 export default function SchedulesClient({
   initialSchedules,
   initialTotal,
@@ -84,10 +94,8 @@ export default function SchedulesClient({
   const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
   const sortDate: SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
 
-  const effectiveDateFrom = activeTab === "active" ? dateFrom : "";
-  const effectiveDateTo = activeTab === "done" ? dateTo : "";
-
-  const hasFilter = !!(keyword || effectiveDateFrom || effectiveDateTo || siteId);
+  // ── Fix: effectiveDateFrom/To を削除し、dateFrom/dateTo を直接使う ──
+  const hasFilter = !!(keyword || dateFrom || dateTo || siteId);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
 
   React.useEffect(() => {
@@ -104,31 +112,40 @@ export default function SchedulesClient({
     params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
     params.set("sortDate", sortDate);
 
-    const todayYmd = new Date().toLocaleDateString("sv-SE");
-    const yesterdayYmd = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - 1);
-      return d.toLocaleDateString("sv-SE");
-    })();
+    const todayYmd = getTodayYmd();
+    const yesterdayYmd = getYesterdayYmd();
 
     if (activeTab === "active") {
       const effectiveDateFrom =
         currentDateFrom && currentDateFrom > todayYmd ? currentDateFrom : todayYmd;
       params.set("dateFrom", effectiveDateFrom);
-      params.delete("dateTo");
+
+      if (currentDateTo) {
+        params.set("dateTo", currentDateTo);
+      } else {
+        params.delete("dateTo");
+      }
     } else {
       const effectiveDateTo =
         currentDateTo && currentDateTo < yesterdayYmd ? currentDateTo : yesterdayYmd;
       params.set("dateTo", effectiveDateTo);
-      params.delete("dateFrom");
+
+      if (currentDateFrom) {
+        params.set("dateFrom", currentDateFrom);
+      } else {
+        params.delete("dateFrom");
+      }
     }
 
     setLoading(true);
-    fetchSchedules(params).then((data) => {
-      setSchedules(data.items);
-      setTotal(data.total);
-      setLoading(false);
-    });
+    fetchSchedules(params)
+      .then((data) => {
+        setSchedules(data.items);
+        setTotal(data.total);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [searchParams, sortDate, activeTab]);
 
   React.useEffect(() => {
@@ -140,36 +157,52 @@ export default function SchedulesClient({
     setOffset(Number.isFinite(nextOffset) ? nextOffset : 0);
   }, [searchParams]);
 
+  // ── Fix: dateFrom/dateTo 両方セット ──
   const buildFilterParams = React.useCallback(() => {
     const params = new URLSearchParams();
     if (keyword) params.set("keyword", keyword);
     if (siteId) params.set("siteId", siteId);
-
-    if (activeTab === "active") {
-      if (dateFrom) params.set("dateFrom", dateFrom);
-    } else {
-      if (dateTo) params.set("dateTo", dateTo);
-    }
-
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     return params;
-  }, [keyword, dateFrom, dateTo, siteId, activeTab]);
+  }, [keyword, dateFrom, dateTo, siteId]);
 
   const applyFilter = React.useCallback(() => {
     const params = buildFilterParams();
     params.set("tab", activeTab);
     params.set("sortDate", sortDate);
     params.set("offset", "0");
+
+    const todayYmd = getTodayYmd();
+    const yesterdayYmd = getYesterdayYmd();
+
+    if (activeTab === "active") {
+      const currentFrom = params.get("dateFrom") ?? "";
+      const nextFrom = !currentFrom || currentFrom < todayYmd ? todayYmd : currentFrom;
+      params.set("dateFrom", nextFrom);
+      if (nextFrom !== dateFrom) setDateFrom(nextFrom);
+    }
+
+    if (activeTab === "done") {
+      const currentTo = params.get("dateTo") ?? "";
+      const nextTo = !currentTo || currentTo > yesterdayYmd ? yesterdayYmd : currentTo;
+      params.set("dateTo", nextTo);
+      if (nextTo !== dateTo) setDateTo(nextTo);
+    }
+
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
-    setFilterOpen(false);
-  }, [buildFilterParams, activeTab, sortDate, router]);
+  }, [buildFilterParams, activeTab, sortDate, router, dateFrom, dateTo]);
 
   const resetFilter = () => {
-    setKeyword(""); setDateFrom(""); setDateTo(""); setSiteId(null);
+    setKeyword("");
+    setDateFrom("");
+    setDateTo("");
+    setSiteId(null);
+
     const params = new URLSearchParams();
     params.set("tab", "active");
     params.set("sortDate", "asc");
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
-    setFilterOpen(false);
   };
 
   const goToOffset = (nextOffset: number) => {
@@ -180,24 +213,16 @@ export default function SchedulesClient({
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
   };
 
+  // ── Fix: タブ切り替え時も dateFrom/dateTo 両方残す ──
   const handleTabChange = (tab: TabType) => {
     const params = new URLSearchParams();
-
     if (keyword) params.set("keyword", keyword);
     if (siteId) params.set("siteId", siteId);
-
-    if (tab === "active") {
-      if (dateFrom) params.set("dateFrom", dateFrom);
-      setDateTo("");
-    } else {
-      if (dateTo) params.set("dateTo", dateTo);
-      setDateFrom("");
-    }
-
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     params.set("tab", tab);
     params.set("sortDate", sortDate);
     params.set("offset", "0");
-
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
   };
 
@@ -210,10 +235,11 @@ export default function SchedulesClient({
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
   };
 
+  // ── Fix: effectiveDateFrom/To をやめて dateFrom/dateTo で比較 ──
   const isDirty =
     keyword !== (searchParams.get("keyword") ?? "") ||
-    effectiveDateFrom !== (activeTab === "active" ? (searchParams.get("dateFrom") ?? "") : "") ||
-    effectiveDateTo !== (activeTab === "done" ? (searchParams.get("dateTo") ?? "") : "") ||
+    dateFrom !== (searchParams.get("dateFrom") ?? "") ||
+    dateTo !== (searchParams.get("dateTo") ?? "") ||
     (siteId ?? "") !== (searchParams.get("siteId") ?? "");
 
   const hasAny = schedules.length > 0;
@@ -278,7 +304,7 @@ export default function SchedulesClient({
           ].join(" ")}
         >
           <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2">
               <KeywordSearchBox
                 placeholder="タイトル・現場名・メモ"
                 value={keyword}
@@ -292,23 +318,23 @@ export default function SchedulesClient({
                 onChange={setSiteId}
                 placeholder="現場で絞り込む"
               />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-500">開始日</p>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-500">終了日</p>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
+              <div className="sm:col-span-2 min-w-0 space-y-1">
+                <p className="text-sm font-medium text-slate-500">対象期間</p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="box-border min-h-[44px] min-w-0 flex-1 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                  <span className="shrink-0 text-sm text-slate-400">〜</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="box-border min-h-[44px] min-w-0 flex-1 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                </div>
               </div>
             </div>
             <SearchActionRow
