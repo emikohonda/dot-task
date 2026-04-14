@@ -36,8 +36,7 @@ export function MobileShell() {
       <div
         className={clsx(
           "fixed left-4 right-4 z-50 rounded-2xl border border-slate-200 bg-white shadow-xl transition-all duration-200 md:hidden",
-          // bottom は BottomNav の高さ（56px） + safe-area
-          "bottom-[calc(64px+env(safe-area-inset-bottom))]",
+          "bottom-[calc(85px+env(safe-area-inset-bottom))]",
           menuOpen
             ? "translate-y-0 opacity-100 pointer-events-auto"
             : "translate-y-3 opacity-0 pointer-events-none"
