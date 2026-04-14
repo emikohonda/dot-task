@@ -182,7 +182,7 @@ export default async function ScheduleDetailPage({
       {/* 右下固定の編集FAB */}
       <Link
         href={`/schedules/${s.id}/edit`}
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
+        className="fixed bottom-[72px] right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
         aria-label="編集する"
       >
         <Pencil className="h-5 w-5" />

@@ -4,7 +4,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import {
@@ -282,7 +283,7 @@ export default function CalendarClient({
   }, [selectedYmd]);
 
   return (
-    <div className="relative flex h-[calc(100dvh-136px)] flex-col overflow-hidden bg-white">
+    <div className="relative flex h-[calc(100dvh-112px)] flex-col overflow-hidden bg-white">
       {/* ── 月見出し ── */}
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
@@ -510,14 +511,7 @@ export default function CalendarClient({
       </div>
 
       {/* スマホ用FAB */}
-      <Link
-        href={`/schedules/new?date=${selectedYmd}`}
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
-        aria-label="予定を追加"
-      >
-        <Plus className="h-5 w-5" />
-        <span>予定を追加</span>
-      </Link>
+      <FloatingAddButton href={`/schedules/new?date=${selectedYmd}`} />
     </div>
   );
 }

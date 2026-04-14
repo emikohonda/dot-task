@@ -9,7 +9,8 @@ import { Combobox } from "@/components/Combobox";
 import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import type { ComboboxOption } from "@/components/Combobox";
-import { Building2, Calendar, Plus, ArrowUpDown } from "lucide-react";
+import { Building2, Calendar, ArrowUpDown } from "lucide-react";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -473,14 +474,8 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
       </CardSection>
 
       {/* スマホ用FAB */}
-      <Link
-        href="/sites/new"
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
-        aria-label="現場を追加"
-      >
-        <Plus className="h-5 w-5" />
-        <span>現場を追加</span>
-      </Link>
+      <FloatingAddButton href="/sites/new" label="現場を追加" />
+      
     </div>
   );
 }

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Schedule } from "../page";
+import type { Schedule } from "./TodayPageContent";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -80,6 +80,7 @@ export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) 
   const contractorNames = (schedule.contractors ?? []).map((c) => c.contractor.name).filter(Boolean);
   const timeLabel = formatTimeRange(schedule.startTime, schedule.endTime);
   const isTimed = !!schedule.startTime;
+  const titleLabel = schedule.title?.trim() ? schedule.title : "作業内容未入力";
 
   return (
     <div
@@ -96,7 +97,7 @@ export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) 
           {timeLabel}
         </span>
         <span className={`text-base font-bold truncate ${isCancelled ? "line-through text-slate-400" : "text-slate-800"}`}>
-          {schedule.title}
+          {titleLabel}
         </span>
       </div>
 

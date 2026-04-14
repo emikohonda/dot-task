@@ -1,7 +1,8 @@
 // apps/web/src/app/calendar/day/[date]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin, ChevronLeft, Plus } from "lucide-react";
+import { MapPin, ChevronLeft } from "lucide-react";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 import type { Schedule } from "@/lib/fetchers/schedules";
 
 const API_BASE =
@@ -138,14 +139,8 @@ export default async function CalendarDayPage({ params }: Props) {
       </div>
 
       {/* 右下固定FAB */}
-      <Link
-        href={`/schedules/new?date=${date}`}
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
-        aria-label="予定を追加"
-      >
-        <Plus className="h-5 w-5" />
-        <span>予定を追加</span>
-      </Link>
+      <FloatingAddButton href={`/schedules/new?date=${date}`} />
+      
     </div>
   );
 }

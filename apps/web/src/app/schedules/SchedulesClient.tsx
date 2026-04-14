@@ -8,7 +8,8 @@ import { CardSection } from "@/components/CardSection";
 import { Combobox } from "@/components/Combobox";
 import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
-import { Calendar, Clock, MapPin, ArrowUpDown, Plus, Sun } from "lucide-react";
+import { Calendar, Clock, MapPin, ArrowUpDown, Sun } from "lucide-react";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
@@ -439,7 +440,7 @@ export default function SchedulesClient({
                     disabled={!hasPrev || loading}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    ← 前へ
+                    ◀︎ 前へ
                   </button>
                   <button
                     type="button"
@@ -447,7 +448,7 @@ export default function SchedulesClient({
                     disabled={!hasNext || loading}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    次へ →
+                    次へ ▶︎
                   </button>
                 </div>
               </div>
@@ -456,14 +457,7 @@ export default function SchedulesClient({
         )}
       </CardSection>
 
-      <Link
-        href="/schedules/new"
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
-        aria-label="予定を追加"
-      >
-        <Plus className="h-5 w-5" />
-        <span>予定を追加</span>
-      </Link>
+      <FloatingAddButton href="/schedules/new" />
     </div>
   );
 }
