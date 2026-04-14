@@ -41,12 +41,14 @@ export function BottomNav({ onMenuClick, menuOpen }: Props) {
   ];
 
   const itemClass =
-    "flex flex-1 flex-col items-center justify-center gap-1 py-2.5 min-h-[64px] transition-colors";
+    "flex flex-1 flex-col items-center justify-start gap-1 pt-2.5 pb-1 min-h-[64px] transition-colors";
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
+      }}
     >
       <div className="flex items-stretch justify-around">
         {linkItems.map(({ href, label, icon: Icon, isActive }) => (
@@ -66,7 +68,7 @@ export function BottomNav({ onMenuClick, menuOpen }: Props) {
             />
             <span
               className={clsx(
-                "text-[11px] font-medium",
+                "text-[11px] font-medium leading-none",
                 isActive ? "text-sky-600" : "text-slate-500"
               )}
             >
@@ -93,7 +95,7 @@ export function BottomNav({ onMenuClick, menuOpen }: Props) {
           />
           <span
             className={clsx(
-              "text-[11px] font-medium",
+              "text-[11px] font-medium leading-none",
               isMenuActive ? "text-sky-600" : "text-slate-500"
             )}
           >
