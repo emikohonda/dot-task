@@ -8,8 +8,8 @@ import clsx from "clsx";
 import { BottomNav } from "./BottomNav";
 
 const menuItems = [
-  { href: "/schedules",   label: "予定一覧" },
-  { href: "/companies",   label: "取引先" },
+  { href: "/schedules", label: "予定一覧" },
+  { href: "/companies", label: "取引先" },
   { href: "/contractors", label: "外注先" },
 ];
 
@@ -21,6 +21,31 @@ export function MobileShell() {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  // メニューオープン中は後ろのページをスクロール禁止
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const scrollY = window.scrollY;
+
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+
+      window.scrollTo(0, scrollY);
+    };
+  }, [menuOpen]);
 
   return (
     <>

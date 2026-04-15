@@ -98,6 +98,7 @@ export default async function TodayPageContent() {
         <div className="space-y-6">
             <PageHeader
                 title={formatTodayHeading(today)}
+                align="center"
             />
 
             {/* サマリー */}
