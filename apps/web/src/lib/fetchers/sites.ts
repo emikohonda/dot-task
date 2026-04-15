@@ -26,7 +26,6 @@ export type SiteSchedule = {
   id: string;
   title: string;
   date: string;
-  status: string | null;
   startTime?: string | null;
   endTime?: string | null;
 

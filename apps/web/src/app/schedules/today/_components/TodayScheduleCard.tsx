@@ -15,7 +15,7 @@ function formatTimeRange(start?: string | null, end?: string | null): string {
 // 社員名：2名まで表示、残りは「ほかN名」
 function formatNameTags(names: string[]): string[] {
   if (names.length <= 2) return names;
-  return [...names.slice(0, 2), `ほか${names.length - 2}名`];
+  return [...names.slice(0, 2), `ほか${names.length - 1}名`];
 }
 
 function NameTag({ name, color = "slate" }: { name: string; color?: "sky" | "slate" }) {
@@ -32,8 +32,6 @@ function NameTag({ name, color = "slate" }: { name: string; color?: "sky" | "sla
 }
 
 export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) {
-  const isCancelled = schedule.status === "CANCELLED";
-
   const employeeNames = (schedule.employees ?? [])
     .map((e) => e.employee.name)
     .filter(Boolean);
@@ -47,14 +45,7 @@ export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) 
   const titleLabel = schedule.title?.trim() ? schedule.title : "作業内容未入力";
 
   return (
-    <div
-      className={[
-        "rounded-xl border p-4 transition",
-        isCancelled
-          ? "border-slate-100 bg-slate-50 opacity-60"
-          : "border-slate-200 bg-white hover:shadow-sm",
-      ].join(" ")}
-    >
+    <div className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-sm">
       {/* ヘッダー：時刻 ＋ タイトル */}
       <div className="mb-3 flex min-w-0 items-center gap-2">
         <span
@@ -64,11 +55,7 @@ export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) 
         >
           {timeLabel}
         </span>
-        <span
-          className={`truncate text-base font-bold ${
-            isCancelled ? "text-slate-400 line-through" : "text-slate-800"
-          }`}
-        >
+        <span className="truncate text-base font-bold text-slate-800">
           {titleLabel}
         </span>
       </div>

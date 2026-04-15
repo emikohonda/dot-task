@@ -26,9 +26,8 @@ export type SiteDetail = {
   // ✅ ここが担当者（中間テーブル）
   companyContacts?: SiteCompanyContactJoin[] | null;
 
-  // ついでに返ってくるなら
   contractors?: { contractor: { id: string; name: string } | null }[] | null;
-  schedules?: { id: string; title: string; date: string; status: string }[] | null;
+  schedules?: { id: string; title: string; date: string }[] | null;
 };
 
 export async function fetchSiteById(id: string): Promise<SiteDetail | null> {

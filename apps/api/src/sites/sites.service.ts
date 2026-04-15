@@ -3,7 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateSiteDto } from "./dto/create-site.dto";
 import { UpdateSiteDto } from "./dto/update-site.dto";
-import { Prisma, ScheduleStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 type SiteTabType    = "active" | "done";
 type SiteSortType   = "asc" | "desc";
@@ -248,16 +248,9 @@ export class SitesService {
   async findSchedulesBySiteId(
     siteId: string,
     limit = 3,
-    options?: { includeCompleted?: boolean }
   ) {
-    const includeCompleted = options?.includeCompleted ?? false;
-
-    // Prisma enum を使って型安全に
     const where: Prisma.ScheduleWhereInput = {
       siteId,
-      ...(includeCompleted
-        ? {}
-        : { status: { notIn: [ScheduleStatus.DONE, ScheduleStatus.CANCELLED] } }),
     };
 
     const [total, items] = await Promise.all([
@@ -274,7 +267,6 @@ export class SitesService {
           id: true,
           title: true,
           date: true,
-          status: true,
           startTime: true,
           endTime: true,
           contractors: {

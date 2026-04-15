@@ -11,14 +11,6 @@ datasource db {
 // ================================
 // Enum 定義
 // ================================
-enum ScheduleStatus {
-  TODO
-  DOING
-  DONE
-  HOLD
-  CANCELLED
-}
-
 enum InvoiceStatus {
   DRAFT
   SENT
@@ -166,7 +158,6 @@ model Contractor {
   phone      String?
   email      String?
 
-  // ✅ 追加：複数担当者
   contacts ContractorContact[]
 
   sites       SiteContractor[]
@@ -218,22 +209,21 @@ model SiteContractor {
 // 進捗（Schedule）
 // ------------------------------------------
 model Schedule {
-  id          String         @id @default(uuid())
+  id          String   @id @default(uuid())
   siteId      String
   title       String
   description String?
   date        DateTime
-  status      ScheduleStatus @default(TODO)
   startTime   String?
   endTime     String?
 
   site        Site                 @relation(fields: [siteId], references: [id])
-  contractors ScheduleContractor[] // ✅ 追加（複数）
-  employees   ScheduleEmployee[] // ✅ 追加（複数）
+  contractors ScheduleContractor[]
+  employees   ScheduleEmployee[]
 
   workRecords WorkRecord[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([siteId, date])
   @@map("schedules")

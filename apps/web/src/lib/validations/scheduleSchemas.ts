@@ -2,18 +2,6 @@
 import { z } from "zod";
 
 /**
- * status（現場運用に強い）
- */
-export const scheduleStatusSchema = z.enum([
-  "TODO",
-  "DOING",
-  "HOLD",
-  "DONE",
-  "CANCELLED",
-]);
-export type ScheduleStatus = z.infer<typeof scheduleStatusSchema>;
-
-/**
  * YYYY-MM-DD（厳密寄り）
  */
 export const ymdSchema = z
@@ -51,7 +39,6 @@ export const scheduleFormSchema = z
       .max(80, "タイトルは80文字以内にしてください")
       .optional()
       .or(z.literal("")),
-    status: scheduleStatusSchema,
 
     // ✅ 複数協力会社（未選択OK＝空配列）
     contractorIds: z.array(z.string()).default([]),
@@ -71,6 +58,7 @@ export const scheduleFormSchema = z
   .superRefine((val, ctx) => {
     const hasStart = Boolean(val.startTime?.trim());
     const hasEnd = Boolean(val.endTime?.trim());
+
     if (hasStart !== hasEnd) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -105,7 +93,6 @@ export type ScheduleApi = {
   siteId: string;
   date: string;
   title: string | null;
-  status: ScheduleStatus;
 
   description: string | null;
 
@@ -146,13 +133,12 @@ export function fromScheduleToFormValues(s: ScheduleApi | null): ScheduleFormVal
     s?.contractors?.map((x) => x.contractor.id).filter(Boolean) ?? [];
 
   const employeeIds =
-    s?.employees?.map((x) => x.employee.id).filter(Boolean) ?? []; // ✅
+    s?.employees?.map((x) => x.employee.id).filter(Boolean) ?? [];
 
   return {
     siteId: s?.siteId ?? "",
     date: s?.date ? normalizeToYmd(s.date) : todayYmd(),
     title: s?.title ?? "",
-    status: s?.status ?? "TODO",
 
     contractorIds,
     employeeIds,
@@ -171,7 +157,6 @@ export function toScheduleCreatePayload(v: ScheduleFormValues) {
     siteId: v.siteId,
     date: v.date,
     title: v.title?.trim() ?? "",
-    status: v.status,
 
     contractorIds: v.contractorIds ?? [],
     employeeIds: v.employeeIds ?? [],

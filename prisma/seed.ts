@@ -1,5 +1,5 @@
 // prisma/seed.ts
-import { PrismaClient, ScheduleStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ async function main() {
   await prisma.scheduleEmployee.deleteMany();
   await prisma.schedule.deleteMany();
 
-  await prisma.siteCompanyContact.deleteMany(); // ✅ 追加（site/company より先）
+  await prisma.siteCompanyContact.deleteMany();
 
   await prisma.siteContractor.deleteMany();
   await prisma.site.deleteMany();
@@ -21,7 +21,6 @@ async function main() {
   await prisma.company.deleteMany();
 
   await prisma.employee.deleteMany();
-  
 
   // Company
   const company = await prisma.company.create({
@@ -45,7 +44,7 @@ async function main() {
     },
   });
 
-    // ✅ CompanyContacts（元請担当者）
+  // ✅ CompanyContacts（元請担当者）
   const cc1 = await prisma.companyContact.create({
     data: {
       companyId: company.id,
@@ -88,7 +87,6 @@ async function main() {
       siteId: site.id,
       title: "養生（Seed）",
       date: new Date("2026-02-27"),
-      status: ScheduleStatus.TODO,
       startTime: "09:00",
       endTime: "12:00",
       description: "Seedデータ：注意点など",
@@ -113,7 +111,6 @@ async function main() {
       siteId: site.id,
       title: "搬入（Seed）",
       date: new Date("2026-02-28"),
-      status: ScheduleStatus.DOING,
       contractors: {
         createMany: {
           data: [{ contractorId: c1.id }],

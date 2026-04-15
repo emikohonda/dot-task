@@ -1,16 +1,12 @@
 // apps/api/src/schedules/dto/create-schedule.dto.ts
 import {
   IsISO8601,
-  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   IsArray,
 } from 'class-validator';
-
-const STATUS = ['TODO', 'DOING', 'HOLD', 'DONE', 'CANCELLED'] as const;
-type Status = (typeof STATUS)[number];
 
 export class CreateScheduleDto {
   @IsOptional()
@@ -22,10 +18,6 @@ export class CreateScheduleDto {
 
   @IsUUID()
   siteId!: string;
-
-  @IsOptional()
-  @IsIn(STATUS)
-  status?: Status;
 
   @IsOptional()
   @IsArray()

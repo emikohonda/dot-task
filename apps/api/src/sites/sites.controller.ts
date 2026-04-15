@@ -63,12 +63,10 @@ export class SitesController {
   findSchedulesBySiteId(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
-    @Query("includeCompleted") includeCompleted?: string, // "true" | undefined
   ) {
     return this.sitesService.findSchedulesBySiteId(
       id,
       limit ?? 3,
-      { includeCompleted: includeCompleted === "true" },
     );
   }
 }

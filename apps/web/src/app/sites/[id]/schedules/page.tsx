@@ -24,10 +24,9 @@ function formatScheduleDate(
   const dateLabel = `${y}年${m}月${day}日（${w}）`;
   if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
   if (startTime) return `${dateLabel} ${startTime}`;
+  if (endTime) return `${dateLabel} ${endTime}`;
   return `${dateLabel} 終日`;
 }
-
-// ソート
 
 function safeTime(value?: string | null) {
   return value && /^\d{2}:\d{2}$/.test(value) ? value : "99:99";
@@ -53,9 +52,13 @@ export default async function SiteSchedulesPage({
   const { items: allSchedules } =
     await fetchSiteSchedules(id, 100, { includeCompleted: true });
 
-  // タブフィルタ
+  // 日付ベース暫定判定
+  const today = new Date().toLocaleDateString("sv-SE");
+
   const filtered = allSchedules.filter((s) =>
-    tab === "done" ? s.status === "DONE" : s.status !== "DONE"
+    tab === "done"
+      ? (s.date?.slice(0, 10) ?? "") < today
+      : (s.date?.slice(0, 10) ?? "") >= today
   );
 
   const sorted = [...filtered].sort((a, b) => {
@@ -75,7 +78,6 @@ export default async function SiteSchedulesPage({
 
   return (
     <div className="space-y-4">
-
       {/* 戻るリンク */}
       <div className="space-y-2 px-1">
         <Link
@@ -148,10 +150,12 @@ export default async function SiteSchedulesPage({
                   href={`/schedules/${s.id}`}
                   className="group block rounded-xl transition-colors hover:bg-slate-50/60"
                 >
-                  <p className={[
-                    "text-base font-semibold group-hover:text-sky-600",
-                    s.title?.trim() ? "text-slate-900" : "font-normal text-slate-400",
-                  ].join(" ")}>
+                  <p
+                    className={[
+                      "text-base font-semibold group-hover:text-sky-600",
+                      s.title?.trim() ? "text-slate-900" : "font-normal text-slate-400",
+                    ].join(" ")}
+                  >
                     {formatScheduleTitle(s.title)}
                   </p>
                   <p className="mt-0.5 text-sm text-slate-500">

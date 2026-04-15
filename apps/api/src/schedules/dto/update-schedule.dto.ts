@@ -1,16 +1,12 @@
 // apps/api/src/schedules/dto/update-schedule.dto.ts
 import {
   IsISO8601,
-  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   IsArray,
 } from 'class-validator';
-
-const STATUS = ['TODO', 'DOING', 'HOLD', 'DONE', 'CANCELLED'] as const;
-type Status = (typeof STATUS)[number];
 
 export class UpdateScheduleDto {
   @IsOptional()
@@ -24,10 +20,6 @@ export class UpdateScheduleDto {
   @IsOptional()
   @IsUUID()
   siteId?: string;
-
-  @IsOptional()
-  @IsIn(STATUS)
-  status?: Status;
 
   @IsOptional()
   @IsArray()

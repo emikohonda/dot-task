@@ -1,12 +1,10 @@
 // apps/web/src/lib/fetchers/schedules.ts
-import type { ScheduleStatus } from "@/lib/scheduleStatus";
 import { safeJson } from "@/lib/safeFetch";
 
 export type Schedule = {
   id: string;
   title: string;
   date: string | null;
-  status: ScheduleStatus;
 
   description?: string | null;
   startTime?: string | null;

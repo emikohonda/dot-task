@@ -1,11 +1,17 @@
 // apps/api/src/schedules/schedules.controller.ts
 import {
-  Controller, Get, Patch, Post, Delete,
-  Param, Body, Query,
-  ParseIntPipe, ParseUUIDPipe,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Delete,
+  Param,
+  Body,
+  Query,
+  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
-import { UpdateScheduleStatusDto } from './dto/update-schedule-status.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
@@ -15,22 +21,30 @@ export class SchedulesController {
 
   @Get()
   findAll(
-    @Query('limit',  new ParseIntPipe({ optional: true })) limit?:  number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
-    @Query('date')          date?:          string,
-    @Query('keyword')       keyword?:       string,
-    @Query('status')        status?:        string,
-    @Query('tab')           tab?:           string,  // 追加：'active' | 'done'
-    @Query('sortDate')      sortDate?:      string,  // 追加：'asc' | 'desc'
-    @Query('dateFrom')      dateFrom?:      string,
-    @Query('dateTo')        dateTo?:        string,
-    @Query('siteId')        siteId?:        string,
-    @Query('employeeId')    employeeId?:    string,
-    @Query('contractorId')  contractorId?:  string,
+    @Query('date') date?: string,
+    @Query('keyword') keyword?: string,
+    @Query('tab') tab?: string,
+    @Query('sortDate') sortDate?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('siteId') siteId?: string,
+    @Query('employeeId') employeeId?: string,
+    @Query('contractorId') contractorId?: string,
   ) {
     return this.schedulesService.findAll({
-      limit, offset, date, keyword, status, tab, sortDate,
-      dateFrom, dateTo, siteId, employeeId, contractorId,
+      limit,
+      offset,
+      date,
+      keyword,
+      tab,
+      sortDate,
+      dateFrom,
+      dateTo,
+      siteId,
+      employeeId,
+      contractorId,
     });
   }
 
@@ -42,8 +56,9 @@ export class SchedulesController {
   @Post()
   create(@Body() dto: CreateScheduleDto) {
     return this.schedulesService.create({
-      title: dto.title, date: dto.date, siteId: dto.siteId,
-      status: dto.status,
+      title: dto.title,
+      date: dto.date,
+      siteId: dto.siteId,
       contractorIds: dto.contractorIds ?? [],
       employeeIds: dto.employeeIds ?? [],
       description: dto.description ?? null,
@@ -55,16 +70,15 @@ export class SchedulesController {
   @Patch(':id')
   update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateScheduleDto) {
     return this.schedulesService.update(id, {
-      title: dto.title, date: dto.date, siteId: dto.siteId,
-      status: dto.status, contractorIds: dto.contractorIds,
-      employeeIds: dto.employeeIds, description: dto.description,
-      startTime: dto.startTime, endTime: dto.endTime,
+      title: dto.title,
+      date: dto.date,
+      siteId: dto.siteId,
+      contractorIds: dto.contractorIds,
+      employeeIds: dto.employeeIds,
+      description: dto.description,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
     });
-  }
-
-  @Patch(':id/status')
-  updateStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateScheduleStatusDto) {
-    return this.schedulesService.updateStatus(id, dto.status);
   }
 
   @Delete(':id')

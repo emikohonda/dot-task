@@ -19,7 +19,6 @@ export type Schedule = {
     id: string;
     title: string;
     date: string;
-    status: "TODO" | "DOING" | "HOLD" | "DONE" | "CANCELLED";
     startTime: string | null;
     endTime: string | null;
     description: string | null;
