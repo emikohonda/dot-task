@@ -19,6 +19,10 @@ import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
 
 // ── ユーティリティ ──
 
+function safeTime(value?: string | null) {
+  return value && /^\d{2}:\d{2}$/.test(value) ? value : "99:99";
+}
+
 // スケジュール用（年月日＋曜日）← 今のformatDateをそのまま使う
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return "—";
@@ -77,8 +81,6 @@ function formatScheduleDateTime(
   if (startTime) return `${dateLabel} ${startTime}`;
   return `${dateLabel} 終日`;
 }
-
-// ── サブコンポーネント ──
 
 function EmptySchedule() {
   return (
@@ -175,7 +177,22 @@ export default async function SiteDetailPage({
   const site = await fetchSite(id);
   if (!site) notFound();
 
-  const { items: schedules, total: scheduleTotal } = await fetchSiteSchedules(id, 3);
+  const { items: allSchedules } = await fetchSiteSchedules(id, 100);
+
+  const today = new Date().toLocaleDateString("sv-SE");
+
+  const activeSchedules = allSchedules
+    .filter((s) => (s.date?.slice(0, 10) ?? "") >= today)
+    .sort((a, b) => {
+      const da = a.date ?? "";
+      const db = b.date ?? "";
+      if (da !== db) return da.localeCompare(db);
+
+      return safeTime(a.startTime).localeCompare(safeTime(b.startTime));
+    });
+
+  const schedules = activeSchedules.slice(0, 3);
+  const scheduleTotal = activeSchedules.length;
 
   const contacts = (site.companyContacts ?? [])
     .map((x) => x.companyContact)
