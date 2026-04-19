@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900`}>
         {/* 固定ヘッダー */}
-        <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white">
           <div className="mx-auto flex min-h-14 max-w-5xl items-center px-4 py-3 md:px-6 md:py-4">
 
             {/* 左スペーサー（スマホのみ） */}
@@ -53,7 +53,7 @@ export default function RootLayout({
         </header>
 
         {/* メイン */}
-        <main className="mx-auto max-w-5xl px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
+        <main className="mx-auto max-w-5xl px-4 pt-[calc(56px+1.25rem)] pb-24 md:px-6 md:pt-[calc(64px+1.5rem)] md:pb-8">
           {children}
         </main>
 
