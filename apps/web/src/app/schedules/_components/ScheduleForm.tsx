@@ -33,6 +33,7 @@ type Props = {
   employees: EmployeeLite[];
   schedule: ScheduleApi | null;
   initialDate?: string | null;
+  initialSiteId?: string | null;
   backHref?: string;
 };
 
@@ -45,6 +46,7 @@ export default function ScheduleForm({
   employees,
   schedule,
   initialDate,
+  initialSiteId,
   backHref,
 }: Props) {
   const router = useRouter();
@@ -97,10 +99,11 @@ export default function ScheduleForm({
     return {
       ...v,
       date: mode === "create" && initialDate ? initialDate : v.date,
+      siteId: mode === "create" && initialSiteId ? initialSiteId : v.siteId,
       contractorIds: v.contractorIds ?? [],
       employeeIds: v.employeeIds ?? [],
     };
-  }, [schedule, initialDate, mode]);
+  }, [schedule, initialDate, initialSiteId, mode]);
 
   const [selectedSiteRange, setSelectedSiteRange] = useState<SiteRange>({
     startDate: null,
@@ -155,7 +158,11 @@ export default function ScheduleForm({
           const t = await res.text().catch(() => "");
           throw new Error(t || `保存に失敗しました（${res.status}）`);
         }
-        router.push("/schedules?toast=created");
+        const createdRedirect = backHref
+          ? `${backHref}${backHref.includes("?") ? "&" : "?"}toast=created`
+          : "/schedules?toast=created";
+
+        router.push(createdRedirect);
         router.refresh();
         return;
       }
@@ -423,7 +430,7 @@ export default function ScheduleForm({
                   ? backHref
                     ? `/schedules/${schedule.id}?back=${encodeURIComponent(backHref)}`
                     : `/schedules/${schedule.id}`
-                  : "/schedules"
+                  : backHref ?? "/schedules"
               }
               aria-disabled={isLocked}
               className={[

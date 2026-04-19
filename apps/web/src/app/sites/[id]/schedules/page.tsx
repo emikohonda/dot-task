@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { fetchSite, fetchSiteSchedules } from "@/lib/fetchers/sites";
 import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
 import { ArrowUpDown } from "lucide-react";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 
 // ── ユーティリティ ──
 
@@ -167,6 +168,10 @@ export default async function SiteSchedulesPage({
           </ul>
         )}
       </div>
+
+      <FloatingAddButton
+        href={`/schedules/new?siteId=${id}&back=${encodeURIComponent(`/sites/${id}/schedules`)}`}
+      />
     </div>
   );
 }
