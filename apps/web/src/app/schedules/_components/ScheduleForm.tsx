@@ -33,6 +33,7 @@ type Props = {
   employees: EmployeeLite[];
   schedule: ScheduleApi | null;
   initialDate?: string | null;
+  backHref?: string;
 };
 
 const toYmd = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null);
@@ -44,6 +45,7 @@ export default function ScheduleForm({
   employees,
   schedule,
   initialDate,
+  backHref,
 }: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +79,7 @@ export default function ScheduleForm({
       setToast({ show: true, message: "予定を削除しました" });
 
       redirectTimerRef.current = window.setTimeout(() => {
-        router.push("/schedules");
+        router.push(backHref ?? "/schedules");
         router.refresh();
       }, 1200);
     } catch {
@@ -170,7 +172,11 @@ export default function ScheduleForm({
         throw new Error(t || `更新に失敗しました。（${res.status}）`);
       }
 
-      router.push(`/schedules/${schedule.id}?toast=updated`);
+      router.push(
+        backHref
+          ? `/schedules/${schedule.id}?toast=updated&back=${encodeURIComponent(backHref)}`
+          : `/schedules/${schedule.id}?toast=updated`
+      );
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -412,7 +418,13 @@ export default function ScheduleForm({
 
           <div className="flex gap-3">
             <Link
-              href={mode === "edit" && schedule?.id ? `/schedules/${schedule.id}` : "/schedules"}
+              href={
+                mode === "edit" && schedule?.id
+                  ? backHref
+                    ? `/schedules/${schedule.id}?back=${encodeURIComponent(backHref)}`
+                    : `/schedules/${schedule.id}`
+                  : "/schedules"
+              }
               aria-disabled={isLocked}
               className={[
                 "flex-1 min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold transition-colors",

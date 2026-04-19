@@ -232,7 +232,7 @@ export default async function SiteDetailPage({
             {schedules.map((s) => (
               <li key={s.id} className="py-3">
                 <Link
-                  href={`/schedules/${s.id}`}
+                  href={`/schedules/${s.id}?back=/sites/${id}/schedules`}
                   className="group block rounded-xl transition-colors hover:bg-slate-50/60"
                 >
                   <p

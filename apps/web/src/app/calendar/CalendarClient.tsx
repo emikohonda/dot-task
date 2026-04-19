@@ -468,7 +468,10 @@ export default function CalendarClient({
         </div>
 
         {/* 下部一覧：スクロール可・上への伝播を防ぐ */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
+        >
           {selectedList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-slate-400">
               <p className="text-sm">予定はありません</p>

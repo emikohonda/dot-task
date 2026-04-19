@@ -66,10 +66,17 @@ function InfoItem({
 
 export default async function ScheduleDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string } | Promise<{ id: string }>;
+  searchParams?:
+    | { back?: string }
+    | Promise<{ back?: string }>;
 }) {
   const { id } = await Promise.resolve(params);
+  const sp = await Promise.resolve(searchParams ?? {});
+  const rawBack = sp.back ?? "";
+  const backHref = rawBack.startsWith("/") ? rawBack : "/schedules";
 
   const s = (await fetchScheduleById(id)) satisfies Schedule | null;
   if (!s) return notFound();
@@ -88,7 +95,7 @@ export default async function ScheduleDetailPage({
     <div className="space-y-4">
       <div className="space-y-2 px-1">
         <Link
-          href="/schedules"
+          href={backHref}
           className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
         >
           ◀︎ 一覧に戻る
@@ -181,7 +188,11 @@ export default async function ScheduleDetailPage({
 
       {/* 右下固定の編集FAB */}
       <Link
-        href={`/schedules/${s.id}/edit`}
+        href={
+          backHref !== "/schedules"
+            ? `/schedules/${s.id}/edit?back=${encodeURIComponent(backHref)}`
+            : `/schedules/${s.id}/edit`
+        }
         className="fixed bottom-[calc(85px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
         aria-label="編集する"
       >
