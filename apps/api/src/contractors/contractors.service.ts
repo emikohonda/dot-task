@@ -10,15 +10,20 @@ export class ContractorsService {
 
   async create(dto: CreateContractorDto) {
     const contacts = (dto.contacts ?? [])
-      .map((c) => ({ name: c.name?.trim() || null, phone: c.phone?.trim() || null, email: c.email?.trim() || null }))
+      .map((c) => ({
+        name: c.name?.trim() || null,
+        phone: c.phone?.trim() || null,
+        email: c.email?.trim() || null,
+      }))
       .filter((c) => c.name || c.phone || c.email);
+
     return this.prisma.contractor.create({
       data: {
-        name:       dto.name.trim(),
+        name: dto.name.trim(),
         postalCode: dto.postalCode?.trim() || null,
-        address:    dto.address?.trim()    || null,
-        phone:      dto.phone?.trim()      || null,
-        email:      dto.email?.trim()      || null,
+        address: dto.address?.trim() || null,
+        phone: dto.phone?.trim() || null,
+        email: dto.email?.trim() || null,
         contacts: contacts.length ? { create: contacts } : undefined,
       },
       include: { contacts: true },
@@ -27,15 +32,15 @@ export class ContractorsService {
 
   async findAll(params: { keyword?: string; limit?: number; offset?: number } = {}) {
     const { keyword } = params;
-    const limit  = Math.min(params.limit  ?? 20, 100);
+    const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
 
     const where = keyword?.trim()
       ? {
           OR: [
-            { name:    { contains: keyword.trim(), mode: 'insensitive' as const } },
-            { address: { contains: keyword.trim(), mode: 'insensitive' as const } },
-            { contacts: { some: { name: { contains: keyword.trim(), mode: 'insensitive' as const } } } },
+            { name: { contains: keyword.trim(), mode: "insensitive" as const } },
+            { address: { contains: keyword.trim(), mode: "insensitive" as const } },
+            { contacts: { some: { name: { contains: keyword.trim(), mode: "insensitive" as const } } } },
           ],
         }
       : undefined;
@@ -55,24 +60,84 @@ export class ContractorsService {
   }
 
   findOne(id: string) {
-    return this.prisma.contractor.findFirst({ where: { id }, include: { contacts: true } });
+    return this.prisma.contractor.findFirst({
+      where: { id },
+      include: { contacts: true },
+    });
   }
 
   async update(id: string, dto: UpdateContractorDto) {
-    const contacts = dto.contacts
-      ?.map((c) => ({ name: c.name?.trim() || null, phone: c.phone?.trim() || null, email: c.email?.trim() || null }))
-      .filter((c) => c.name || c.phone || c.email) ?? null;
-    return this.prisma.contractor.update({
-      where: { id },
-      data: {
-        name:       dto.name?.trim()       ?? undefined,
-        postalCode: dto.postalCode?.trim() ?? undefined,
-        address:    dto.address?.trim()    ?? undefined,
-        phone:      dto.phone?.trim()      ?? undefined,
-        email:      dto.email?.trim()      ?? undefined,
-        ...(contacts ? { contacts: { deleteMany: {}, create: contacts } } : {}),
-      },
-      include: { contacts: true },
+    const contacts =
+      dto.contacts
+        ?.map((c) => ({
+          id: c.id,
+          name: c.name?.trim() || null,
+          phone: c.phone?.trim() || null,
+          email: c.email?.trim() || null,
+        }))
+        .filter((c) => c.name || c.phone || c.email) ?? null;
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.contractor.update({
+        where: { id },
+        data: {
+          name: dto.name?.trim() ?? undefined,
+          postalCode: dto.postalCode?.trim() ?? undefined,
+          address: dto.address?.trim() ?? undefined,
+          phone: dto.phone?.trim() ?? undefined,
+          email: dto.email?.trim() ?? undefined,
+        },
+      });
+
+      if (contacts) {
+        const existingContacts = await tx.contractorContact.findMany({
+          where: { contractorId: id },
+          select: { id: true },
+        });
+
+        const existingIds = new Set(existingContacts.map((c) => c.id));
+        const incomingIds = new Set(
+          contacts.map((c) => c.id).filter((v): v is string => Boolean(v))
+        );
+
+        const toDeleteIds = [...existingIds].filter((existingId) => !incomingIds.has(existingId));
+
+        if (toDeleteIds.length > 0) {
+          await tx.contractorContact.deleteMany({
+            where: {
+              id: { in: toDeleteIds },
+              contractorId: id,
+            },
+          });
+        }
+
+        for (const contact of contacts) {
+          if (contact.id && existingIds.has(contact.id)) {
+            await tx.contractorContact.update({
+              where: { id: contact.id },
+              data: {
+                name: contact.name,
+                phone: contact.phone,
+                email: contact.email,
+              },
+            });
+          } else {
+            await tx.contractorContact.create({
+              data: {
+                contractorId: id,
+                name: contact.name,
+                phone: contact.phone,
+                email: contact.email,
+              },
+            });
+          }
+        }
+      }
+
+      return tx.contractor.findFirst({
+        where: { id },
+        include: { contacts: true },
+      });
     });
   }
 

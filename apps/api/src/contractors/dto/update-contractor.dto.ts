@@ -1,3 +1,4 @@
+// apps/api/src/contractors/dto/update-contractor.dto.ts
 import { Transform, Type } from "class-transformer";
 import { IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
 
@@ -5,6 +6,10 @@ const emptyToUndef = ({ value }: { value: unknown }) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
 class UpdateContractorContactDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsOptional()
   @Transform(emptyToUndef)
   @IsString()
@@ -22,19 +27,24 @@ class UpdateContractorContactDto {
 }
 
 export class UpdateContractorDto {
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   name?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   postalCode?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   address?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   phone?: string;
 
-  @IsOptional() @IsEmail()
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
   @IsOptional()

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Contractor } from "@/lib/api";
 
 export const contractorContactFormSchema = z.object({
+  id: z.string().optional(),
   name: z.string().trim().max(50, "※ 担当者名が長すぎます。"),
   phone: z.string().trim().max(30, "※ 電話番号が長すぎます。"),
   email: z.string().trim().max(100, "※ メールが長すぎます。"),
@@ -33,16 +34,16 @@ export const fromContractorToFormValues = (c: Contractor | null): ContractorForm
       address: "",
       phone: "",
       email: "",
-      contacts: [{ name: "", phone: "", email: "" }],
+      contacts: [{ id: undefined, name: "", phone: "", email: "" }],
     };
   }
 
-  const contacts =
-    (c.contacts ?? []).map((x) => ({
-      name: x.name ?? "",
-      phone: x.phone ?? "",
-      email: x.email ?? "",
-    })) ?? [];
+  const contacts = (c.contacts ?? []).map((x) => ({
+    id: x.id,
+    name: x.name ?? "",
+    phone: x.phone ?? "",
+    email: x.email ?? "",
+  }));
 
   return {
     name: c.name ?? "",
@@ -50,13 +51,14 @@ export const fromContractorToFormValues = (c: Contractor | null): ContractorForm
     address: c.address ?? "",
     phone: c.phone ?? "",
     email: c.email ?? "",
-    contacts: contacts.length > 0 ? contacts : [{ name: "", phone: "", email: "" }],
+    contacts: contacts.length > 0 ? contacts : [{ id: undefined, name: "", phone: "", email: "" }],
   };
 };
 
 const normalizeContacts = (contacts: ContractorFormValues["contacts"]) =>
   contacts
     .map((x) => ({
+      id: x.id,
       name: x.name.trim(),
       phone: x.phone.trim(),
       email: x.email.trim(),
@@ -69,7 +71,7 @@ export const toContractorCreatePayload = (v: ContractorFormValues) => ({
   address: v.address?.trim() ? v.address.trim() : undefined,
   phone: v.phone?.trim() ? v.phone.trim() : undefined,
   email: v.email?.trim() ? v.email.trim() : undefined,
-  contacts: normalizeContacts(v.contacts),
+  contacts: normalizeContacts(v.contacts).map(({ id, ...rest }) => rest),
 });
 
 export const toContractorUpdatePayload = (v: ContractorFormValues) => ({
