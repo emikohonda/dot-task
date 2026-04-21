@@ -54,7 +54,13 @@ export default function EditCompanyPage() {
 
   const watchedContacts = useWatch({ control, name: "contacts" }) ?? [];
   const hasAnyContact = useMemo(
-    () => watchedContacts.some((c) => (c?.name ?? "").trim() !== ""),
+    () =>
+      watchedContacts.some(
+        (c) =>
+          (c?.name ?? "").trim() !== "" ||
+          (c?.phone ?? "").trim() !== "" ||
+          (c?.email ?? "").trim() !== ""
+      ),
     [watchedContacts]
   );
 
@@ -269,7 +275,7 @@ export default function EditCompanyPage() {
 
           <button
             type="button"
-            onClick={() => append({ name: "", phone: "", email: "" })}
+            onClick={() => append({ id: undefined, name: "", phone: "", email: "" })}
             disabled={isSubmitting || isDeleting}
             className="mt-4 text-sm font-medium text-sky-600 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
