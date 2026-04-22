@@ -199,7 +199,7 @@ export default async function SiteDetailPage({
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       {/* ── ヘッダー ── */}
       <div className="space-y-2 px-1">
         <Link
@@ -215,7 +215,7 @@ export default async function SiteDetailPage({
 
       {/* ── 現場スケジュール（一番上に移動）── */}
       <CardSection
-        title={`現場スケジュール（${scheduleTotal}件）`}
+        title={`スケジュール（${scheduleTotal}件）`}
         right={
           <Link
             href={`/sites/${id}/schedules`}

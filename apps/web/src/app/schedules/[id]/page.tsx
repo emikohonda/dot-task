@@ -92,7 +92,7 @@ export default async function ScheduleDetailPage({
       .filter((name): name is string => Boolean(name && name.trim())) ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <div className="space-y-2 px-1">
         <Link
           href={backHref}

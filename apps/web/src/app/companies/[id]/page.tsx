@@ -1,7 +1,14 @@
 // apps/web/src/app/companies/[id]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/PageHeader";
+import {
+  Pencil,
+  Phone,
+  Mail,
+  Building2,
+  MapPin,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
 
 type Contact = {
@@ -18,8 +25,8 @@ type Company = {
   address: string | null;
   phone: string | null;
   email: string | null;
-  contactPerson: string | null; // 互換のため残す
-  contacts?: Contact[]; // APIが必ず返すなら contacts: Contact[] でもOK
+  contactPerson: string | null;
+  contacts?: Contact[];
   createdAt: string;
   updatedAt: string;
 };
@@ -45,6 +52,28 @@ async function fetchCompany(id: string): Promise<Company | null> {
   return JSON.parse(text) as Company;
 }
 
+function InfoItem({
+  icon,
+  label,
+  value,
+}: {
+  icon?: ReactNode;
+  label: string;
+  value?: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+        {icon ? <span className="text-slate-400">{icon}</span> : null}
+        <span>{label}</span>
+      </div>
+      <div className="mt-1 text-base text-slate-900">
+        {value ?? <span className="text-slate-500">—</span>}
+      </div>
+    </div>
+  );
+}
+
 const toTelHref = (phone?: string | null) => {
   const v = (phone ?? "").trim();
   if (!v) return null;
@@ -58,6 +87,29 @@ const toMailHref = (email?: string | null) => {
   return `mailto:${v}`;
 };
 
+function ContactChip({
+  kind,
+  href,
+  text,
+}: {
+  kind: "phone" | "mail";
+  href: string | null;
+  text: string | null | undefined;
+}) {
+  const Icon = kind === "phone" ? Phone : Mail;
+  if (!href || !text) return null;
+
+  return (
+    <a
+      href={href}
+      className="inline-flex max-w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+      <span className="break-all">{text}</span>
+    </a>
+  );
+}
+
 export default async function CompanyDetailPage({
   params,
 }: {
@@ -70,110 +122,92 @@ export default async function CompanyDetailPage({
   const contacts = company.contacts ?? [];
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow="元請会社"
-        title={company.name}
-        right={
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/companies/${company.id}/edit`}
-              className="inline-flex items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
-            >
-              編集
-            </Link>
+    <div className="space-y-4 pb-10">
+      <div className="space-y-2 px-1">
+        <Link
+          href="/companies"
+          className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+        >
+          ◀︎ 一覧に戻る
+        </Link>
+        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+          {company.name}
+        </h1>
+      </div>
 
-            <Link
-              href="/companies"
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            >
-              一覧に戻る
-            </Link>
-          </div>
-        }
-      />
-
-      {/* 基本情報 */}
       <CardSection title="基本情報">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-slate-500">会社名</div>
-            <div className="mt-1 text-sm font-semibold text-slate-900">
-              {company.name}
-            </div>
-          </div>
+        <div className="space-y-4">
+          <InfoItem
+            icon={<Building2 className="h-4 w-4" />}
+            label="元請会社名"
+            value={company.name}
+          />
 
-          <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-slate-500">住所</div>
-            <div className="mt-1 break-words text-sm text-slate-800">
-              {company.postalCode || company.address ? (
+          <InfoItem
+            icon={<MapPin className="h-4 w-4" />}
+            label="住所"
+            value={
+              company.postalCode || company.address ? (
                 <>
                   {company.postalCode ? (
-                    <span className="mr-2 text-xs text-slate-500">
+                    <span className="mr-2 text-sm text-slate-500">
                       〒{company.postalCode}
                     </span>
                   ) : null}
                   {company.address ?? ""}
                 </>
               ) : (
-                <span className="text-slate-500">—</span>
-              )}
-            </div>
-          </div>
+                "—"
+              )
+            }
+          />
 
-          <div>
-            <div className="text-xs font-medium text-slate-500">電話</div>
-            <div className="mt-1">
-              {(() => {
+          <InfoItem
+            icon={<Phone className="h-4 w-4" />}
+            label="電話番号"
+            value={
+              (() => {
                 const href = toTelHref(company.phone);
                 return href ? (
                   <a
                     href={href}
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                    className="inline-flex max-w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 break-all hover:bg-slate-50"
                   >
-                    📞 {company.phone}
+                    <span>{company.phone}</span>
                   </a>
                 ) : (
-                  <span className="text-sm text-slate-500">—</span>
+                  <span className="text-base text-slate-500">—</span>
                 );
-              })()}
-            </div>
-          </div>
+              })()
+            }
+          />
 
-          <div>
-            <div className="text-xs font-medium text-slate-500">メール</div>
-            <div className="mt-1">
-              {(() => {
+          <InfoItem
+            icon={<Mail className="h-4 w-4" />}
+            label="メールアドレス"
+            value={
+              (() => {
                 const href = toMailHref(company.email);
                 return href ? (
                   <a
                     href={href}
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                    className="inline-flex max-w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 break-all hover:bg-slate-50"
                   >
-                    ✉️ {company.email}
+                    <span>{company.email}</span>
                   </a>
                 ) : (
-                  <span className="text-sm text-slate-500">—</span>
+                  <span className="text-base text-slate-500">—</span>
                 );
-              })()}
-            </div>
-          </div>
+              })()
+            }
+          />
 
-          {/* 互換: contactPerson が残ってる旧データ用（任意表示） */}
           {company.contactPerson ? (
-            <div className="sm:col-span-2">
-              <div className="text-xs font-medium text-slate-500">
-                旧：担当者（移行前）
-              </div>
-              <div className="mt-1 text-sm text-slate-800">
-                {company.contactPerson}
-              </div>
-            </div>
+            <InfoItem label="旧：担当者（移行前）" value={company.contactPerson} />
           ) : null}
         </div>
       </CardSection>
 
-      {/* 担当者 */}
       <CardSection title="担当者">
         {contacts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
@@ -185,7 +219,7 @@ export default async function CompanyDetailPage({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-slate-100">
             {contacts.map((c) => {
               const tel = toTelHref(c.phone);
               const mail = toMailHref(c.email);
@@ -193,45 +227,19 @@ export default async function CompanyDetailPage({
               return (
                 <div
                   key={c.id ?? `${c.name}-${c.email ?? ""}-${c.phone ?? ""}`}
-                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">
-                        {c.name || "（名前未入力）"}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        連絡先をタップで電話・メールできます
-                      </div>
-                    </div>
+                  <p className="text-base font-semibold text-slate-900">
+                    {c.name || "（名前未入力）"}
+                  </p>
 
-                    <div className="flex flex-wrap gap-2">
-                      {tel ? (
-                        <a
-                          href={tel}
-                          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-                        >
-                          📞 {c.phone}
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                          📞 —
-                        </span>
-                      )}
-
-                      {mail ? (
-                        <a
-                          href={mail}
-                          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-                        >
-                          ✉️ {c.email}
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                          ✉️ —
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {c.phone ? (
+                      <ContactChip kind="phone" href={tel} text={c.phone} />
+                    ) : null}
+                    {c.email ? (
+                      <ContactChip kind="mail" href={mail} text={c.email} />
+                    ) : null}
                   </div>
                 </div>
               );
@@ -239,6 +247,15 @@ export default async function CompanyDetailPage({
           </div>
         )}
       </CardSection>
+
+      <Link
+        href={`/companies/${company.id}/edit`}
+        className="fixed right-4 bottom-[calc(85px+env(safe-area-inset-bottom))] z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
+        aria-label="編集する"
+      >
+        <Pencil className="h-5 w-5" />
+        <span>編集する</span>
+      </Link>
     </div>
   );
 }
