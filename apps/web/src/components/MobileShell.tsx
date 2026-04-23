@@ -9,6 +9,7 @@ import { BottomNav } from "./BottomNav";
 
 const menuItems = [
   { href: "/schedules", label: "予定一覧" },
+  { href: "/employees", label: "社員一覧" },
   { href: "/companies", label: "取引先" },
   { href: "/contractors", label: "外注先" },
 ];

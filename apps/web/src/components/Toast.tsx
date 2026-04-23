@@ -40,7 +40,7 @@ export function Toast({ message, show, onClose }: ToastProps) {
           flex items-center gap-3
           rounded-full bg-slate-800/95 px-6 py-3
           text-sm font-bold text-white
-          shadow-2xl backdrop-blur-sm
+          shadow-2xl
         "
       >
         {/* 成功アイコン */}

@@ -2,7 +2,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/PageHeader";
+import { Pencil, Phone, Mail, UserRound, BadgeCheck } from "lucide-react";
+import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
 import { ToastHandler } from "../ToastHandler";
 
@@ -17,14 +18,15 @@ type Employee = {
 };
 
 const getApiBaseUrl = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "");
-  if (!baseUrl) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set");
-  return baseUrl;
+  return (
+    process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+    process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+    "http://127.0.0.1:3001"
+  );
 };
 
 async function fetchEmployee(id: string): Promise<Employee | null> {
   const baseUrl = getApiBaseUrl();
-
   const url = `${baseUrl}/employees/${id}`;
   const res = await fetch(url, { cache: "no-store" });
 
@@ -34,7 +36,34 @@ async function fetchEmployee(id: string): Promise<Employee | null> {
     throw new Error(`Failed to fetch employee: ${res.status} ${text}`);
   }
 
-  return (await res.json()) as Employee;
+  const text = await res.text().catch(() => "");
+  if (!text.trim()) {
+    throw new Error(`Empty body from API: GET ${url} (status ${res.status})`);
+  }
+
+  return JSON.parse(text) as Employee;
+}
+
+function InfoItem({
+  icon,
+  label,
+  value,
+}: {
+  icon?: ReactNode;
+  label: string;
+  value?: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+        {icon ? <span className="text-slate-400">{icon}</span> : null}
+        <span>{label}</span>
+      </div>
+      <div className="mt-1 text-base text-slate-900">
+        {value ?? <span className="text-slate-500">—</span>}
+      </div>
+    </div>
+  );
 }
 
 const toTelHref = (phone?: string | null) => {
@@ -62,79 +91,77 @@ export default async function EmployeeDetailPage({
   const mail = toMailHref(employee.email);
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow="自社社員"
-        title={employee.name}
-        right={
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/employees/${employee.id}/edit`}
-              className="inline-flex items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
-            >
-              編集
-            </Link>
-            <Link
-              href="/employees"
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              一覧に戻る
-            </Link>
-          </div>
-        }
-      />
+    <div className="space-y-4 pb-10">
+      <div className="space-y-2 px-1">
+        <Link
+          href="/employees"
+          className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
+        >
+          ◀︎ 一覧に戻る
+        </Link>
+        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+          {employee.name}
+        </h1>
+      </div>
 
       <CardSection title="基本情報">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {/* 氏名 */}
-          <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-slate-500">氏名</div>
-            <div className="mt-1 text-sm font-semibold text-slate-900">{employee.name}</div>
-          </div>
+        <div className="space-y-4">
+          <InfoItem
+            icon={<UserRound className="h-4 w-4" />}
+            label="氏名"
+            value={employee.name}
+          />
 
-          {/* 役職・担当 */}
-          <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-slate-500">役職・担当</div>
-            <div className="mt-1 text-sm text-slate-800">
-              {employee.role ?? <span className="text-slate-400">—</span>}
-            </div>
-          </div>
+          <InfoItem
+            icon={<BadgeCheck className="h-4 w-4" />}
+            label="役職・担当"
+            value={employee.role?.trim() || "—"}
+          />
 
-          {/* 電話 */}
-          <div>
-            <div className="text-xs font-medium text-slate-500">電話</div>
-            <div className="mt-1">
-              {tel ? (
+          <InfoItem
+            icon={<Phone className="h-4 w-4" />}
+            label="電話番号"
+            value={
+              tel ? (
                 <a
                   href={tel}
-                  className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                  className="inline-flex max-w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 break-all hover:bg-slate-50"
                 >
-                  📞 {employee.phone}
+                  <span>{employee.phone}</span>
                 </a>
               ) : (
-                <span className="text-sm text-slate-500">—</span>
-              )}
-            </div>
-          </div>
+                <span className="text-base text-slate-500">—</span>
+              )
+            }
+          />
 
-          {/* メール */}
-          <div>
-            <div className="text-xs font-medium text-slate-500">メール</div>
-            <div className="mt-1">
-              {mail ? (
+          <InfoItem
+            icon={<Mail className="h-4 w-4" />}
+            label="メールアドレス"
+            value={
+              mail ? (
                 <a
                   href={mail}
-                  className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                  className="inline-flex max-w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 break-all hover:bg-slate-50"
                 >
-                  ✉️ {employee.email}
+                  <span>{employee.email}</span>
                 </a>
               ) : (
-                <span className="text-sm text-slate-500">—</span>
-              )}
-            </div>
-          </div>
+                <span className="text-base text-slate-500">—</span>
+              )
+            }
+          />
         </div>
       </CardSection>
+
+      <Link
+        href={`/employees/${employee.id}/edit`}
+        className="fixed right-4 bottom-[calc(85px+env(safe-area-inset-bottom))] z-40 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 active:scale-95 md:hidden"
+        aria-label="編集する"
+      >
+        <Pencil className="h-5 w-5" />
+        <span>編集する</span>
+      </Link>
 
       <Suspense fallback={null}>
         <ToastHandler basePath={`/employees/${employee.id}`} />
