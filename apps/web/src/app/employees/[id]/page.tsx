@@ -1,11 +1,9 @@
 // apps/web/src/app/employees/[id]/page.tsx
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Phone, Mail, UserRound, BadgeCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
-import { ToastHandler } from "../ToastHandler";
 
 type Employee = {
   id: string;
@@ -163,9 +161,6 @@ export default async function EmployeeDetailPage({
         <span>編集する</span>
       </Link>
 
-      <Suspense fallback={null}>
-        <ToastHandler basePath={`/employees/${employee.id}`} />
-      </Suspense>
     </div>
   );
 }

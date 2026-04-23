@@ -5,7 +5,6 @@ import Link from "next/link";
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CardSection } from "@/components/CardSection";
-import { ToastHandler } from "./ToastHandler";
 import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
@@ -370,7 +369,6 @@ export function ContractorsClient({
       </CardSection>
 
       <FloatingAddButton href="/contractors/new" label="外注先を追加" />
-      <ToastHandler />
     </div>
   );
 }

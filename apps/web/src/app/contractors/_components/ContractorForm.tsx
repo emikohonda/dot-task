@@ -34,6 +34,7 @@ export function ContractorForm({ mode, contractor }: Props) {
   const [toast, setToast] = React.useState({ show: false, message: "" });
 
   const redirectTimerRef = React.useRef<number | null>(null);
+
   React.useEffect(() => {
     return () => {
       if (redirectTimerRef.current !== null) {
@@ -41,35 +42,6 @@ export function ContractorForm({ mode, contractor }: Props) {
       }
     };
   }, []);
-
-  const handleDelete = async () => {
-    if (!contractor?.id) return;
-
-    try {
-      setDeleteLoading(true);
-
-      const res = await fetch(`${API_BASE}/contractors/${contractor.id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error();
-
-      setDeleteSucceeded(true);
-      setToast({ show: true, message: "外注先を削除しました" });
-
-      redirectTimerRef.current = window.setTimeout(() => {
-        router.push("/contractors?toast=deleted");
-        router.refresh();
-      }, 1200);
-    } catch {
-      setToast({
-        show: true,
-        message: "削除に失敗しました。もう一度お試しください。",
-      });
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
 
   const defaultValues: ContractorFormValues = React.useMemo(
     () =>
@@ -117,6 +89,35 @@ export function ContractorForm({ mode, contractor }: Props) {
     [watchedContacts]
   );
 
+  const handleDelete = async () => {
+    if (!contractor?.id) return;
+
+    try {
+      setDeleteLoading(true);
+
+      const res = await fetch(`${API_BASE}/contractors/${contractor.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error();
+
+      setDeleteSucceeded(true);
+      setToast({ show: true, message: "外注先を削除しました" });
+
+      redirectTimerRef.current = window.setTimeout(() => {
+        router.push("/contractors");
+        router.refresh();
+      }, 1200);
+    } catch {
+      setToast({
+        show: true,
+        message: "削除に失敗しました。もう一度お試しください。",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     const payload =
       mode === "create"
@@ -128,10 +129,12 @@ export function ContractorForm({ mode, contractor }: Props) {
         throw new Error("contractor.id が見つかりません");
       }
 
+      const contractorId = contractor?.id;
+
       const url =
         mode === "create"
           ? `${API_BASE}/contractors`
-          : `${API_BASE}/contractors/${contractor?.id}`;
+          : `${API_BASE}/contractors/${contractorId}`;
 
       const method = mode === "create" ? "POST" : "PATCH";
 
@@ -146,12 +149,19 @@ export function ContractorForm({ mode, contractor }: Props) {
         throw new Error(text || `保存に失敗しました（${res.status}）`);
       }
 
-      if (mode === "create") {
-        router.push("/contractors?toast=created");
-      } else {
-        router.push(`/contractors/${contractor?.id}?toast=updated`);
-      }
-      router.refresh();
+      setToast({
+        show: true,
+        message: mode === "create" ? "外注先を追加しました" : "外注先を更新しました",
+      });
+
+      redirectTimerRef.current = window.setTimeout(() => {
+        if (mode === "create") {
+          router.push("/contractors");
+        } else {
+          router.push(`/contractors/${contractorId}`);
+        }
+        router.refresh();
+      }, 1200);
     } catch (e) {
       console.error(e);
       alert(e instanceof Error ? e.message : "保存に失敗しました。");
@@ -166,7 +176,6 @@ export function ContractorForm({ mode, contractor }: Props) {
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* ── 基本情報 ── */}
         <CardSection title="基本情報">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -241,7 +250,6 @@ export function ContractorForm({ mode, contractor }: Props) {
           </div>
         </CardSection>
 
-        {/* ── 担当者 ── */}
         <CardSection title="担当者">
           {!hasAnyContact && (
             <p className="mb-3 text-xs text-slate-500">※ 担当者が登録されていません。</p>
@@ -301,7 +309,6 @@ export function ContractorForm({ mode, contractor }: Props) {
           </button>
         </CardSection>
 
-        {/* ── ボタン ── */}
         <div className="space-y-3">
           <button
             type="submit"

@@ -84,7 +84,7 @@ export function EmployeeForm({ mode, employee }: Props) {
       setToast({ show: true, message: "社員を削除しました" });
 
       redirectTimerRef.current = window.setTimeout(() => {
-        router.push("/employees?toast=deleted");
+        router.push("/employees");
         router.refresh();
       }, 1200);
     } catch {
@@ -125,12 +125,19 @@ export function EmployeeForm({ mode, employee }: Props) {
         throw new Error(text || `保存に失敗しました（${res.status}）`);
       }
 
-      if (mode === "create") {
-        router.push("/employees?toast=created");
-      } else {
-        router.push(`/employees/${employeeId}?toast=updated`);
-      }
-      router.refresh();
+      setToast({
+        show: true,
+        message: mode === "create" ? "社員を追加しました" : "社員を更新しました",
+      });
+
+      redirectTimerRef.current = window.setTimeout(() => {
+        if (mode === "create") {
+          router.push("/employees");
+        } else {
+          router.push(`/employees/${employeeId}`);
+        }
+        router.refresh();
+      }, 1200);
     } catch (e) {
       console.error(e);
       alert(e instanceof Error ? e.message : "保存に失敗しました。");
