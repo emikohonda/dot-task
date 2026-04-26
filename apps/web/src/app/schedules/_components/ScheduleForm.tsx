@@ -237,27 +237,6 @@ export default function ScheduleForm({
               )}
             </div>
 
-            <div className="min-w-0 overflow-hidden">
-              <label className="block text-sm font-medium text-slate-700">
-                日程
-                <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
-                  必須
-                </span>
-              </label>
-              <input
-                type="date"
-                {...register("date")}
-                disabled={isLocked}
-                className={[
-                  dateTimeInputClass,
-                  errors.date ? "border-rose-300" : "border-slate-200",
-                ].join(" ")}
-              />
-              {errors.date?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.date.message}</p>
-              )}
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700">作業内容</label>
               <input
@@ -271,6 +250,45 @@ export default function ScheduleForm({
               />
               {errors.title?.message && (
                 <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
+              )}
+            </div>
+
+            <div className="min-w-0 overflow-hidden">
+              <label className="block text-sm font-medium text-slate-700">
+                日程
+                <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                  必須
+                </span>
+              </label>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mt-1">
+                <input
+                  type="date"
+                  {...register("date")}
+                  disabled={isLocked}
+                  className={[
+                    dateTimeInputClass,
+                    errors.date ? "border-rose-300" : "border-slate-200",
+                  ].join(" ")}
+                />
+                <span className="shrink-0 text-sm text-slate-400">〜</span>
+                <input
+                  type="date"
+                  {...register("endDate")}
+                  disabled={isLocked}
+                  className={[
+                    dateTimeInputClass,
+                    errors.endDate ? "border-rose-300" : "border-slate-200",
+                  ].join(" ")}
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                終了日は任意です。1日のみの場合は空欄のままでOK。
+              </p>
+              {errors.date?.message && (
+                <p className="mt-1 text-xs text-rose-600">{errors.date.message}</p>
+              )}
+              {errors.endDate?.message && (
+                <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>
               )}
             </div>
 

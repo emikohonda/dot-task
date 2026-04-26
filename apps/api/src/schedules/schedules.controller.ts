@@ -17,7 +17,7 @@ import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Controller('schedules')
 export class SchedulesController {
-  constructor(private readonly schedulesService: SchedulesService) {}
+  constructor(private readonly schedulesService: SchedulesService) { }
 
   @Get()
   findAll(
@@ -58,6 +58,7 @@ export class SchedulesController {
     return this.schedulesService.create({
       title: dto.title,
       date: dto.date,
+      endDate: dto.endDate ?? null,
       siteId: dto.siteId,
       contractorIds: dto.contractorIds ?? [],
       employeeIds: dto.employeeIds ?? [],
@@ -72,6 +73,7 @@ export class SchedulesController {
     return this.schedulesService.update(id, {
       title: dto.title,
       date: dto.date,
+      endDate: dto.endDate,
       siteId: dto.siteId,
       contractorIds: dto.contractorIds,
       employeeIds: dto.employeeIds,

@@ -14,8 +14,12 @@ export class UpdateScheduleDto {
   title?: string;
 
   @IsOptional()
-  @IsISO8601()
+  @IsISO8601({ strict: false })
   date?: string;
+
+  @IsOptional()
+  @IsISO8601({ strict: false })
+  endDate?: string | null;
 
   @IsOptional()
   @IsUUID()

@@ -103,26 +103,26 @@ export default function CalendarClient({
   const [year, setYear] = React.useState(initialYear);
   const [month0, setMonth0] = React.useState(initialMonth0);
   const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
-  const [loading, setLoading] = React.useState(false);
-  const [selectedLoading, setSelectedLoading] = React.useState(false);
   const [direction, setDirection] = React.useState(0);
   const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
+  const [selectedReady, setSelectedReady] = React.useState(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Schedule[]>([]);
 
   const [cache, setCache] = React.useState<Record<string, Schedule[]>>({
     [`${initialYear}-${String(initialMonth0 + 1).padStart(2, "0")}`]: initialSchedules,
   });
 
+  const selectYmd = React.useCallback((ymd: string) => {
+    setSelectedYmd(ymd);
+    sessionStorage.setItem(STORAGE_KEY, ymd);
+  }, []);
+
   React.useEffect(() => {
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       setSelectedYmd(saved);
     }
-  }, []);
-
-  const selectYmd = React.useCallback((ymd: string) => {
-    setSelectedYmd(ymd);
-    sessionStorage.setItem(STORAGE_KEY, ymd);
+    setSelectedReady(true);
   }, []);
 
   function monthKey(y: number, m0: number) {
@@ -141,14 +141,9 @@ export default function CalendarClient({
         return;
       }
 
-      setLoading(true);
-      try {
-        const data = await fetchGridSchedules(y, m0);
-        setSchedules(data);
-        setCache((prev) => ({ ...prev, [key]: data }));
-      } finally {
-        setLoading(false);
-      }
+      const data = await fetchGridSchedules(y, m0);
+      setSchedules(data);
+      setCache((prev) => ({ ...prev, [key]: data }));
     },
     [cache]
   );
@@ -166,30 +161,26 @@ export default function CalendarClient({
   }, [year, month0, goToMonth]);
 
   React.useEffect(() => {
+    if (!selectedReady) return;
+
     // グリッド内の日付は即表示
     if (byDate.has(selectedYmd)) {
       setSelectedSchedules(byDate.get(selectedYmd) ?? []);
-      setSelectedLoading(false);
       return;
     }
 
     // グリッド外の日付だけfetch
     let cancelled = false;
-    setSelectedLoading(true);
 
     (async () => {
-      try {
-        const data = await fetchSchedulesByDate(selectedYmd);
-        if (!cancelled) setSelectedSchedules(data);
-      } finally {
-        if (!cancelled) setSelectedLoading(false);
-      }
+      const data = await fetchSchedulesByDate(selectedYmd);
+      if (!cancelled) setSelectedSchedules(data);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedYmd, byDate]);
+  }, [selectedReady, selectedYmd, byDate]);
 
   // ── スワイプ検出（安全版）──
   const touchStartX = React.useRef<number | null>(null);
@@ -363,10 +354,10 @@ export default function CalendarClient({
               const isSunday = dow === 0;
               const isSaturday = dow === 6;
               const isToday = ymd === todayYmd;
-              const isSelected = ymd === selectedYmd;
+              const isSelected = selectedReady && ymd === selectedYmd;
               const isHoliday = !!holidays[ymd];
               const list = byDate.get(ymd) ?? [];
-              const maxChips = isCurrentMonth ? 2 : 1;
+              const maxChips = 2;
               const overCount = Math.max(0, list.length - maxChips);
 
               return (
@@ -380,7 +371,7 @@ export default function CalendarClient({
                       : isToday
                         ? "bg-rose-100"
                         : "bg-white hover:bg-slate-50",
-                    isCurrentMonth && isSelected
+                    isSelected
                       ? "ring-2 ring-inset ring-rose-500"
                       : "",
                   ].join(" ")}
@@ -455,16 +446,26 @@ export default function CalendarClient({
       <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
         <div className="flex shrink-0 items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
-            <span className="text-xs text-slate-400">{selectedList.length}件</span>
-            {/* {selectedLoading && <span className="text-xs text-slate-400">読み込み中…</span>} */}
+            {selectedReady ? (
+              <>
+                <span className="text-sm font-bold text-slate-800">{selectedLabel}</span>
+                <span className="text-xs text-slate-400">{selectedList.length}件</span>
+              </>
+            ) : (
+              <span className="h-5 w-28" aria-hidden="true" />
+            )}
           </div>
-          <Link
-            href={`/calendar/day/${selectedYmd}`}
-            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            一覧を見る
-          </Link>
+
+          {selectedReady ? (
+            <Link
+              href={`/calendar/day/${selectedYmd}`}
+              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              一覧を見る
+            </Link>
+          ) : (
+            <span className="h-7 w-20" aria-hidden="true" />
+          )}
         </div>
 
         {/* 下部一覧：スクロール可・上への伝播を防ぐ */}
@@ -472,7 +473,9 @@ export default function CalendarClient({
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
         >
-          {selectedList.length === 0 ? (
+          {!selectedReady ? (
+            <div className="py-6" aria-hidden="true" />
+          ) : selectedList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-slate-400">
               <p className="text-sm">予定はありません</p>
             </div>

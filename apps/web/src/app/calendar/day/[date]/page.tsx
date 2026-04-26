@@ -44,7 +44,7 @@ function companyName(s: Schedule): string {
 
 async function fetchDaySchedules(date: string): Promise<Schedule[]> {
   try {
-    const params = new URLSearchParams({ date, limit: "100" });
+    const params = new URLSearchParams({ dateFrom: date, dateTo: date, limit: "100" });
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
       cache: "no-store",
     });

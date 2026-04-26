@@ -13,7 +13,7 @@ import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
-import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
+import { formatScheduleTitle, formatDateRangeShort, } from "@/lib/validations/scheduleSchemas";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -416,7 +416,7 @@ export default function SchedulesClient({
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
                       <span className="inline-flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-slate-400" />
-                        {formatDate(s.date)}
+                        {formatDateRangeShort(s.date, s.endDate)}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="h-4 w-4 text-slate-400" />

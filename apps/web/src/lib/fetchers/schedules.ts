@@ -5,6 +5,7 @@ export type Schedule = {
   id: string;
   title: string;
   date: string | null;
+  endDate?: string | null;
 
   description?: string | null;
   startTime?: string | null;

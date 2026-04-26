@@ -15,7 +15,7 @@ import { fetchScheduleById } from "@/lib/fetchers/schedules";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ReactNode } from "react";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
-import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
+import { formatScheduleTitle, formatDateRange } from "@/lib/validations/scheduleSchemas";
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "—";
@@ -110,7 +110,7 @@ export default async function ScheduleDetailPage({
           <InfoItem
             icon={<Calendar className="h-4 w-4" />}
             label="日程"
-            value={formatDate(s.date)}
+            value={formatDateRange(s.date, s.endDate)}
           />
 
           <InfoItem

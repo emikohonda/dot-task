@@ -13,8 +13,12 @@ export class CreateScheduleDto {
   @IsString()
   title?: string;
 
-  @IsISO8601()
+  @IsISO8601({ strict: false })
   date!: string;
+
+  @IsOptional()
+  @IsISO8601({ strict: false })
+  endDate?: string | null;
 
   @IsUUID()
   siteId!: string;
