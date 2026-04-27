@@ -11,6 +11,12 @@ import { CardSection } from "@/components/CardSection";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
 import {
+  SITE_COLOR_KEYS,
+  siteColorLabels,
+  getSiteColor,
+  getSiteColorLabel,
+} from "@/lib/siteColors";
+import {
   siteFormSchema,
   type SiteFormValues,
   type SiteFormSource,
@@ -112,6 +118,9 @@ export default function SiteForm({ mode, site, companies }: Props) {
 
   const watchedCompanyId = useWatch({ control, name: "companyId" });
   const contactIds = useWatch({ control, name: "contactIds" }) ?? [];
+  const selectedColor = useWatch({ control, name: "color" }) ?? "sky";
+  const selectedColorStyle = getSiteColor(selectedColor);
+  const selectedColorLabel = getSiteColorLabel(selectedColor);
 
   const prevCompanyIdRef = React.useRef<string | undefined>(undefined);
   const didResetRef = React.useRef(false);
@@ -267,6 +276,54 @@ export default function SiteForm({ mode, site, companies }: Props) {
               />
               {errors.endDate?.message && (
                 <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">
+                現場カラー
+              </label>
+
+              <div className="mt-2 flex items-center gap-3">
+                <select
+                  {...register("color")}
+                  disabled={isLocked}
+                  className={[
+                    baseInputClass,
+                    "mt-0 flex-1",
+                    errors.color ? "border-rose-300" : "border-slate-200",
+                  ].join(" ")}
+                >
+                  {SITE_COLOR_KEYS.map((colorKey) => (
+                    <option key={colorKey} value={colorKey}>
+                      {siteColorLabels[colorKey]}
+                    </option>
+                  ))}
+                </select>
+
+                <div
+                  className={[
+                    "flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-semibold",
+                    selectedColorStyle.bgSoft,
+                    selectedColorStyle.border,
+                    selectedColorStyle.text,
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "h-4 w-4 rounded-full",
+                      selectedColorStyle.dot,
+                    ].join(" ")}
+                    aria-hidden="true"
+                  />
+                  <span className="hidden sm:inline">
+                    {selectedColorLabel}
+                  </span>
+                </div>
+              </div>
+
+              {errors.color?.message && (
+                <p className="mt-1 text-xs text-rose-600">{errors.color.message}</p>
               )}
             </div>
           </div>

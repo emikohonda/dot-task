@@ -1,5 +1,16 @@
 // apps/web/src/lib/validations/siteSchemas.ts
 import { z } from "zod";
+import { SITE_COLOR_KEYS, type SiteColorKey } from "@/lib/siteColors";
+
+const siteColorSchema = z.enum(SITE_COLOR_KEYS);
+
+function isSiteColorKey(color: string | null | undefined): color is SiteColorKey {
+  return SITE_COLOR_KEYS.includes(color as SiteColorKey);
+}
+
+function normalizeSiteColor(color?: string | null): SiteColorKey {
+  return isSiteColorKey(color) ? color : "sky";
+}
 
 // --------------------------------
 // 共通バリデーション
@@ -23,6 +34,8 @@ export const siteFormSchema = z
 
     startDate: dateOrEmpty,
     endDate: dateOrEmpty,
+
+    color: siteColorSchema,
 
     contactIds: z.array(z.string()),
   })
@@ -48,6 +61,7 @@ export type SiteFormSource = {
   companyId?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  color?: string | null;
   companyContacts?: Array<{ companyContact?: { id: string } | null }> | null;
 };
 
@@ -63,6 +77,7 @@ export function fromSiteToFormValues(site: SiteFormSource | null): SiteFormValue
       companyId: "",
       startDate: "",
       endDate: "",
+      color: "sky",
       contactIds: [],
     };
   }
@@ -77,6 +92,7 @@ export function fromSiteToFormValues(site: SiteFormSource | null): SiteFormValue
     companyId: site.companyId ?? "",
     startDate: (site.startDate ?? "").slice(0, 10),
     endDate: (site.endDate ?? "").slice(0, 10),
+    color: normalizeSiteColor(site.color),
     contactIds,
   };
 }
@@ -88,6 +104,7 @@ export function toSitePayload(values: SiteFormValues) {
     companyId: values.companyId ? values.companyId : null,
     startDate: values.startDate || undefined,
     endDate: values.endDate || undefined,
+    color: values.color,
     contactIds: values.contactIds,
   };
 }

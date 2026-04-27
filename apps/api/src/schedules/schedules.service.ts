@@ -84,6 +84,7 @@ export class SchedulesService {
         select: {
           id: true,
           name: true,
+          color: true,
           company: { select: { id: true, name: true } },
         },
       },
@@ -96,6 +97,7 @@ export class SchedulesService {
         select: {
           id: true,
           name: true,
+          color: true,
           company: { select: { id: true, name: true } },
         },
       },

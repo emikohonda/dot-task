@@ -129,6 +129,8 @@ model Site {
   startDate DateTime?
   endDate   DateTime?
 
+  color     String    @default("sky")
+
   // この現場の元請
   companyId       String?
   company         Company?             @relation(fields: [companyId], references: [id])

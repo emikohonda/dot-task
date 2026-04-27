@@ -14,22 +14,23 @@ export class SitesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateSiteDto) {
-    const { contactIds, startDate, endDate, ...rest } = dto;
+    const { contactIds, startDate, endDate, color, ...rest } = dto;
 
     return this.prisma.site.create({
       data: {
         ...rest,
+        color: color ?? "sky",
         startDate: startDate ? new Date(startDate) : undefined,
-        endDate:   endDate   ? new Date(endDate)   : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
         ...(contactIds?.length
           ? {
-              companyContacts: {
-                createMany: {
-                  data: contactIds.map((id) => ({ companyContactId: id })),
-                  skipDuplicates: true,
-                },
+            companyContacts: {
+              createMany: {
+                data: contactIds.map((id) => ({ companyContactId: id })),
+                skipDuplicates: true,
               },
-            }
+            },
+          }
           : {}),
       },
     });
@@ -202,7 +203,7 @@ export class SitesService {
   }
 
   async update(id: string, dto: UpdateSiteDto) {
-    const { contactIds, startDate, endDate, ...siteFields } = dto;
+    const { contactIds, startDate, endDate, color, ...siteFields } = dto;
 
     await this.ensureExists(id);
 
@@ -210,6 +211,7 @@ export class SitesService {
       where: { id },
       data: {
         ...siteFields,
+        ...(color !== undefined ? { color } : {}),
         ...(startDate !== undefined && {
           startDate: startDate ? new Date(startDate) : null,
         }),
@@ -218,18 +220,18 @@ export class SitesService {
         }),
         ...(contactIds !== undefined
           ? {
-              companyContacts: {
-                deleteMany: {},
-                ...(contactIds.length
-                  ? {
-                      createMany: {
-                        data: contactIds.map((cid) => ({ companyContactId: cid })),
-                        skipDuplicates: true,
-                      },
-                    }
-                  : {}),
-              },
-            }
+            companyContacts: {
+              deleteMany: {},
+              ...(contactIds.length
+                ? {
+                  createMany: {
+                    data: contactIds.map((cid) => ({ companyContactId: cid })),
+                    skipDuplicates: true,
+                  },
+                }
+                : {}),
+            },
+          }
           : {}),
       },
     });

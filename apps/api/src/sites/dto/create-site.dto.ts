@@ -1,5 +1,20 @@
 // apps/api/src/sites/dto/create-site.dto.ts
-import { IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsArray, IsIn } from 'class-validator';
+
+const SITE_COLOR_KEYS = [
+  'sky',
+  'blue',
+  'cyan',
+  'emerald',
+  'green',
+  'lime',
+  'amber',
+  'orange',
+  'rose',
+  'pink',
+  'violet',
+  'slate',
+] as const;
 
 export class CreateSiteDto {
   @IsString()
@@ -20,6 +35,10 @@ export class CreateSiteDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  @IsOptional()
+  @IsIn(SITE_COLOR_KEYS)
+  color?: string;
 
   @IsOptional()
   @IsArray()
