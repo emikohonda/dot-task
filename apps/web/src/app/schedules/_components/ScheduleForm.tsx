@@ -292,9 +292,12 @@ export default function ScheduleForm({
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="min-w-0 overflow-hidden">
-                <label className="block text-sm font-medium text-slate-700">開始時刻</label>
+            <div className="min-w-0 overflow-hidden sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">
+                作業時刻
+              </label>
+
+              <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <input
                   type="time"
                   {...register("startTime")}
@@ -304,12 +307,9 @@ export default function ScheduleForm({
                     errors.startTime ? "border-rose-300" : "border-slate-200",
                   ].join(" ")}
                 />
-                {errors.startTime?.message && (
-                  <p className="mt-1 text-xs text-rose-600">{errors.startTime.message}</p>
-                )}
-              </div>
-              <div className="min-w-0 overflow-hidden">
-                <label className="block text-sm font-medium text-slate-700">終了時刻</label>
+
+                <span className="shrink-0 text-sm text-slate-400">〜</span>
+
                 <input
                   type="time"
                   {...register("endTime")}
@@ -319,10 +319,19 @@ export default function ScheduleForm({
                     errors.endTime ? "border-rose-300" : "border-slate-200",
                   ].join(" ")}
                 />
-                {errors.endTime?.message && (
-                  <p className="mt-1 text-xs text-rose-600">{errors.endTime.message}</p>
-                )}
               </div>
+
+              {errors.startTime?.message && (
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.startTime.message}
+                </p>
+              )}
+
+              {errors.endTime?.message && (
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.endTime.message}
+                </p>
+              )}
             </div>
           </div>
         </CardSection>

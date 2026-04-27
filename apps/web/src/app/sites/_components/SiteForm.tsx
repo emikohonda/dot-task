@@ -247,35 +247,49 @@ export default function SiteForm({ mode, site, companies }: Props) {
               )}
             </div>
 
-            <div className="min-w-0 overflow-hidden">
-              <label className="block text-sm font-medium text-slate-700">開始日</label>
-              <input
-                type="date"
-                {...register("startDate")}
-                disabled={isLocked}
-                className={[
-                  dateInputClass,
-                  errors.startDate ? "border-rose-300" : "border-slate-200",
-                ].join(" ")}
-              />
-              {errors.startDate?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.startDate.message}</p>
-              )}
-            </div>
+            <div className="min-w-0 overflow-hidden sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">
+                工期
+              </label>
 
-            <div className="min-w-0 overflow-hidden">
-              <label className="block text-sm font-medium text-slate-700">終了日</label>
-              <input
-                type="date"
-                {...register("endDate")}
-                disabled={isLocked}
-                className={[
-                  dateInputClass,
-                  errors.endDate ? "border-rose-300" : "border-slate-200",
-                ].join(" ")}
-              />
+              <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <input
+                  type="date"
+                  {...register("startDate")}
+                  disabled={isLocked}
+                  className={[
+                    dateInputClass,
+                    errors.startDate ? "border-rose-300" : "border-slate-200",
+                  ].join(" ")}
+                />
+
+                <span className="shrink-0 text-sm text-slate-400">〜</span>
+
+                <input
+                  type="date"
+                  {...register("endDate")}
+                  disabled={isLocked}
+                  className={[
+                    dateInputClass,
+                    errors.endDate ? "border-rose-300" : "border-slate-200",
+                  ].join(" ")}
+                />
+              </div>
+
+              {/* <p className="mt-1 text-xs text-slate-500">
+                期間は任意です。開始日・終了日が未定の場合は空欄のままでOK。
+              </p> */}
+
+              {errors.startDate?.message && (
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.startDate.message}
+                </p>
+              )}
+
               {errors.endDate?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.endDate.message}
+                </p>
               )}
             </div>
 
