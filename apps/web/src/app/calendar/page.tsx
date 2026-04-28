@@ -1,7 +1,7 @@
 // apps/web/src/app/calendar/page.tsx
 import { gridRange } from "./_components/calendar";
 import { Suspense } from "react";
-import CalendarClient from "./CalendarClient";
+import { CalendarClientNoSsr } from "./CalendarClientNoSsr";
 import { between } from "holiday-jp";
 
 function toYmdTokyo(d: Date): string {
@@ -64,7 +64,7 @@ export default async function CalendarPage() {
           </div>
         }
       >
-        <CalendarClient
+        <CalendarClientNoSsr
           initialSchedules={initialSchedules}
           initialYear={year}
           initialMonth0={month0}

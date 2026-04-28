@@ -109,7 +109,7 @@ function companyName(s: Schedule): string {
   return (s.site as any)?.company?.name ?? "元請未設定";
 }
 
-type Props = {
+export type CalendarClientProps = {
   initialSchedules: Schedule[];
   initialYear: number;
   initialMonth0: number;
@@ -121,7 +121,8 @@ export default function CalendarClient({
   initialYear,
   initialMonth0,
   holidays = {},
-}: Props) {
+}: CalendarClientProps) {
+
   const router = useRouter();
 
   const nowRef = React.useRef(new Date());
@@ -177,6 +178,9 @@ export default function CalendarClient({
 
   React.useLayoutEffect(() => {
     if (typeof window === "undefined") return;
+
+    let cancelled = false;
+
     saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
 
     const savedYmd = sessionStorage.getItem(STORAGE_KEY);
@@ -186,19 +190,24 @@ export default function CalendarClient({
     if (savedMonth && /^\d{4}-\d{2}$/.test(savedMonth)) {
       const [savedYear, savedMonthNumber] = savedMonth.split("-").map(Number);
       const savedMonth0 = savedMonthNumber - 1;
-      if (savedYear !== initialYear || savedMonth0 !== initialMonth0) {
-        fetchGridSchedules(savedYear, savedMonth0).then((data) => {
-          setSchedules(data);
-          setCache((prev) => ({
-            ...prev,
-            [monthKey(savedYear, savedMonth0)]: data,
-          }));
-          saveMonthSchedules(savedYear, savedMonth0, data);
-        });
-      }
+
+      fetchGridSchedules(savedYear, savedMonth0).then((data) => {
+        if (cancelled) return;
+
+        setSchedules(data);
+        setCache((prev) => ({
+          ...prev,
+          [monthKey(savedYear, savedMonth0)]: data,
+        }));
+        saveMonthSchedules(savedYear, savedMonth0, data);
+      });
     }
 
     setSelectedReady(true);
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function saveVisibleMonth(y: number, m0: number) {
@@ -214,11 +223,13 @@ export default function CalendarClient({
       saveVisibleMonth(y, m0);
 
       const key = monthKey(y, m0);
+
+      // キャッシュがあれば先に即表示
       if (cache[key]) {
         setSchedules(cache[key]);
-        return;
       }
 
+      // ただし、必ず裏で最新データを取得して更新する
       const data = await fetchGridSchedules(y, m0);
       setSchedules(data);
       setCache((prev) => ({ ...prev, [key]: data }));

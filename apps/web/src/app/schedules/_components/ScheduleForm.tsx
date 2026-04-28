@@ -11,6 +11,7 @@ import type { EmployeeLite } from "@/lib/fetchers/employees";
 import { CardSection } from "@/components/CardSection";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
+import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 
 import {
   makeScheduleSchemaWithSiteRange,
@@ -79,6 +80,8 @@ export default function ScheduleForm({
 
       setDeleteSucceeded(true);
       setToast({ show: true, message: "予定を削除しました" });
+
+      clearCalendarScheduleCache();
 
       redirectTimerRef.current = window.setTimeout(() => {
         router.push(backHref ?? "/schedules");
@@ -162,6 +165,7 @@ export default function ScheduleForm({
           ? `${backHref}${backHref.includes("?") ? "&" : "?"}toast=created`
           : "/schedules?toast=created";
 
+        clearCalendarScheduleCache();
         router.push(createdRedirect);
         router.refresh();
         return;
@@ -179,6 +183,7 @@ export default function ScheduleForm({
         throw new Error(t || `更新に失敗しました。（${res.status}）`);
       }
 
+      clearCalendarScheduleCache();
       router.push(
         backHref
           ? `/schedules/${schedule.id}?toast=updated&back=${encodeURIComponent(backHref)}`
