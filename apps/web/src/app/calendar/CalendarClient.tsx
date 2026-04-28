@@ -23,6 +23,8 @@ const API_BASE =
 
 const WEEK_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 const STORAGE_KEY = "calendar:selectedYmd";
+const MONTH_STORAGE_KEY = "calendar:visibleMonth";
+const MONTH_DATA_STORAGE_PREFIX = "calendar:monthSchedules:";
 
 async function fetchGridSchedules(year: number, month0: number): Promise<Schedule[]> {
   try {
@@ -57,6 +59,31 @@ async function fetchSchedulesByDate(ymd: string): Promise<Schedule[]> {
     return [];
   } catch {
     return [];
+  }
+}
+
+// ── sessionStorage helpers ──
+function monthKey(y: number, m0: number) {
+  return `${y}-${String(m0 + 1).padStart(2, "0")}`;
+}
+
+function saveMonthSchedules(y: number, m0: number, data: Schedule[]) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(
+    `${MONTH_DATA_STORAGE_PREFIX}${monthKey(y, m0)}`,
+    JSON.stringify(data)
+  );
+}
+
+function loadMonthSchedules(y: number, m0: number): Schedule[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(`${MONTH_DATA_STORAGE_PREFIX}${monthKey(y, m0)}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
   }
 }
 
@@ -101,16 +128,46 @@ export default function CalendarClient({
   const now = nowRef.current;
   const todayYmd = ymdLocal(now);
 
-  const [year, setYear] = React.useState(initialYear);
-  const [month0, setMonth0] = React.useState(initialMonth0);
-  const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
+  const [year, setYear] = React.useState(() => {
+    if (typeof window === "undefined") return initialYear;
+    const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}$/.test(saved)) return Number(saved.split("-")[0]);
+    return initialYear;
+  });
+
+  const [month0, setMonth0] = React.useState(() => {
+    if (typeof window === "undefined") return initialMonth0;
+    const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}$/.test(saved)) return Number(saved.split("-")[1]) - 1;
+    return initialMonth0;
+  });
+
+  const [schedules, setSchedules] = React.useState<Schedule[]>(() => {
+    if (typeof window === "undefined") return initialSchedules;
+    const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}$/.test(saved)) {
+      const [savedYear, savedMonthNumber] = saved.split("-").map(Number);
+      const cachedData = loadMonthSchedules(savedYear, savedMonthNumber - 1);
+      if (cachedData) return cachedData;
+    }
+    return initialSchedules;
+  });
   const [direction, setDirection] = React.useState(0);
   const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
   const [selectedReady, setSelectedReady] = React.useState(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Schedule[]>([]);
 
-  const [cache, setCache] = React.useState<Record<string, Schedule[]>>({
-    [`${initialYear}-${String(initialMonth0 + 1).padStart(2, "0")}`]: initialSchedules,
+  const [cache, setCache] = React.useState<Record<string, Schedule[]>>(() => {
+    const initialKey = monthKey(initialYear, initialMonth0);
+    const result: Record<string, Schedule[]> = { [initialKey]: initialSchedules };
+    if (typeof window === "undefined") return result;
+    const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}$/.test(saved)) {
+      const [savedYear, savedMonthNumber] = saved.split("-").map(Number);
+      const cachedData = loadMonthSchedules(savedYear, savedMonthNumber - 1);
+      if (cachedData) result[monthKey(savedYear, savedMonthNumber - 1)] = cachedData;
+    }
+    return result;
   });
 
   const selectYmd = React.useCallback((ymd: string) => {
@@ -118,16 +175,35 @@ export default function CalendarClient({
     sessionStorage.setItem(STORAGE_KEY, ymd);
   }, []);
 
-  React.useEffect(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setSelectedYmd(saved);
+  React.useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
+
+    const savedYmd = sessionStorage.getItem(STORAGE_KEY);
+    if (savedYmd) setSelectedYmd(savedYmd);
+
+    const savedMonth = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (savedMonth && /^\d{4}-\d{2}$/.test(savedMonth)) {
+      const [savedYear, savedMonthNumber] = savedMonth.split("-").map(Number);
+      const savedMonth0 = savedMonthNumber - 1;
+      if (savedYear !== initialYear || savedMonth0 !== initialMonth0) {
+        fetchGridSchedules(savedYear, savedMonth0).then((data) => {
+          setSchedules(data);
+          setCache((prev) => ({
+            ...prev,
+            [monthKey(savedYear, savedMonth0)]: data,
+          }));
+          saveMonthSchedules(savedYear, savedMonth0, data);
+        });
+      }
     }
+
     setSelectedReady(true);
   }, []);
 
-  function monthKey(y: number, m0: number) {
-    return `${y}-${String(m0 + 1).padStart(2, "0")}`;
+  function saveVisibleMonth(y: number, m0: number) {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(MONTH_STORAGE_KEY, monthKey(y, m0));
   }
 
   const goToMonth = React.useCallback(
@@ -135,6 +211,7 @@ export default function CalendarClient({
       setDirection(dir);
       setYear(y);
       setMonth0(m0);
+      saveVisibleMonth(y, m0);
 
       const key = monthKey(y, m0);
       if (cache[key]) {
@@ -145,6 +222,7 @@ export default function CalendarClient({
       const data = await fetchGridSchedules(y, m0);
       setSchedules(data);
       setCache((prev) => ({ ...prev, [key]: data }));
+      saveMonthSchedules(y, m0, data);
     },
     [cache]
   );
