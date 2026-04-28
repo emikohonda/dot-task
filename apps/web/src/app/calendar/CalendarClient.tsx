@@ -16,6 +16,7 @@ import {
   addMonths,
   gridRange,
 } from "./_components/calendar";
+import { getSiteColor } from "@/lib/siteColors";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -405,21 +406,26 @@ export default function CalendarClient({
                       "pb-3 [@media(max-height:740px)]:pb-2",
                     ].join(" ")}
                   >
-                    {list.slice(0, maxChips).map((s) => (
-                      <div
-                        key={s.id}
-                        className={[
-                          "mb-px truncate rounded-[2px] px-0.5",
-                          "text-[9px] leading-[14px] [@media(max-height:740px)]:text-[8px] [@media(max-height:740px)]:leading-[11px]",
-                          !isCurrentMonth
-                            ? "bg-slate-200 text-slate-400"
-                            : "bg-sky-500/20 text-sky-800",
-                        ].join(" ")}
-                        title={s.site?.name ?? s.title}
-                      >
-                        {s.site?.name ?? s.title}
-                      </div>
-                    ))}
+
+                    {list.slice(0, maxChips).map((s) => {
+                      const siteColor = getSiteColor(s.site?.color);
+
+                      return (
+                        <div
+                          key={s.id}
+                          className={[
+                            "mb-px truncate rounded-[2px] px-0.5",
+                            "text-[9px] leading-[14px] [@media(max-height:740px)]:text-[8px] [@media(max-height:740px)]:leading-[11px]",
+                            !isCurrentMonth
+                              ? "bg-slate-200 text-slate-400"
+                              : `${siteColor.bgSoft} ${siteColor.text}`,
+                          ].join(" ")}
+                          title={s.site?.name ?? s.title}
+                        >
+                          {s.site?.name ?? s.title}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* +N：中央下固定 */}
@@ -485,6 +491,7 @@ export default function CalendarClient({
                 const { line1, line2 } = formatTimeBlock(s);
                 const company = companyName(s);
                 const siteName = s.site?.name ?? "";
+                const siteColor = getSiteColor(s.site?.color);
 
                 return (
                   <li key={s.id}>
@@ -501,8 +508,13 @@ export default function CalendarClient({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] leading-5 text-slate-500">{company}</p>
                         {siteName && (
-                          <p className="flex items-center gap-1 truncate text-[15px] font-semibold leading-5 text-slate-800">
-                            <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-400" />
+                          <p
+                            className={[
+                              "flex items-center gap-1 truncate text-[15px] font-semibold leading-5",
+                              siteColor.text,
+                            ].join(" ")}
+                          >
+                            <MapPin className={["h-3.5 w-3.5 shrink-0", siteColor.text].join(" ")} />
                             {siteName}
                           </p>
                         )}

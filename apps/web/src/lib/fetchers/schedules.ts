@@ -12,7 +12,15 @@ export type Schedule = {
   endTime?: string | null;
 
   siteId?: string | null;
-  site?: { id: string; name: string } | null;
+  site?: {
+    id: string;
+    name: string;
+    color?: string | null;
+    company?: {
+      id: string;
+      name: string;
+    } | null;
+  } | null;
 
   contractors?: { contractor: { id: string; name: string } | null }[];
   employees?: { employee: { id: string; name: string } | null }[];

@@ -14,6 +14,7 @@ import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
 import { formatScheduleTitle, formatDateRangeShort, } from "@/lib/validations/scheduleSchemas";
+import { getSiteColor } from "@/lib/siteColors";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
@@ -53,12 +54,6 @@ async function fetchOptions(path: string): Promise<ComboboxOption[]> {
   } catch {
     return [];
   }
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "-";
-  const [y, m, d] = dateStr.slice(0, 10).split("-");
-  return `${y}/${m}/${d}`;
 }
 
 function getTodayYmd() {
@@ -398,34 +393,49 @@ export default function SchedulesClient({
         ) : (
           <>
             <ul className="divide-y divide-slate-100">
-              {schedules.map((s) => (
-                <li key={s.id} className="py-4">
-                  <Link
-                    href={`/schedules/${s.id}`}
-                    className="block min-w-0 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-                  >
-                    <p className="mb-1 font-bold leading-snug text-[18px] text-slate-900 hover:text-sky-600">
-                      {formatScheduleTitle(s.title)}
-                    </p>
-                    {s.site?.name && (
-                      <p className="mb-1 flex items-center gap-1.5 font-semibold text-[16px] leading-6 text-slate-700">
-                        <MapPin className="h-4 w-4 shrink-0 text-sky-400" />
-                        {s.site.name}
-                      </p>
-                    )}
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        {formatDateRangeShort(s.date, s.endDate)}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-slate-400" />
-                        <ScheduleTime startTime={s.startTime ?? null} endTime={s.endTime ?? null} variant="list" />
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
+                {schedules.map((s) => {
+                  const siteColor = getSiteColor(s.site?.color);
+
+                  return (
+                    <li key={s.id} className="py-4">
+                      <Link
+                        href={`/schedules/${s.id}`}
+                        className="block min-w-0 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+                      >
+                        <p className="mb-1 font-bold leading-snug text-[18px] text-slate-900 hover:text-sky-600">
+                          {formatScheduleTitle(s.title)}
+                        </p>
+
+                        {s.site?.name && (
+                          <p
+                            className={[
+                              "mb-1 flex items-center gap-1.5 font-semibold text-[16px] leading-6",
+                              siteColor.text,
+                            ].join(" ")}
+                          >
+                            <MapPin className={["h-4 w-4 shrink-0", siteColor.text].join(" ")} />
+                            {s.site.name}
+                          </p>
+                        )}
+
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4 text-slate-400" />
+                            {formatDateRangeShort(s.date, s.endDate)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Clock className="h-4 w-4 text-slate-400" />
+                            <ScheduleTime
+                              startTime={s.startTime ?? null}
+                              endTime={s.endTime ?? null}
+                              variant="list"
+                            />
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
             </ul>
 
             {total > PAGE_LIMIT && (

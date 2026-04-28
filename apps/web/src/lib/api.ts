@@ -8,6 +8,7 @@ import { safeJson } from "@/lib/safeFetch";
 export type Site = {
   id: string;
   name: string;
+  color: string | null;
   address: string | null;
   startDate: string | null; // ISO string (e.g. "2026-02-23T00:00:00.000Z")
   endDate: string | null;
