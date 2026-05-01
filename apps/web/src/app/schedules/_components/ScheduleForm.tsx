@@ -12,6 +12,7 @@ import { CardSection } from "@/components/CardSection";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
 import { clearCalendarScheduleCache } from "@/lib/calendarCache";
+import { ContractorTagInput } from "./ContractorTagInput";
 
 import {
   makeScheduleSchemaWithSiteRange,
@@ -123,6 +124,7 @@ export default function ScheduleForm({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm<ScheduleFormValues>({
     resolver: zodResolver(schema),
@@ -130,11 +132,15 @@ export default function ScheduleForm({
     mode: "onSubmit",
   });
 
+  const siteId = useWatch({ control, name: "siteId" }) ?? "";
+  const contractorIds = useWatch({ control, name: "contractorIds" }) ?? [];
+  const [contractorNewNames, setContractorNewNames] = useState<string[]>([]);
+
   useEffect(() => {
     reset(defaultValues);
+    setContractorNewNames([]);
   }, [defaultValues, reset]);
 
-  const siteId = useWatch({ control, name: "siteId" }) ?? "";
 
   useEffect(() => {
     const site = sites.find((s) => s.id === siteId);
@@ -151,7 +157,10 @@ export default function ScheduleForm({
       setIsSubmitting(true);
 
       if (mode === "create") {
-        const payload = toScheduleCreatePayload(values);
+        const payload = {
+          ...toScheduleCreatePayload(values),
+          contractorNamesToCreate: contractorNewNames,
+        };
         const res = await fetch(`${API_BASE}/schedules`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -172,7 +181,10 @@ export default function ScheduleForm({
       }
 
       if (!schedule?.id) throw new Error("予定IDが見つかりません");
-      const payload = toScheduleUpdatePayload(values);
+      const payload = {
+        ...toScheduleUpdatePayload(values),
+        contractorNamesToCreate: contractorNewNames,
+      };
       const res = await fetch(`${API_BASE}/schedules/${schedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -392,29 +404,20 @@ export default function ScheduleForm({
                   </span>
                 )}
               </label>
-              <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-white p-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {contractors.map((c) => (
-                    <label
-                      key={c.id}
-                      className="flex cursor-pointer items-center gap-3 text-[15px] text-slate-700"
-                    >
-                      <input
-                        type="checkbox"
-                        value={c.id}
-                        {...register("contractorIds")}
-                        disabled={isLocked}
-                        className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                      />
-                      <span>{c.name}</span>
-                    </label>
-                  ))}
-                  {contractors.length === 0 && (
-                    <p className="text-xs text-slate-500 sm:col-span-2">
-                      協力会社がまだ登録されていません
-                    </p>
-                  )}
-                </div>
+              <div className="mt-2">
+                <ContractorTagInput
+                  contractors={contractors}
+                  selectedIds={contractorIds}
+                  selectedNewNames={contractorNewNames}
+                  disabled={isLocked}
+                  onChange={(ids, newNames) => {
+                    setValue("contractorIds", ids, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    setContractorNewNames(newNames);
+                  }}
+                />
               </div>
               {errors.contractorIds?.message && (
                 <p className="mt-1 text-xs text-rose-600">

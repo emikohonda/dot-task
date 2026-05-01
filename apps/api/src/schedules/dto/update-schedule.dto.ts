@@ -32,6 +32,11 @@ export class UpdateScheduleDto {
 
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
+  contractorNamesToCreate?: string[];
+
+  @IsOptional()
+  @IsArray()
   @IsUUID('4', { each: true })
   employeeIds?: string[];
 

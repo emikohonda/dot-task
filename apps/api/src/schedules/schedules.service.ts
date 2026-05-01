@@ -106,6 +106,64 @@ export class SchedulesService {
     } as const;
   }
 
+  private async resolveContractorIds(params: {
+    contractorIds: string[];
+    contractorNamesToCreate: string[];
+  }): Promise<string[]> {
+    const baseIds = uniq(params.contractorIds).filter(Boolean);
+
+    if (baseIds.length) {
+      const found = await this.prisma.contractor.findMany({
+        where: { id: { in: baseIds } },
+        select: { id: true },
+      });
+
+      if (found.length !== baseIds.length) {
+        throw new NotFoundException('Contractor not found');
+      }
+    }
+
+    const cleanedNames = params.contractorNamesToCreate
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    const uniqueNames = uniq(cleanedNames);
+
+    if (!uniqueNames.length) {
+      return baseIds;
+    }
+
+    const resolvedIds = [...baseIds];
+
+    for (const name of uniqueNames) {
+      const existing = await this.prisma.contractor.findFirst({
+        where: {
+          name: {
+            equals: name,
+            mode: 'insensitive',
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        if (!resolvedIds.includes(existing.id)) {
+          resolvedIds.push(existing.id);
+        }
+        continue;
+      }
+
+      const created = await this.prisma.contractor.create({
+        data: { name },
+        select: { id: true },
+      });
+
+      resolvedIds.push(created.id);
+    }
+
+    return uniq(resolvedIds);
+  }
+
   async findAll(params: {
     limit?: number;
     offset?: number;
@@ -240,6 +298,7 @@ export class SchedulesService {
     endDate?: string | null;
     siteId: string;
     contractorIds?: string[];
+    contractorNamesToCreate?: string[];
     employeeIds?: string[];
     description?: string | null;
     startTime?: string | null;
@@ -261,16 +320,7 @@ export class SchedulesService {
     const site = await this.prisma.site.findUnique({ where: { id: input.siteId } });
     if (!site) throw new NotFoundException('Site not found');
 
-    const contractorIds = uniq(input.contractorIds ?? []).filter(Boolean);
     const employeeIds = uniq(input.employeeIds ?? []).filter(Boolean);
-
-    if (contractorIds.length) {
-      const found = await this.prisma.contractor.findMany({
-        where: { id: { in: contractorIds } },
-        select: { id: true },
-      });
-      if (found.length !== contractorIds.length) throw new NotFoundException('Contractor not found');
-    }
 
     if (employeeIds.length) {
       const found = await this.prisma.employee.findMany({
@@ -288,6 +338,11 @@ export class SchedulesService {
     if (input.startTime && input.endTime && input.startTime > input.endTime) {
       throw new BadRequestException('endTime must be after startTime');
     }
+
+    const contractorIds = await this.resolveContractorIds({
+      contractorIds: input.contractorIds ?? [],
+      contractorNamesToCreate: input.contractorNamesToCreate ?? [],
+    });
 
     return this.prisma.schedule.create({
       data: {
@@ -327,6 +382,7 @@ export class SchedulesService {
       endDate?: string | null; // undefined=変更なし, null=削除, string=更新
       siteId?: string;
       contractorIds?: string[];
+      contractorNamesToCreate?: string[];
       employeeIds?: string[];
       description?: string | null;
       startTime?: string | null;
@@ -377,16 +433,20 @@ export class SchedulesService {
       throw new BadRequestException('endTime must be after startTime');
     }
 
-    const contractorIds = input.contractorIds !== undefined ? uniq(input.contractorIds).filter(Boolean) : undefined;
-    const employeeIds = input.employeeIds !== undefined ? uniq(input.employeeIds).filter(Boolean) : undefined;
+    const shouldUpdateContractors =
+      input.contractorIds !== undefined ||
+      input.contractorNamesToCreate !== undefined;
 
-    if (contractorIds?.length) {
-      const found = await this.prisma.contractor.findMany({
-        where: { id: { in: contractorIds } },
-        select: { id: true },
-      });
-      if (found.length !== contractorIds.length) throw new NotFoundException('Contractor not found');
-    }
+    const contractorIds = shouldUpdateContractors
+      ? await this.resolveContractorIds({
+          contractorIds: input.contractorIds ?? [],
+          contractorNamesToCreate: input.contractorNamesToCreate ?? [],
+        })
+      : undefined;
+
+    const employeeIds = input.employeeIds !== undefined
+      ? uniq(input.employeeIds).filter(Boolean)
+      : undefined;
 
     if (employeeIds?.length) {
       const found = await this.prisma.employee.findMany({
