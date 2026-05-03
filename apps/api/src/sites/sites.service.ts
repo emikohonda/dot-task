@@ -13,12 +13,55 @@ type SiteStatusType = "upcoming" | "active" | "completed";
 export class SitesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // --------------------------------
+  // 取引先（Company）解決ヘルパー
+  // companyId があればそれを優先
+  // なければ companyNameToCreate で既存検索 or 新規作成
+  // --------------------------------
+  private async resolveCompanyId(
+    companyId?: string | null,
+    companyNameToCreate?: string | null,
+  ): Promise<string | null> {
+    // 1. 既存IDがあれば優先してそのまま返す
+    if (companyId) return companyId;
+
+    // 2. 新規会社名を trim して空なら null
+    const name = companyNameToCreate?.trim();
+    if (!name) return null;
+
+    // 3. 完全一致する既存 company があればそのIDを返す
+    const existing = await this.prisma.company.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: "insensitive",
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+
+    // 4. なければ name だけで新規作成
+    const created = await this.prisma.company.create({
+      data: { name },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
   async create(dto: CreateSiteDto) {
-    const { contactIds, startDate, endDate, color, ...rest } = dto;
+    const { contactIds, startDate, endDate, color, companyNameToCreate, ...rest } = dto;
+
+    // companyId または companyNameToCreate から companyId を解決
+    const resolvedCompanyId = await this.resolveCompanyId(
+      rest.companyId ?? null,
+      companyNameToCreate ?? null,
+    );
 
     return this.prisma.site.create({
       data: {
         ...rest,
+        companyId: resolvedCompanyId,
         color: color ?? "sky",
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
@@ -203,14 +246,28 @@ export class SitesService {
   }
 
   async update(id: string, dto: UpdateSiteDto) {
-    const { contactIds, startDate, endDate, color, ...siteFields } = dto;
+    const { contactIds, startDate, endDate, color, companyNameToCreate, ...siteFields } = dto;
 
     await this.ensureExists(id);
+
+    // companyId か companyNameToCreate が送られてきた時だけ解決する
+    // （編集時に会社欄を触っていない場合は companyId が undefined → 変更しない）
+    const shouldResolveCompany =
+      siteFields.companyId !== undefined || companyNameToCreate !== undefined;
+
+    const resolvedCompanyId = shouldResolveCompany
+      ? await this.resolveCompanyId(
+          siteFields.companyId ?? null,
+          companyNameToCreate ?? null,
+        )
+      : undefined;
 
     return this.prisma.site.update({
       where: { id },
       data: {
         ...siteFields,
+        // 会社解決結果を上書き（触っていない場合は undefined = 変更なし）
+        ...(shouldResolveCompany ? { companyId: resolvedCompanyId } : {}),
         ...(color !== undefined ? { color } : {}),
         ...(startDate !== undefined && {
           startDate: startDate ? new Date(startDate) : null,

@@ -36,6 +36,11 @@ export class CreateSiteDto {
   @IsString()
   companyId?: string;
 
+  // 未登録会社名（保存時に自動作成）
+  @IsOptional()
+  @IsString()
+  companyNameToCreate?: string;
+
   @IsOptional()
   @IsIn(SITE_COLOR_KEYS)
   color?: string;

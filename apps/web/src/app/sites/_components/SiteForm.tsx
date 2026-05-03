@@ -23,6 +23,7 @@ import {
   fromSiteToFormValues,
   toSitePayload,
 } from "@/lib/validations/siteSchemas";
+import CompanyQuickCreateInput from "./CompanyQuickCreateInput";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
@@ -116,7 +117,9 @@ export default function SiteForm({ mode, site, companies }: Props) {
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  const watchedCompanyId = useWatch({ control, name: "companyId" });
+  const watchedCompanyId = useWatch({ control, name: "companyId" }) ?? "";
+  const watchedCompanyNameToCreate =
+    useWatch({ control, name: "companyNameToCreate" }) ?? "";
   const contactIds = useWatch({ control, name: "contactIds" }) ?? [];
   const selectedColor = useWatch({ control, name: "color" }) ?? "sky";
   const selectedColorStyle = getSiteColor(selectedColor);
@@ -148,6 +151,13 @@ export default function SiteForm({ mode, site, companies }: Props) {
 
     prevCompanyIdRef.current = watchedCompanyId;
   }, [watchedCompanyId, companies, setValue, getValues, defaultValues.companyId]);
+
+  // 新規会社を選択した場合、contactIds をリセット
+  React.useEffect(() => {
+    if (watchedCompanyNameToCreate) {
+      setValue("contactIds", [], { shouldDirty: true });
+    }
+  }, [watchedCompanyNameToCreate, setValue]);
 
   const selectedCompany = React.useMemo(
     () => companies.find((c) => c.id === watchedCompanyId),
@@ -276,10 +286,6 @@ export default function SiteForm({ mode, site, companies }: Props) {
                 />
               </div>
 
-              {/* <p className="mt-1 text-xs text-slate-500">
-                期間は任意です。開始日・終了日が未定の場合は空欄のままでOK。
-              </p> */}
-
               {errors.startDate?.message && (
                 <p className="mt-1 text-xs text-rose-600">
                   {errors.startDate.message}
@@ -352,27 +358,32 @@ export default function SiteForm({ mode, site, companies }: Props) {
                   必須
                 </span>
               </label>
-              <select
-                {...register("companyId")}
+
+              {/* クイック登録UI（既存の select を置き換え） */}
+              <CompanyQuickCreateInput
+                companies={companies}
+                companyId={watchedCompanyId}
+                companyNameToCreate={watchedCompanyNameToCreate}
                 disabled={isLocked}
-                className={[
-                  baseInputClass,
-                  errors.companyId ? "border-rose-300" : "border-slate-200",
-                ].join(" ")}
-              >
-                <option value="">-- 元請会社を選択 --</option>
-                {companies.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.name}
-                  </option>
-                ))}
-              </select>
-              {errors.companyId?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.companyId.message}</p>
-              )}
+                error={
+                  errors.companyId?.message ??
+                  errors.companyNameToCreate?.message
+                }
+                onChange={({ companyId, companyNameToCreate }) => {
+                  setValue("companyId", companyId, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  setValue("companyNameToCreate", companyNameToCreate, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
             </div>
 
-            {watchedCompanyId && (
+            {/* 担当者チェックボックス：既存会社を選んだ時だけ表示 */}
+            {watchedCompanyId && !watchedCompanyNameToCreate && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700">
                   担当者（複数選択可）
