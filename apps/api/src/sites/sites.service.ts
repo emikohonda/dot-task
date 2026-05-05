@@ -296,6 +296,28 @@ export class SitesService {
 
   async remove(id: string) {
     await this.ensureExists(id);
+
+    const scheduleCount = await this.prisma.schedule.count({ where: { siteId: id } });
+    if (scheduleCount > 0) {
+      throw new BadRequestException(
+        "この現場には予定が登録されているため削除できません。先に予定を削除してください。",
+      );
+    }
+
+    const workRecordCount = await this.prisma.workRecord.count({ where: { siteId: id } });
+    if (workRecordCount > 0) {
+      throw new BadRequestException(
+        "この現場には作業記録が登録されているため削除できません。",
+      );
+    }
+
+    const invoiceCount = await this.prisma.invoice.count({ where: { siteId: id } });
+    if (invoiceCount > 0) {
+      throw new BadRequestException(
+        "この現場には請求書が登録されているため削除できません。",
+      );
+    }
+
     return this.prisma.site.delete({ where: { id } });
   }
 

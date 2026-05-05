@@ -20,8 +20,13 @@ export class CreateScheduleDto {
   @IsISO8601({ strict: false })
   endDate?: string | null;
 
+  @IsOptional()
   @IsUUID()
-  siteId!: string;
+  siteId?: string;
+
+  @IsOptional()
+  @IsString()
+  siteNameToCreate?: string;
 
   @IsOptional()
   @IsArray()

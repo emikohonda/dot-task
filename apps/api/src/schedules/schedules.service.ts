@@ -164,6 +164,34 @@ export class SchedulesService {
     return uniq(resolvedIds);
   }
 
+  private async resolveSiteId(params: {
+    siteId?: string | null;
+    siteNameToCreate?: string | null;
+  }): Promise<string> {
+    if (params.siteId) {
+      const site = await this.prisma.site.findUnique({
+        where: { id: params.siteId },
+        select: { id: true },
+      });
+      if (!site) throw new NotFoundException('Site not found');
+      return site.id;
+    }
+    const name = params.siteNameToCreate?.trim();
+    if (!name) {
+      throw new BadRequestException('siteId or siteNameToCreate is required');
+    }
+    const existing = await this.prisma.site.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+    const created = await this.prisma.site.create({
+      data: { name },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
   async findAll(params: {
     limit?: number;
     offset?: number;
@@ -296,7 +324,8 @@ export class SchedulesService {
     title?: string;
     date: string;
     endDate?: string | null;
-    siteId: string;
+    siteId?: string | null;
+    siteNameToCreate?: string | null;
     contractorIds?: string[];
     contractorNamesToCreate?: string[];
     employeeIds?: string[];
@@ -317,8 +346,10 @@ export class SchedulesService {
       }
     }
 
-    const site = await this.prisma.site.findUnique({ where: { id: input.siteId } });
-    if (!site) throw new NotFoundException('Site not found');
+    const resolvedSiteId = await this.resolveSiteId({
+      siteId: input.siteId ?? null,
+      siteNameToCreate: input.siteNameToCreate ?? null,
+    });
 
     const employeeIds = uniq(input.employeeIds ?? []).filter(Boolean);
 
@@ -349,7 +380,7 @@ export class SchedulesService {
         title,
         date: dateObj,
         endDate: endDateObj,
-        siteId: input.siteId,
+        siteId: resolvedSiteId,
         description: input.description ?? null,
         startTime: input.startTime ?? null,
         endTime: input.endTime ?? null,
@@ -381,6 +412,7 @@ export class SchedulesService {
       date?: string;
       endDate?: string | null; // undefined=変更なし, null=削除, string=更新
       siteId?: string;
+      siteNameToCreate?: string | null;
       contractorIds?: string[];
       contractorNamesToCreate?: string[];
       employeeIds?: string[];
@@ -395,10 +427,14 @@ export class SchedulesService {
     });
     if (!exists) throw new NotFoundException('Schedule not found');
 
-    if (input.siteId !== undefined) {
-      const site = await this.prisma.site.findUnique({ where: { id: input.siteId } });
-      if (!site) throw new NotFoundException('Site not found');
-    }
+    const shouldUpdateSite =
+      input.siteId !== undefined || input.siteNameToCreate !== undefined;
+    const resolvedSiteId = shouldUpdateSite
+      ? await this.resolveSiteId({
+        siteId: input.siteId ?? null,
+        siteNameToCreate: input.siteNameToCreate ?? null,
+      })
+      : undefined;
 
     // ✅ チャッピー案2: ymdToUtcDate を使う
     const dateObj = input.date !== undefined ? ymdToUtcDate(input.date, 'date') : undefined;
@@ -462,7 +498,7 @@ export class SchedulesService {
         ...(title !== undefined ? { title } : {}),
         ...(dateObj !== undefined ? { date: dateObj } : {}),
         ...(endDateObj !== undefined ? { endDate: endDateObj } : {}),
-        ...(input.siteId !== undefined ? { siteId: input.siteId } : {}),
+        ...(resolvedSiteId !== undefined ? { siteId: resolvedSiteId } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
         ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
         ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),

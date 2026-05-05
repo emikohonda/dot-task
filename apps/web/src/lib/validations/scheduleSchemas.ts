@@ -38,7 +38,8 @@ export const hmSchema = hmBaseSchema.or(z.literal(""));
 /** フォーム値 */
 export const scheduleFormSchema = z
   .object({
-    siteId: z.string().min(1, "現場は必須です"),
+    siteId: z.string().optional().or(z.literal("")),
+    siteNameToCreate: z.string().optional(),
     date: ymdSchema,
     endDate: optionalYmdSchema,
     title: z
@@ -57,6 +58,17 @@ export const scheduleFormSchema = z
     endTime: hmSchema.optional(),
   })
   .superRefine((val, ctx) => {
+    // ✅ 現場：siteId または siteNameToCreate のどちらか必須
+    const hasSiteId = Boolean(val.siteId?.trim());
+    const hasSiteNameToCreate = Boolean(val.siteNameToCreate?.trim());
+    if (!hasSiteId && !hasSiteNameToCreate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["siteId"],
+        message: "現場は必須です",
+      });
+    }
+
     // 終了日 >= 開始日
     if (val.endDate && val.endDate.trim() && val.date) {
       if (val.endDate < val.date) {
@@ -136,6 +148,7 @@ export function fromScheduleToFormValues(s: ScheduleApi | null): ScheduleFormVal
 
   return {
     siteId: s?.siteId ?? "",
+    siteNameToCreate: "", // 編集時は常に空（既存 siteId で表示する）
     date: s?.date ? normalizeToYmd(s.date) : todayYmd(),
     endDate: s?.endDate ? normalizeToYmd(s.endDate) : "",
     title: s?.title ?? "",
@@ -149,8 +162,11 @@ export function fromScheduleToFormValues(s: ScheduleApi | null): ScheduleFormVal
 
 /** フォーム → API payload */
 export function toScheduleCreatePayload(v: ScheduleFormValues) {
+  const siteId = v.siteId?.trim();
+  const siteNameToCreate = v.siteNameToCreate?.trim();
   return {
-    siteId: v.siteId,
+    ...(siteId ? { siteId } : {}),
+    ...(siteNameToCreate ? { siteNameToCreate } : {}),
     date: v.date,
     endDate: v.endDate?.trim() ? v.endDate : null,
     title: v.title?.trim() ?? "",

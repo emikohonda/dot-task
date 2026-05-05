@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CardSection } from "@/components/CardSection";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
+import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 import {
   SITE_COLOR_KEYS,
   siteColorLabels,
@@ -75,7 +76,12 @@ export default function SiteForm({ mode, site, companies }: Props) {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message ?? "削除に失敗しました");
+      }
+
+      clearCalendarScheduleCache();
 
       setDeleteSucceeded(true);
       setToast({ show: true, message: "現場を削除しました" });
@@ -84,10 +90,13 @@ export default function SiteForm({ mode, site, companies }: Props) {
         router.push("/sites");
         router.refresh();
       }, 1200);
-    } catch {
+    } catch (e) {
       setToast({
         show: true,
-        message: "削除に失敗しました。もう一度お試しください。",
+        message:
+          e instanceof Error
+            ? e.message
+            : "削除に失敗しました。もう一度お試しください。",
       });
     } finally {
       setDeleteLoading(false);
@@ -187,6 +196,9 @@ export default function SiteForm({ mode, site, companies }: Props) {
         if (!res.ok) {
           throw new Error(await res.text().catch(() => "作成に失敗しました"));
         }
+
+        clearCalendarScheduleCache();
+
         router.push("/sites?toast=created");
         router.refresh();
         return;
@@ -202,6 +214,8 @@ export default function SiteForm({ mode, site, companies }: Props) {
       if (!res.ok) {
         throw new Error(await res.text().catch(() => "更新に失敗しました"));
       }
+
+      clearCalendarScheduleCache();
 
       router.push(`/sites/${site.id}?toast=updated`);
       router.refresh();

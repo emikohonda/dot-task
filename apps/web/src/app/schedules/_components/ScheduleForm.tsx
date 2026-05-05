@@ -13,6 +13,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
 import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 import { ContractorTagInput } from "./ContractorTagInput";
+import SiteQuickCreateInput from "./SiteQuickCreateInput";
 
 import {
   makeScheduleSchemaWithSiteRange,
@@ -104,6 +105,7 @@ export default function ScheduleForm({
       ...v,
       date: mode === "create" && initialDate ? initialDate : v.date,
       siteId: mode === "create" && initialSiteId ? initialSiteId : v.siteId,
+      siteNameToCreate: "",
       contractorIds: v.contractorIds ?? [],
       employeeIds: v.employeeIds ?? [],
     };
@@ -133,6 +135,7 @@ export default function ScheduleForm({
   });
 
   const siteId = useWatch({ control, name: "siteId" }) ?? "";
+  const siteNameToCreate = useWatch({ control, name: "siteNameToCreate" }) ?? "";
   const contractorIds = useWatch({ control, name: "contractorIds" }) ?? [];
   const [contractorNewNames, setContractorNewNames] = useState<string[]>([]);
 
@@ -161,6 +164,7 @@ export default function ScheduleForm({
           ...toScheduleCreatePayload(values),
           contractorNamesToCreate: contractorNewNames,
         };
+
         const res = await fetch(`${API_BASE}/schedules`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -228,24 +232,24 @@ export default function ScheduleForm({
                   必須
                 </span>
               </label>
-              <select
-                {...register("siteId")}
+
+              <SiteQuickCreateInput
+                sites={sites}
+                siteId={siteId}
+                siteNameToCreate={siteNameToCreate}
                 disabled={isLocked}
-                className={[
-                  baseInputClass,
-                  errors.siteId ? "border-rose-300" : "border-slate-200",
-                ].join(" ")}
-              >
-                <option value="">選択してください</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              {errors.siteId?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.siteId.message}</p>
-              )}
+                error={errors.siteId?.message}
+                onChange={({ siteId, siteNameToCreate }) => {
+                  setValue("siteId", siteId, {
+                    shouldDirty: true,
+                    shouldValidate: false,
+                  });
+                  setValue("siteNameToCreate", siteNameToCreate, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
               {(selectedSiteRange.startDate || selectedSiteRange.endDate) && (
                 <p className="mt-2 text-xs text-slate-500">
                   工期: {selectedSiteRange.startDate ?? "未設定"} 〜{" "}

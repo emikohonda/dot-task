@@ -26,6 +26,10 @@ export class UpdateScheduleDto {
   siteId?: string;
 
   @IsOptional()
+  @IsString()
+  siteNameToCreate?: string;
+
+  @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
   contractorIds?: string[];
