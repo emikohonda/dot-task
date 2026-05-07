@@ -23,8 +23,12 @@ export default function SiteQuickCreateInput({
 }: Props) {
   return (
     <QuickCreateSelect
-      // Site 型から id/name だけ渡す
-      options={sites.map(({ id, name }) => ({ id, name }))}
+      options={sites.map(({ id, name, startDate, endDate }) => ({
+        id,
+        name,
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+      }))}
       selectedId={siteId}
       nameToCreate={siteNameToCreate}
       disabled={disabled}
@@ -32,6 +36,7 @@ export default function SiteQuickCreateInput({
       placeholder="現場名を入力・検索"
       addLabel="現場として追加"
       emptyLabel="登録済みの現場がありません"
+      showCompletedBadge
       onChange={({ selectedId, nameToCreate }) =>
         onChange({ siteId: selectedId, siteNameToCreate: nameToCreate })
       }

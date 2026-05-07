@@ -20,6 +20,7 @@ import {
   fromScheduleToFormValues,
   toScheduleCreatePayload,
   toScheduleUpdatePayload,
+  todayYmd,
   type ScheduleApi,
   type ScheduleFormValues,
   type SiteRange,
@@ -136,6 +137,11 @@ export default function ScheduleForm({
 
   const siteId = useWatch({ control, name: "siteId" }) ?? "";
   const siteNameToCreate = useWatch({ control, name: "siteNameToCreate" }) ?? "";
+  const selectedSite = sites.find((s) => s.id === siteId);
+  const selectedSiteEndDate = toYmd(selectedSite?.endDate);
+  const today = todayYmd();
+  const selectedSiteIsCompleted =
+    selectedSiteEndDate !== null && selectedSiteEndDate < today;
   const contractorIds = useWatch({ control, name: "contractorIds" }) ?? [];
   const [contractorNewNames, setContractorNewNames] = useState<string[]>([]);
 
@@ -155,6 +161,13 @@ export default function ScheduleForm({
 
   const onSubmit = handleSubmit(async (values) => {
     if (isSubmitting) return;
+
+    if (selectedSiteIsCompleted) {
+      const ok = window.confirm(
+        "この現場は工期が終了しています。\n工期終了後の予定として登録しますか？\n手直し・追加工事・確認作業などの場合は、このまま保存できます。"
+      );
+      if (!ok) return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -255,6 +268,13 @@ export default function ScheduleForm({
                   工期: {selectedSiteRange.startDate ?? "未設定"} 〜{" "}
                   {selectedSiteRange.endDate ?? "未設定"}
                 </p>
+              )}
+              {selectedSiteIsCompleted && (
+                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+                  この現場は工期が終了しています。
+                  <br />
+                  手直し・追加工事・確認作業などの場合は、このまま予定を登録できます。
+                </div>
               )}
             </div>
 

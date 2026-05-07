@@ -127,7 +127,7 @@ export type SiteRange = {
   endDate: string | null;
 };
 
-function todayYmd() {
+export function todayYmd() {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -208,17 +208,8 @@ export function validateScheduleWithinSiteRange(
   return { ok: true };
 }
 
-export function makeScheduleSchemaWithSiteRange(site: SiteRange) {
-  return scheduleFormSchema.superRefine((val, ctx) => {
-    const r = validateScheduleWithinSiteRange(val.date, val.endDate || null, site);
-    if (!r.ok) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [r.path], // ✅ endDate エラーは endDate フィールドに出る
-        message: r.message,
-      });
-    }
-  });
+export function makeScheduleSchemaWithSiteRange(_site: SiteRange) {
+  return scheduleFormSchema;
 }
 
 /** 表示用：日付範囲フォーマット */

@@ -6,6 +6,8 @@ import * as React from "react";
 type QuickCreateOption = {
   id: string;
   name: string;
+  startDate?: string | null;
+  endDate?: string | null;
 };
 
 type Props = {
@@ -15,10 +17,29 @@ type Props = {
   disabled?: boolean;
   error?: string;
   placeholder: string;
-  addLabel: string;    // 例: "元請会社として追加" / "現場として追加"
-  emptyLabel: string;  // 例: "登録済みの元請会社がありません" / "登録済みの現場がありません"
+  addLabel: string;
+  emptyLabel: string;
+  showCompletedBadge?: boolean;
   onChange: (value: { selectedId: string; nameToCreate: string }) => void;
 };
+
+function toYmd(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : null;
+}
+
+function todayYmd() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isCompletedOption(option: QuickCreateOption) {
+  const endDate = toYmd(option.endDate);
+  if (!endDate) return false;
+  return endDate < todayYmd();
+}
 
 export default function QuickCreateSelect({
   options,
@@ -29,6 +50,7 @@ export default function QuickCreateSelect({
   placeholder,
   addLabel,
   emptyLabel,
+  showCompletedBadge = false,
   onChange,
 }: Props) {
   const [inputValue, setInputValue] = React.useState("");
@@ -36,28 +58,25 @@ export default function QuickCreateSelect({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // 選択済みの表示名
   const selectedOption = options.find((o) => o.id === selectedId);
   const selectedLabel = selectedOption?.name ?? nameToCreate ?? "";
+  const selectedIsCompleted =
+    showCompletedBadge && selectedOption ? isCompletedOption(selectedOption) : false;
 
-  // 何か選択済みか
   const hasSelection = Boolean(selectedId || nameToCreate);
 
-  // キーワードで候補を絞り込む
   const keyword = inputValue.trim();
   const filtered = keyword
     ? options.filter((o) =>
         o.name.toLowerCase().includes(keyword.toLowerCase())
       )
-    : options.slice(0, 3); // 未入力時は先頭3件を「よく使う」として表示
+    : options.slice(0, 3);
 
-  // 完全一致チェック（新規追加ボタンを出すかどうか）
   const exactMatch = options.some(
     (o) => o.name.toLowerCase() === keyword.toLowerCase()
   );
   const showAddButton = keyword.length > 0 && !exactMatch;
 
-  // 外側クリックで閉じる
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -72,21 +91,18 @@ export default function QuickCreateSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 既存候補を選択
   const handleSelect = (option: QuickCreateOption) => {
     onChange({ selectedId: option.id, nameToCreate: "" });
     setInputValue("");
     setIsOpen(false);
   };
 
-  // 新規名として追加
   const handleAddNew = () => {
     onChange({ selectedId: "", nameToCreate: keyword });
     setInputValue("");
     setIsOpen(false);
   };
 
-  // 選択を解除
   const handleClear = () => {
     onChange({ selectedId: "", nameToCreate: "" });
     setInputValue("");
@@ -98,7 +114,6 @@ export default function QuickCreateSelect({
 
   return (
     <div ref={containerRef} className="relative">
-      {/* 選択済みタグ表示 */}
       {hasSelection ? (
         <div className="mt-1 flex items-center gap-2">
           <button
@@ -109,7 +124,9 @@ export default function QuickCreateSelect({
               "inline-flex max-w-full items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60",
               nameToCreate
                 ? "bg-amber-100 text-amber-900 ring-1 ring-amber-300"
-                : "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
+                : selectedIsCompleted
+                  ? "bg-slate-100 text-slate-800 ring-1 ring-slate-300"
+                  : "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
             ].join(" ")}
             title={`${selectedLabel} を外す`}
           >
@@ -121,11 +138,21 @@ export default function QuickCreateSelect({
               </span>
             )}
 
+            {selectedIsCompleted && (
+              <span className="shrink-0 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">
+                完了済
+              </span>
+            )}
+
             <span
               aria-hidden="true"
               className={[
                 "shrink-0 font-bold",
-                nameToCreate ? "text-amber-800" : "text-sky-800",
+                nameToCreate
+                  ? "text-amber-800"
+                  : selectedIsCompleted
+                    ? "text-slate-700"
+                    : "text-sky-800",
               ].join(" ")}
             >
               ×
@@ -133,7 +160,6 @@ export default function QuickCreateSelect({
           </button>
         </div>
       ) : (
-        /* 入力欄 */
         <input
           ref={inputRef}
           type="text"
@@ -152,45 +178,52 @@ export default function QuickCreateSelect({
         />
       )}
 
-      {/* エラーメッセージ */}
       {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
 
-      {/* ドロップダウン候補 */}
       {isOpen && !hasSelection && !disabled && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          {/* よく使う / 候補ラベル */}
           {!keyword && options.length > 0 && (
             <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
               よく使う
             </div>
           )}
 
-          {/* 候補リスト */}
           {filtered.length > 0 && (
             <ul className="max-h-52 overflow-y-auto">
-              {filtered.map((option) => (
-                <li key={option.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()} // blur前に選択させる
-                    onClick={() => handleSelect(option)}
-                    className="flex w-full items-center px-3 py-2.5 text-left text-sm text-slate-800 transition-colors hover:bg-sky-50"
-                  >
-                    <span className="font-medium">{option.name}</span>
-                  </button>
-                </li>
-              ))}
+              {filtered.map((option) => {
+                const isCompleted =
+                  showCompletedBadge && isCompletedOption(option);
+
+                return (
+                  <li key={option.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSelect(option)}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm text-slate-800 transition-colors hover:bg-sky-50"
+                    >
+                      <span className="min-w-0 truncate font-medium">
+                        {option.name}
+                      </span>
+
+                      {isCompleted && (
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                          完了済
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
-          {/* 一致なし */}
           {keyword && filtered.length === 0 && !showAddButton && (
             <div className="px-3 py-2.5 text-sm text-slate-400">
               候補が見つかりませんでした
             </div>
           )}
 
-          {/* 新規追加ボタン */}
           {showAddButton && (
             <button
               type="button"
@@ -205,7 +238,6 @@ export default function QuickCreateSelect({
             </button>
           )}
 
-          {/* 登録済み候補が0件 */}
           {!keyword && options.length === 0 && (
             <div className="px-3 py-3 text-sm text-slate-400">
               {emptyLabel}
