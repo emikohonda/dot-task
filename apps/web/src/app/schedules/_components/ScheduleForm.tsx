@@ -164,7 +164,7 @@ export default function ScheduleForm({
 
     if (selectedSiteIsCompleted) {
       const ok = window.confirm(
-        "この現場は工期が終了しています。\n工期終了後の予定として登録しますか？\n手直し・追加工事・確認作業などの場合は、このまま保存できます。"
+        "この現場は工期が終了しています。\n工期終了後の予定として登録しますか？\n\n手直し・追加工事・確認作業などの場合は、このまま保存できます。"
       );
       if (!ok) return;
     }
