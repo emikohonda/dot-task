@@ -2,29 +2,33 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const INIT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 async function main() {
-  // ✅ 掃除（中間 → 本体の順で）
+  // 掃除
   await prisma.scheduleContractor.deleteMany();
   await prisma.scheduleEmployee.deleteMany();
   await prisma.schedule.deleteMany();
-
   await prisma.siteCompanyContact.deleteMany();
-
   await prisma.siteContractor.deleteMany();
   await prisma.site.deleteMany();
-
   await prisma.contractorContact.deleteMany();
   await prisma.contractor.deleteMany();
-
   await prisma.companyContact.deleteMany();
   await prisma.company.deleteMany();
-
   await prisma.employee.deleteMany();
+
+  // 初期Organization
+  const initOrg = await prisma.organization.upsert({
+    where:  { id: INIT_ORG_ID },
+    update: {},
+    create: { id: INIT_ORG_ID, name: "自社（初期）" },
+  });
 
   // Company
   const company = await prisma.company.create({
     data: {
+      organizationId: initOrg.id,
       name: "テスト元請（Seed）",
       postalCode: "000-0000",
       address: "広島市（Seed）",
@@ -36,34 +40,23 @@ async function main() {
   // Site
   const site = await prisma.site.create({
     data: {
+      organizationId: initOrg.id,
       name: "なんちゃって建設（Seed）",
       address: "広島市〇〇（Seed）",
       companyId: company.id,
       startDate: new Date("2026-02-01"),
-      endDate: new Date("2026-04-30"),
+      endDate:   new Date("2026-04-30"),
     },
   });
 
-  // ✅ CompanyContacts（元請担当者）
+  // CompanyContacts
   const cc1 = await prisma.companyContact.create({
-    data: {
-      companyId: company.id,
-      name: "田中（元請担当・Seed）",
-      phone: "082-111-1111",
-      email: "tanaka_company@example.com",
-    },
+    data: { companyId: company.id, name: "田中（元請担当・Seed）", phone: "082-111-1111", email: "tanaka_company@example.com" },
   });
-
   const cc2 = await prisma.companyContact.create({
-    data: {
-      companyId: company.id,
-      name: "佐藤（元請担当・Seed）",
-      phone: "082-222-2222",
-      email: "sato_company@example.com",
-    },
+    data: { companyId: company.id, name: "佐藤（元請担当・Seed）", phone: "082-222-2222", email: "sato_company@example.com" },
   });
 
-  // ✅ Site と担当者を紐付け（複数）
   await prisma.siteCompanyContact.createMany({
     data: [
       { siteId: site.id, companyContactId: cc1.id },
@@ -73,58 +66,47 @@ async function main() {
   });
 
   // Contractors
-  const c1 = await prisma.contractor.create({ data: { name: "テスト外注A（Seed）" } });
-  const c2 = await prisma.contractor.create({ data: { name: "テスト外注B（Seed）" } });
+  const c1 = await prisma.contractor.create({ data: { organizationId: initOrg.id, name: "テスト外注A（Seed）" } });
+  const c2 = await prisma.contractor.create({ data: { organizationId: initOrg.id, name: "テスト外注B（Seed）" } });
 
-  // ✅ Employees（名簿）
-  const e1 = await prisma.employee.create({ data: { name: "山田（Seed）" } });
-  const e2 = await prisma.employee.create({ data: { name: "田中（Seed）" } });
-  const e3 = await prisma.employee.create({ data: { name: "佐藤（Seed）" } });
+  // Employees
+  const e1 = await prisma.employee.create({ data: { organizationId: initOrg.id, name: "山田（Seed）" } });
+  const e2 = await prisma.employee.create({ data: { organizationId: initOrg.id, name: "田中（Seed）" } });
+  const e3 = await prisma.employee.create({ data: { organizationId: initOrg.id, name: "佐藤（Seed）" } });
 
-  // Schedule（協力会社2社 + 社員2名を紐づけ）
+  // Schedules
   await prisma.schedule.create({
     data: {
+      organizationId: initOrg.id,
       siteId: site.id,
       title: "養生（Seed）",
       date: new Date("2026-02-27"),
       startTime: "09:00",
       endTime: "12:00",
       description: "Seedデータ：注意点など",
-      contractors: {
-        createMany: {
-          data: [{ contractorId: c1.id }, { contractorId: c2.id }],
-          skipDuplicates: true,
-        },
-      },
-      employees: {
-        createMany: {
-          data: [{ employeeId: e1.id }, { employeeId: e2.id }],
-          skipDuplicates: true,
-        },
-      },
+      contractors: { createMany: { data: [{ contractorId: c1.id }, { contractorId: c2.id }], skipDuplicates: true } },
+      employees:   { createMany: { data: [{ employeeId: e1.id }, { employeeId: e2.id }],   skipDuplicates: true } },
     },
   });
 
-  // もう1件あってもUI検証が捗る（任意）
   await prisma.schedule.create({
     data: {
+      organizationId: initOrg.id,
       siteId: site.id,
       title: "搬入（Seed）",
       date: new Date("2026-02-28"),
-      contractors: {
-        createMany: {
-          data: [{ contractorId: c1.id }],
-          skipDuplicates: true,
-        },
-      },
-      employees: {
-        createMany: {
-          data: [{ employeeId: e2.id }, { employeeId: e3.id }],
-          skipDuplicates: true,
-        },
-      },
+      contractors: { createMany: { data: [{ contractorId: c1.id }],                       skipDuplicates: true } },
+      employees:   { createMany: { data: [{ employeeId: e2.id }, { employeeId: e3.id }],   skipDuplicates: true } },
     },
   });
+
+  // 念のため backfill（安全網）
+  await prisma.company.updateMany({    where: { organizationId: null }, data: { organizationId: initOrg.id } });
+  await prisma.contractor.updateMany({ where: { organizationId: null }, data: { organizationId: initOrg.id } });
+  await prisma.employee.updateMany({   where: { organizationId: null }, data: { organizationId: initOrg.id } });
+  await prisma.site.updateMany({       where: { organizationId: null }, data: { organizationId: initOrg.id } });
+  await prisma.schedule.updateMany({   where: { organizationId: null }, data: { organizationId: initOrg.id } });
+  console.log("✅ backfill 完了:", initOrg.id);
 
   console.log("✅ Seed done");
 }
@@ -132,7 +114,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error("❌ Seed failed", e);
-    process.exitCode = 1;
+    throw e;
   })
   .finally(async () => {
     await prisma.$disconnect();

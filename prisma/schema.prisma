@@ -24,9 +24,63 @@ enum PaymentMethod {
   BILL // 手形
 }
 
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 // ================================
 // モデル定義
 // ================================
+
+// ================================
+// 認証・組織管理
+// ================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships OrganizationMember[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members     OrganizationMember[]
+  companies   Company[]
+  contractors Contractor[]
+  employees   Employee[]
+  sites       Site[]
+  schedules   Schedule[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+  role           OrgRole  @default(MEMBER)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("organization_members")
+}
 
 //
 // 既存：元請会社（Company）
@@ -42,6 +96,9 @@ model Company {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   // この元請が担当している現場一覧
   sites Site[]
 
@@ -50,6 +107,7 @@ model Company {
 
   contacts CompanyContact[]
 
+  @@index([organizationId])
   @@map("companies")
 }
 
@@ -94,11 +152,15 @@ model Employee {
   email String?
   role  String?
 
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   schedules ScheduleEmployee[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
   @@map("employees")
 }
 
@@ -129,7 +191,10 @@ model Site {
   startDate DateTime?
   endDate   DateTime?
 
-  color     String    @default("sky")
+  color String @default("sky")
+
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // この現場の元請
   companyId       String?
@@ -146,6 +211,8 @@ model Site {
   updatedAt DateTime @updatedAt
 
   @@index([companyId])
+  @@index([organizationId])
+  @@index([organizationId, startDate])
   @@map("sites")
 }
 
@@ -160,6 +227,9 @@ model Contractor {
   phone      String?
   email      String?
 
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   contacts ContractorContact[]
 
   sites       SiteContractor[]
@@ -169,6 +239,7 @@ model Contractor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([organizationId])
   @@map("contractors")
 }
 
@@ -211,25 +282,30 @@ model SiteContractor {
 // 進捗（Schedule）
 // ------------------------------------------
 model Schedule {
-  id          String    @id @default(uuid())
-  siteId      String
-  title       String
-  description String?
-  date        DateTime
-  endDate     DateTime?
-  startTime   String?
-  endTime     String?
+  id             String    @id @default(uuid())
+  siteId         String
+  organizationId String?   @map("organization_id")
+  title          String
+  description    String?
+  date           DateTime
+  endDate        DateTime?
+  startTime      String?
+  endTime        String?
 
-  site        Site                 @relation(fields: [siteId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  site         Site          @relation(fields: [siteId], references: [id])
+
   contractors ScheduleContractor[]
   employees   ScheduleEmployee[]
 
   workRecords WorkRecord[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([siteId, date])
   @@index([endDate])
+  @@index([organizationId])
+  @@index([organizationId, date])
   @@map("schedules")
 }
 
