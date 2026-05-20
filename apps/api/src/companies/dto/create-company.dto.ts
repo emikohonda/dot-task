@@ -1,3 +1,4 @@
+// apps/api/src/companies/dto/create-company.dto.ts
 import { Transform, Type } from "class-transformer";
 import { IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
 

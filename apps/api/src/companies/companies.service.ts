@@ -1,30 +1,54 @@
 // apps/api/src/companies/companies.service.ts
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
+
+const normalize = (v?: string | null): string | null => {
+  const t = (v ?? "").trim();
+  return t === "" ? null : t;
+};
 
 @Injectable()
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getTemporaryOrganizationId() {
+    const organization = await this.prisma.organization.findFirst({
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+
+    if (!organization) {
+      throw new BadRequestException("Temporary organization not found");
+    }
+
+    return organization.id;
+  }
+
   async create(dto: CreateCompanyDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
+    const name = dto.name?.trim();
+    if (!name) throw new BadRequestException("name is required");
+
     const contacts = (dto.contacts ?? [])
       .map((c) => ({
-        name: c.name?.trim() || null,
-        phone: c.phone?.trim() || null,
-        email: c.email?.trim() || null,
+        name: normalize(c.name),
+        phone: normalize(c.phone),
+        email: normalize(c.email),
       }))
       .filter((c) => c.name || c.phone || c.email);
 
     return this.prisma.company.create({
       data: {
-        name: dto.name.trim(),
-        postalCode: dto.postalCode?.trim() || null,
-        address: dto.address?.trim() || null,
-        phone: dto.phone?.trim() || null,
-        email: dto.email?.trim() || null,
-        contactPerson: dto.contactPerson?.trim() || null,
+        organizationId,
+        name,
+        postalCode: normalize(dto.postalCode),
+        address: normalize(dto.address),
+        phone: normalize(dto.phone),
+        email: normalize(dto.email),
+        contactPerson: normalize(dto.contactPerson),
         contacts: contacts.length ? { create: contacts } : undefined,
       },
       include: { contacts: true },
@@ -32,25 +56,30 @@ export class CompaniesService {
   }
 
   async findAll(params: { keyword?: string; limit?: number; offset?: number } = {}) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
     const { keyword } = params;
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
 
-    const where = keyword?.trim()
-      ? {
-          OR: [
-            { name: { contains: keyword.trim(), mode: "insensitive" as const } },
-            { address: { contains: keyword.trim(), mode: "insensitive" as const } },
-            {
-              contacts: {
-                some: {
-                  name: { contains: keyword.trim(), mode: "insensitive" as const },
+    const where = {
+      organizationId,
+      ...(keyword?.trim()
+        ? {
+            OR: [
+              { name: { contains: keyword.trim(), mode: "insensitive" as const } },
+              { address: { contains: keyword.trim(), mode: "insensitive" as const } },
+              {
+                contacts: {
+                  some: {
+                    name: { contains: keyword.trim(), mode: "insensitive" as const },
+                  },
                 },
               },
-            },
-          ],
-        }
-      : undefined;
+            ],
+          }
+        : {}),
+    };
 
     const [total, items] = await Promise.all([
       this.prisma.company.count({ where }),
@@ -66,34 +95,54 @@ export class CompaniesService {
     return { items, total, limit, offset };
   }
 
-  findOne(id: string) {
-    return this.prisma.company.findFirst({
-      where: { id },
+  async findOne(id: string) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
+    const company = await this.prisma.company.findFirst({
+      where: { id, organizationId },
       include: { contacts: true },
     });
+
+    if (!company) throw new NotFoundException("Company not found");
+
+    return company;
   }
 
   async update(id: string, dto: UpdateCompanyDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
     const contacts =
       dto.contacts
         ?.map((c) => ({
           id: c.id,
-          name: c.name?.trim() || null,
-          phone: c.phone?.trim() || null,
-          email: c.email?.trim() || null,
+          name: normalize(c.name),
+          phone: normalize(c.phone),
+          email: normalize(c.email),
         }))
         .filter((c) => c.name || c.phone || c.email) ?? null;
 
     return this.prisma.$transaction(async (tx) => {
+      const exists = await tx.company.findFirst({
+        where: { id, organizationId },
+        select: { id: true },
+      });
+
+      if (!exists) throw new NotFoundException("Company not found");
+
+      const name = dto.name !== undefined ? dto.name.trim() : undefined;
+      if (name === "") throw new BadRequestException("name cannot be empty");
+
       await tx.company.update({
         where: { id },
         data: {
-          name: dto.name?.trim() ?? undefined,
-          postalCode: dto.postalCode?.trim() ?? undefined,
-          address: dto.address?.trim() ?? undefined,
-          phone: dto.phone?.trim() ?? undefined,
-          email: dto.email?.trim() ?? undefined,
-          contactPerson: dto.contactPerson?.trim() ?? undefined,
+          ...(name !== undefined ? { name } : {}),
+          ...(dto.postalCode !== undefined ? { postalCode: normalize(dto.postalCode) } : {}),
+          ...(dto.address !== undefined ? { address: normalize(dto.address) } : {}),
+          ...(dto.phone !== undefined ? { phone: normalize(dto.phone) } : {}),
+          ...(dto.email !== undefined ? { email: normalize(dto.email) } : {}),
+          ...(dto.contactPerson !== undefined
+            ? { contactPerson: normalize(dto.contactPerson) }
+            : {}),
         },
       });
 
@@ -147,13 +196,22 @@ export class CompaniesService {
       }
 
       return tx.company.findFirst({
-        where: { id },
+        where: { id, organizationId },
         include: { contacts: true },
       });
     });
   }
 
   async remove(id: string) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
+    const exists = await this.prisma.company.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
+    });
+
+    if (!exists) throw new NotFoundException("Company not found");
+
     return this.prisma.company.delete({ where: { id } });
   }
 }

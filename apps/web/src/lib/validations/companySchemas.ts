@@ -2,6 +2,14 @@
 import { z } from "zod";
 import type { Company } from "@/lib/api";
 
+const optionalEmailSchema = z
+  .string()
+  .trim()
+  .max(100, "※ メールが長すぎます。")
+  .refine((value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+    message: "※ メールアドレスの形式で入力してください。",
+  });
+
 /**
  * Contacts（フォーム入力用）
  * - RHF的には常に string で持つ（"" もOK）
@@ -11,7 +19,7 @@ export const companyContactFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().max(50, "※ 担当者名が長すぎます。"),
   phone: z.string().trim().max(30, "※ 電話番号が長すぎます。"),
-  email: z.string().trim().max(100, "※ メールが長すぎます。"),
+  email: optionalEmailSchema,
 });
 
 export const companyFormSchema = z.object({
@@ -24,7 +32,7 @@ export const companyFormSchema = z.object({
   postalCode: z.string().trim().max(20, "※ 郵便番号が長すぎます。"),
   address: z.string().trim().max(200, "※ 住所が長すぎます。"),
   phone: z.string().trim().max(30, "※ 電話番号が長すぎます。"),
-  email: z.string().trim().max(100, "※ メールが長すぎます。"),
+  email: optionalEmailSchema,
 
   contacts: z.array(companyContactFormSchema),
 });
@@ -91,7 +99,7 @@ export const toCompanyCreatePayload = (v: CompanyFormValues) => ({
   postalCode: v.postalCode.trim() || undefined,
   address: v.address.trim() || undefined,
   phone: v.phone.trim() || undefined,
-  email: v.email.trim() || undefined,
+  email: v.email.trim() || null,
   contacts: normalizeContacts(v.contacts).map(({ id, ...rest }) => rest),
 });
 
@@ -103,6 +111,6 @@ export const toCompanyUpdatePayload = (v: CompanyFormValues) => ({
   postalCode: v.postalCode.trim() || undefined,
   address: v.address.trim() || undefined,
   phone: v.phone.trim() || undefined,
-  email: v.email.trim() || undefined,
+  email: v.email.trim() || null,
   contacts: normalizeContacts(v.contacts),
 });

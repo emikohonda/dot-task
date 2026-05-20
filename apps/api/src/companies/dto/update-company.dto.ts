@@ -44,8 +44,9 @@ export class UpdateCompanyDto {
   phone?: string;
 
   @IsOptional()
+  @Transform(emptyToUndef)
   @IsEmail()
-  email?: string;
+  email?: string | null;
 
   @IsOptional()
   @IsString()
