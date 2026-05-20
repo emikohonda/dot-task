@@ -63,6 +63,11 @@ export const fromCompanyToFormValues = (company: Company | null): CompanyFormVal
   };
 };
 
+const emptyToUndefined = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+};
+
 /**
  * フォームのcontactsから「空行」を落とす
  * - name が空でも phone/email が入っていれば残す
@@ -73,8 +78,8 @@ const normalizeContacts = (contacts: CompanyFormValues["contacts"]) =>
     .map((c) => ({
       id: c.id,
       name: c.name.trim(),
-      phone: c.phone.trim(),
-      email: c.email.trim(),
+      phone: emptyToUndefined(c.phone),
+      email: emptyToUndefined(c.email),
     }))
     .filter((c) => c.name || c.phone || c.email);
 
