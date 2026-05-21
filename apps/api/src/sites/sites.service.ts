@@ -14,66 +14,111 @@ export class SitesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // --------------------------------
+  // 仮 organizationId 取得
+  // --------------------------------
+  private async getTemporaryOrganizationId() {
+    const organization = await this.prisma.organization.findFirst({
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (!organization) {
+      throw new BadRequestException("Organization not found");
+    }
+    return organization.id;
+  }
+
+  // --------------------------------
   // 取引先（Company）解決ヘルパー
-  // companyId があればそれを優先
-  // なければ companyNameToCreate で既存検索 or 新規作成
+  // organizationId 対応版
   // --------------------------------
   private async resolveCompanyId(
+    organizationId: string,
     companyId?: string | null,
     companyNameToCreate?: string | null,
   ): Promise<string | null> {
-    // 1. 既存IDがあれば優先してそのまま返す
-    if (companyId) return companyId;
+    if (companyId) {
+      const company = await this.prisma.company.findFirst({
+        where: { id: companyId, organizationId },
+        select: { id: true },
+      });
+      if (!company) {
+        throw new BadRequestException("Company not found in this organization");
+      }
+      return company.id;
+    }
 
-    // 2. 新規会社名を trim して空なら null
     const name = companyNameToCreate?.trim();
     if (!name) return null;
 
-    // 3. 完全一致する既存 company があればそのIDを返す
     const existing = await this.prisma.company.findFirst({
-      where: {
-        name: {
-          equals: name,
-          mode: "insensitive",
-        },
-      },
+      where: { organizationId, name: { equals: name, mode: "insensitive" } },
       select: { id: true },
     });
     if (existing) return existing.id;
 
-    // 4. なければ name だけで新規作成
     const created = await this.prisma.company.create({
-      data: { name },
+      data: { organizationId, name },
       select: { id: true },
     });
     return created.id;
   }
 
+  // --------------------------------
+  // contactIds バリデーション
+  // 同じ organizationId の CompanyContact か確認
+  // --------------------------------
+  private async validateContactIds(
+    organizationId: string,
+    contactIds: string[],
+  ): Promise<void> {
+    if (!contactIds.length) return;
+
+    const found = await this.prisma.companyContact.findMany({
+      where: {
+        id: { in: contactIds },
+        company: { organizationId },
+      },
+      select: { id: true },
+    });
+
+    if (found.length !== contactIds.length) {
+      throw new BadRequestException(
+        "指定された担当者の一部がこの組織に存在しません",
+      );
+    }
+  }
+
   async create(dto: CreateSiteDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
     const { contactIds, startDate, endDate, color, companyNameToCreate, ...rest } = dto;
 
-    // companyId または companyNameToCreate から companyId を解決
     const resolvedCompanyId = await this.resolveCompanyId(
+      organizationId,
       rest.companyId ?? null,
       companyNameToCreate ?? null,
     );
 
+    if (contactIds?.length) {
+      await this.validateContactIds(organizationId, contactIds);
+    }
+
     return this.prisma.site.create({
       data: {
         ...rest,
+        organizationId,
         companyId: resolvedCompanyId,
         color: color ?? "sky",
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
         ...(contactIds?.length
           ? {
-            companyContacts: {
-              createMany: {
-                data: contactIds.map((id) => ({ companyContactId: id })),
-                skipDuplicates: true,
+              companyContacts: {
+                createMany: {
+                  data: contactIds.map((id) => ({ companyContactId: id })),
+                  skipDuplicates: true,
+                },
               },
-            },
-          }
+            }
           : {}),
       },
     });
@@ -90,6 +135,7 @@ export class SitesService {
     limit?:     number;
     offset?:    number;
   } = {}) {
+    const organizationId = await this.getTemporaryOrganizationId();
     const { keyword, companyId, status, tab, sortDate, monthFrom, monthTo } = params;
     const limit  = Math.min(params.limit  ?? 20, 100);
     const offset = params.offset ?? 0;
@@ -97,7 +143,9 @@ export class SitesService {
     const today = new Date();
     const now   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    const andClauses: Prisma.SiteWhereInput[] = [];
+    const andClauses: Prisma.SiteWhereInput[] = [
+      { organizationId },
+    ];
 
     const validTabs:     SiteTabType[]    = ["active", "done"];
     const validSorts:    SiteSortType[]   = ["asc", "desc"];
@@ -169,12 +217,7 @@ export class SitesService {
 
     if (monthFrom) {
       const from = new Date(`${monthFrom}-01T00:00:00`);
-      andClauses.push({
-        OR: [
-          { endDate: { gte: from } },
-          { endDate: null },
-        ],
-      });
+      andClauses.push({ OR: [{ endDate: { gte: from } }, { endDate: null }] });
     }
     if (monthTo) {
       const [y, m] = monthTo.split("-").map(Number);
@@ -182,17 +225,14 @@ export class SitesService {
       andClauses.push({ endDate: { lte: to } });
     }
 
-    const where: Prisma.SiteWhereInput = andClauses.length ? { AND: andClauses } : {};
+    const where: Prisma.SiteWhereInput = { AND: andClauses };
     const order: Prisma.SortOrder = sortDate === "asc" ? "asc" : "desc";
 
     const [total, sites] = await Promise.all([
       this.prisma.site.count({ where }),
       this.prisma.site.findMany({
         where,
-        orderBy: [
-          { startDate: order },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ startDate: order }, { createdAt: "desc" }],
         skip: offset,
         take: limit,
         include: {
@@ -213,8 +253,10 @@ export class SitesService {
   }
 
   async findOne(id: string) {
-    const site = await this.prisma.site.findUnique({
-      where: { id },
+    const organizationId = await this.getTemporaryOrganizationId();
+
+    const site = await this.prisma.site.findFirst({
+      where: { id, organizationId },
       include: {
         company: { select: { id: true, name: true } },
         companyContacts: {
@@ -246,27 +288,30 @@ export class SitesService {
   }
 
   async update(id: string, dto: UpdateSiteDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
+    await this.ensureExists(id, organizationId);
+
     const { contactIds, startDate, endDate, color, companyNameToCreate, ...siteFields } = dto;
 
-    await this.ensureExists(id);
-
-    // companyId か companyNameToCreate が送られてきた時だけ解決する
-    // （編集時に会社欄を触っていない場合は companyId が undefined → 変更しない）
     const shouldResolveCompany =
       siteFields.companyId !== undefined || companyNameToCreate !== undefined;
 
     const resolvedCompanyId = shouldResolveCompany
       ? await this.resolveCompanyId(
+          organizationId,
           siteFields.companyId ?? null,
           companyNameToCreate ?? null,
         )
       : undefined;
 
+    if (contactIds?.length) {
+      await this.validateContactIds(organizationId, contactIds);
+    }
+
     return this.prisma.site.update({
       where: { id },
       data: {
         ...siteFields,
-        // 会社解決結果を上書き（触っていない場合は undefined = 変更なし）
         ...(shouldResolveCompany ? { companyId: resolvedCompanyId } : {}),
         ...(color !== undefined ? { color } : {}),
         ...(startDate !== undefined && {
@@ -277,25 +322,26 @@ export class SitesService {
         }),
         ...(contactIds !== undefined
           ? {
-            companyContacts: {
-              deleteMany: {},
-              ...(contactIds.length
-                ? {
-                  createMany: {
-                    data: contactIds.map((cid) => ({ companyContactId: cid })),
-                    skipDuplicates: true,
-                  },
-                }
-                : {}),
-            },
-          }
+              companyContacts: {
+                deleteMany: {},
+                ...(contactIds.length
+                  ? {
+                      createMany: {
+                        data: contactIds.map((cid) => ({ companyContactId: cid })),
+                        skipDuplicates: true,
+                      },
+                    }
+                  : {}),
+              },
+            }
           : {}),
       },
     });
   }
 
   async remove(id: string) {
-    await this.ensureExists(id);
+    const organizationId = await this.getTemporaryOrganizationId();
+    await this.ensureExists(id, organizationId);
 
     const scheduleCount = await this.prisma.schedule.count({ where: { siteId: id } });
     if (scheduleCount > 0) {
@@ -321,28 +367,28 @@ export class SitesService {
     return this.prisma.site.delete({ where: { id } });
   }
 
-  private async ensureExists(id: string) {
-    const site = await this.prisma.site.findUnique({ where: { id } });
+  private async ensureExists(id: string, organizationId: string) {
+    const site = await this.prisma.site.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
+    });
     if (!site) throw new NotFoundException("Site not found");
   }
 
-  async findSchedulesBySiteId(
-    siteId: string,
-    limit = 3,
-  ) {
+  async findSchedulesBySiteId(siteId: string, limit = 3) {
+    const organizationId = await this.getTemporaryOrganizationId();
+    await this.ensureExists(siteId, organizationId);
+
     const where: Prisma.ScheduleWhereInput = {
       siteId,
+      organizationId,
     };
 
     const [total, items] = await Promise.all([
       this.prisma.schedule.count({ where }),
       this.prisma.schedule.findMany({
         where,
-        orderBy: [
-          { date: "asc" },
-          { startTime: "asc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ date: "asc" }, { startTime: "asc" }, { createdAt: "desc" }],
         take: limit,
         select: {
           id: true,
