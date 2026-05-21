@@ -18,7 +18,6 @@ function uniq(arr: string[]) {
 const VALID_TABS = ['active', 'done'] as const;
 const VALID_SORTS = ['asc', 'desc'] as const;
 
-// ✅ チャッピー案2: YYYY-MM-DD を安全に UTC Date に変換
 function assertValidYmd(value: string, fieldName: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new BadRequestException(`${fieldName} must be YYYY-MM-DD`);
@@ -40,28 +39,23 @@ function ymdToUtcDate(value: string, fieldName: string): Date {
 }
 
 function getTodayJstUtcDate(): Date {
-  const ymd = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+  const ymd = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date());
-  return ymdToUtcDate(ymd, "today");
+  return ymdToUtcDate(ymd, 'today');
 }
 
-/**
- * ✅ チャッピー案2+3: 期間重なり判定を andConditions 配列に push する形で返す
- */
 function buildOverlapConditions(
   rangeStart: Date | null,
   rangeEnd: Date | null,
 ): Prisma.ScheduleWhereInput[] {
   const conditions: Prisma.ScheduleWhereInput[] = [];
-
   if (rangeEnd) {
     conditions.push({ date: { lte: rangeEnd } });
   }
-
   if (rangeStart) {
     conditions.push({
       OR: [
@@ -70,13 +64,26 @@ function buildOverlapConditions(
       ],
     });
   }
-
   return conditions;
 }
 
 @Injectable()
 export class SchedulesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // --------------------------------
+  // 仮 organizationId 取得
+  // --------------------------------
+  private async getTemporaryOrganizationId() {
+    const organization = await this.prisma.organization.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    if (!organization) {
+      throw new BadRequestException('Organization not found');
+    }
+    return organization.id;
+  }
 
   private includeForScheduleList() {
     return {
@@ -106,7 +113,11 @@ export class SchedulesService {
     } as const;
   }
 
+  // --------------------------------
+  // 外注先解決ヘルパー（organizationId対応）
+  // --------------------------------
   private async resolveContractorIds(params: {
+    organizationId: string;
     contractorIds: string[];
     contractorNamesToCreate: string[];
   }): Promise<string[]> {
@@ -114,79 +125,71 @@ export class SchedulesService {
 
     if (baseIds.length) {
       const found = await this.prisma.contractor.findMany({
-        where: { id: { in: baseIds } },
+        where: { id: { in: baseIds }, organizationId: params.organizationId },
         select: { id: true },
       });
-
       if (found.length !== baseIds.length) {
         throw new NotFoundException('Contractor not found');
       }
     }
 
-    const cleanedNames = params.contractorNamesToCreate
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0);
+    const uniqueNames = uniq(
+      params.contractorNamesToCreate.map((n) => n.trim()).filter((n) => n.length > 0),
+    );
 
-    const uniqueNames = uniq(cleanedNames);
-
-    if (!uniqueNames.length) {
-      return baseIds;
-    }
+    if (!uniqueNames.length) return baseIds;
 
     const resolvedIds = [...baseIds];
 
     for (const name of uniqueNames) {
       const existing = await this.prisma.contractor.findFirst({
-        where: {
-          name: {
-            equals: name,
-            mode: 'insensitive',
-          },
-        },
+        where: { organizationId: params.organizationId, name: { equals: name, mode: 'insensitive' } },
         select: { id: true },
       });
 
       if (existing) {
-        if (!resolvedIds.includes(existing.id)) {
-          resolvedIds.push(existing.id);
-        }
+        if (!resolvedIds.includes(existing.id)) resolvedIds.push(existing.id);
         continue;
       }
 
       const created = await this.prisma.contractor.create({
-        data: { name },
+        data: { organizationId: params.organizationId, name },
         select: { id: true },
       });
-
       resolvedIds.push(created.id);
     }
 
     return uniq(resolvedIds);
   }
 
+  // --------------------------------
+  // 現場解決ヘルパー（organizationId対応）
+  // --------------------------------
   private async resolveSiteId(params: {
+    organizationId: string;
     siteId?: string | null;
     siteNameToCreate?: string | null;
   }): Promise<string> {
     if (params.siteId) {
-      const site = await this.prisma.site.findUnique({
-        where: { id: params.siteId },
+      const site = await this.prisma.site.findFirst({
+        where: { id: params.siteId, organizationId: params.organizationId },
         select: { id: true },
       });
       if (!site) throw new NotFoundException('Site not found');
       return site.id;
     }
+
     const name = params.siteNameToCreate?.trim();
-    if (!name) {
-      throw new BadRequestException('siteId or siteNameToCreate is required');
-    }
+    if (!name) throw new BadRequestException('siteId or siteNameToCreate is required');
+
     const existing = await this.prisma.site.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } },
+      where: { organizationId: params.organizationId, name: { equals: name, mode: 'insensitive' } },
       select: { id: true },
     });
     if (existing) return existing.id;
+
     const created = await this.prisma.site.create({
-      data: { name },
+      data: { organizationId: params.organizationId, name },
       select: { id: true },
     });
     return created.id;
@@ -205,6 +208,7 @@ export class SchedulesService {
     employeeId?: string;
     contractorId?: string;
   }) {
+    const organizationId = await this.getTemporaryOrganizationId();
     const { date, keyword, tab, sortDate, dateFrom, dateTo, siteId, employeeId, contractorId } = params;
 
     const limit = Math.min(params.limit ?? 20, 200);
@@ -220,12 +224,9 @@ export class SchedulesService {
       throw new BadRequestException('date cannot be combined with dateFrom/dateTo');
     }
 
-    const where: Prisma.ScheduleWhereInput = {};
-
-    // ✅ チャッピー案3: andConditions 配列で管理
+    const where: Prisma.ScheduleWhereInput = { organizationId };
     const andConditions: Prisma.ScheduleWhereInput[] = [];
 
-    // ── 期間重なり判定 ──
     if (date) {
       const rangeStart = ymdToUtcDate(date, 'date');
       const rangeEnd = new Date(`${date}T23:59:59.999Z`);
@@ -243,7 +244,6 @@ export class SchedulesService {
       andConditions.push(...buildOverlapConditions(rangeStart, rangeEnd));
     }
 
-    // ✅ チャッピー案4: tab を AND 条件として明示的に処理
     if (tab === 'active') {
       const today = getTodayJstUtcDate();
       andConditions.push({
@@ -264,9 +264,7 @@ export class SchedulesService {
       });
     }
 
-    if (andConditions.length) {
-      where.AND = andConditions;
-    }
+    if (andConditions.length) where.AND = andConditions;
 
     if (keyword?.trim()) {
       const kw = keyword.trim();
@@ -312,8 +310,9 @@ export class SchedulesService {
   }
 
   async findOne(id: string) {
-    const schedule = await this.prisma.schedule.findUnique({
-      where: { id },
+    const organizationId = await this.getTemporaryOrganizationId();
+    const schedule = await this.prisma.schedule.findFirst({
+      where: { id, organizationId },
       include: this.includeForScheduleDetail(),
     });
     if (!schedule) throw new NotFoundException('Schedule not found');
@@ -333,9 +332,9 @@ export class SchedulesService {
     startTime?: string | null;
     endTime?: string | null;
   }) {
+    const organizationId = await this.getTemporaryOrganizationId();
     const title = input.title?.trim() ?? '';
 
-    // ✅ チャッピー案2: ymdToUtcDate を使う
     const dateObj = ymdToUtcDate(input.date, 'date');
 
     let endDateObj: Date | null = null;
@@ -347,6 +346,7 @@ export class SchedulesService {
     }
 
     const resolvedSiteId = await this.resolveSiteId({
+      organizationId,
       siteId: input.siteId ?? null,
       siteNameToCreate: input.siteNameToCreate ?? null,
     });
@@ -355,7 +355,7 @@ export class SchedulesService {
 
     if (employeeIds.length) {
       const found = await this.prisma.employee.findMany({
-        where: { id: { in: employeeIds } },
+        where: { id: { in: employeeIds }, organizationId },
         select: { id: true },
       });
       if (found.length !== employeeIds.length) throw new NotFoundException('Employee not found');
@@ -371,12 +371,14 @@ export class SchedulesService {
     }
 
     const contractorIds = await this.resolveContractorIds({
+      organizationId,
       contractorIds: input.contractorIds ?? [],
       contractorNamesToCreate: input.contractorNamesToCreate ?? [],
     });
 
     return this.prisma.schedule.create({
       data: {
+        organizationId,
         title,
         date: dateObj,
         endDate: endDateObj,
@@ -410,7 +412,7 @@ export class SchedulesService {
     input: {
       title?: string;
       date?: string;
-      endDate?: string | null; // undefined=変更なし, null=削除, string=更新
+      endDate?: string | null;
       siteId?: string;
       siteNameToCreate?: string | null;
       contractorIds?: string[];
@@ -421,8 +423,10 @@ export class SchedulesService {
       endTime?: string | null;
     },
   ) {
-    const exists = await this.prisma.schedule.findUnique({
-      where: { id },
+    const organizationId = await this.getTemporaryOrganizationId();
+
+    const exists = await this.prisma.schedule.findFirst({
+      where: { id, organizationId },
       select: { id: true, startTime: true, endTime: true, date: true, endDate: true },
     });
     if (!exists) throw new NotFoundException('Schedule not found');
@@ -431,25 +435,19 @@ export class SchedulesService {
       input.siteId !== undefined || input.siteNameToCreate !== undefined;
     const resolvedSiteId = shouldUpdateSite
       ? await this.resolveSiteId({
-        siteId: input.siteId ?? null,
-        siteNameToCreate: input.siteNameToCreate ?? null,
-      })
+          organizationId,
+          siteId: input.siteId ?? null,
+          siteNameToCreate: input.siteNameToCreate ?? null,
+        })
       : undefined;
 
-    // ✅ チャッピー案2: ymdToUtcDate を使う
     const dateObj = input.date !== undefined ? ymdToUtcDate(input.date, 'date') : undefined;
 
-    // endDate: undefined=変更なし, null or ""=削除, string=更新
     let endDateObj: Date | null | undefined = undefined;
     if (input.endDate !== undefined) {
-      if (!input.endDate) {
-        endDateObj = null; // 削除
-      } else {
-        endDateObj = ymdToUtcDate(input.endDate, 'endDate');
-      }
+      endDateObj = input.endDate ? ymdToUtcDate(input.endDate, 'endDate') : null;
     }
 
-    // date と endDate の整合性チェック
     const nextDate = dateObj ?? exists.date;
     const nextEndDate = endDateObj !== undefined ? endDateObj : exists.endDate;
     if (nextEndDate && nextEndDate < nextDate) {
@@ -470,11 +468,11 @@ export class SchedulesService {
     }
 
     const shouldUpdateContractors =
-      input.contractorIds !== undefined ||
-      input.contractorNamesToCreate !== undefined;
+      input.contractorIds !== undefined || input.contractorNamesToCreate !== undefined;
 
     const contractorIds = shouldUpdateContractors
       ? await this.resolveContractorIds({
+          organizationId,
           contractorIds: input.contractorIds ?? [],
           contractorNamesToCreate: input.contractorNamesToCreate ?? [],
         })
@@ -486,7 +484,7 @@ export class SchedulesService {
 
     if (employeeIds?.length) {
       const found = await this.prisma.employee.findMany({
-        where: { id: { in: employeeIds } },
+        where: { id: { in: employeeIds }, organizationId },
         select: { id: true },
       });
       if (found.length !== employeeIds.length) throw new NotFoundException('Employee not found');
@@ -530,7 +528,11 @@ export class SchedulesService {
   }
 
   async remove(id: string) {
-    const exists = await this.prisma.schedule.findUnique({ where: { id } });
+    const organizationId = await this.getTemporaryOrganizationId();
+    const exists = await this.prisma.schedule.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
+    });
     if (!exists) throw new NotFoundException('Schedule not found');
     return this.prisma.schedule.delete({ where: { id } });
   }
