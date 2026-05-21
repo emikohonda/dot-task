@@ -1,5 +1,5 @@
 // apps/api/src/contractors/contractors.service.ts
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateContractorDto } from "./dto/create-contractor.dto";
 import { UpdateContractorDto } from "./dto/update-contractor.dto";
@@ -8,7 +8,20 @@ import { UpdateContractorDto } from "./dto/update-contractor.dto";
 export class ContractorsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getTemporaryOrganizationId() {
+    const organization = await this.prisma.organization.findFirst({
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (!organization) {
+      throw new BadRequestException("Organization not found");
+    }
+    return organization.id;
+  }
+
   async create(dto: CreateContractorDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
     const contacts = (dto.contacts ?? [])
       .map((c) => ({
         name: c.name?.trim() || null,
@@ -19,6 +32,7 @@ export class ContractorsService {
 
     return this.prisma.contractor.create({
       data: {
+        organizationId,
         name: dto.name.trim(),
         postalCode: dto.postalCode?.trim() || null,
         address: dto.address?.trim() || null,
@@ -31,19 +45,24 @@ export class ContractorsService {
   }
 
   async findAll(params: { keyword?: string; limit?: number; offset?: number } = {}) {
+    const organizationId = await this.getTemporaryOrganizationId();
     const { keyword } = params;
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
+    const trimmedKeyword = keyword?.trim();
 
-    const where = keyword?.trim()
-      ? {
-          OR: [
-            { name: { contains: keyword.trim(), mode: "insensitive" as const } },
-            { address: { contains: keyword.trim(), mode: "insensitive" as const } },
-            { contacts: { some: { name: { contains: keyword.trim(), mode: "insensitive" as const } } } },
-          ],
-        }
-      : undefined;
+    const where = {
+      organizationId,
+      ...(trimmedKeyword
+        ? {
+            OR: [
+              { name: { contains: trimmedKeyword, mode: "insensitive" as const } },
+              { address: { contains: trimmedKeyword, mode: "insensitive" as const } },
+              { contacts: { some: { name: { contains: trimmedKeyword, mode: "insensitive" as const } } } },
+            ],
+          }
+        : {}),
+    };
 
     const [total, items] = await Promise.all([
       this.prisma.contractor.count({ where }),
@@ -59,14 +78,17 @@ export class ContractorsService {
     return { items, total, limit, offset };
   }
 
-  findOne(id: string) {
+  async findOne(id: string) {
+    const organizationId = await this.getTemporaryOrganizationId();
     return this.prisma.contractor.findFirst({
-      where: { id },
+      where: { id, organizationId },
       include: { contacts: true },
     });
   }
 
   async update(id: string, dto: UpdateContractorDto) {
+    const organizationId = await this.getTemporaryOrganizationId();
+
     const contacts =
       dto.contacts
         ?.map((c) => ({
@@ -78,14 +100,22 @@ export class ContractorsService {
         .filter((c) => c.name || c.phone || c.email) ?? null;
 
     return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.contractor.findFirst({
+        where: { id, organizationId },
+        select: { id: true },
+      });
+      if (!existing) {
+        throw new NotFoundException("Contractor not found");
+      }
+
       await tx.contractor.update({
         where: { id },
         data: {
           name: dto.name?.trim() ?? undefined,
-          postalCode: dto.postalCode?.trim() ?? undefined,
-          address: dto.address?.trim() ?? undefined,
-          phone: dto.phone?.trim() ?? undefined,
-          email: dto.email?.trim() ?? undefined,
+          postalCode: dto.postalCode !== undefined ? dto.postalCode.trim() || null : undefined,
+          address: dto.address !== undefined ? dto.address.trim() || null : undefined,
+          phone: dto.phone !== undefined ? dto.phone.trim() || null : undefined,
+          email: dto.email !== undefined ? dto.email.trim() || null : undefined,
         },
       });
 
@@ -104,10 +134,7 @@ export class ContractorsService {
 
         if (toDeleteIds.length > 0) {
           await tx.contractorContact.deleteMany({
-            where: {
-              id: { in: toDeleteIds },
-              contractorId: id,
-            },
+            where: { id: { in: toDeleteIds }, contractorId: id },
           });
         }
 
@@ -115,11 +142,7 @@ export class ContractorsService {
           if (contact.id && existingIds.has(contact.id)) {
             await tx.contractorContact.update({
               where: { id: contact.id },
-              data: {
-                name: contact.name,
-                phone: contact.phone,
-                email: contact.email,
-              },
+              data: { name: contact.name, phone: contact.phone, email: contact.email },
             });
           } else {
             await tx.contractorContact.create({
@@ -135,13 +158,21 @@ export class ContractorsService {
       }
 
       return tx.contractor.findFirst({
-        where: { id },
+        where: { id, organizationId },
         include: { contacts: true },
       });
     });
   }
 
   async remove(id: string) {
+    const organizationId = await this.getTemporaryOrganizationId();
+    const existing = await this.prisma.contractor.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException("Contractor not found");
+    }
     return this.prisma.contractor.delete({ where: { id } });
   }
 }
