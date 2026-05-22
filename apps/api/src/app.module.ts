@@ -6,10 +6,12 @@ import { SitesModule } from './sites/sites.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { ContractorsModule } from './contractors/contractors.module';
 import { EmployeesModule } from './employees/employees.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthModule,
     CompaniesModule,
     ContractorsModule,
     SitesModule,

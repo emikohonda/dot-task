@@ -13,22 +13,10 @@ const normalize = (v?: string): string | null => {
 export class EmployeesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getTemporaryOrganizationId() {
-    const organization = await this.prisma.organization.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-
-    if (!organization) {
-      throw new BadRequestException('Temporary organization not found');
-    }
-
-    return organization.id;
-  }
-
-  async findAll(params: { keyword?: string; limit?: number; offset?: number } = {}) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async findAll(
+    organizationId: string,
+    params: { keyword?: string; limit?: number; offset?: number } = {},
+  ) {
     const { keyword } = params;
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
@@ -68,9 +56,7 @@ export class EmployeesService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async findOne(organizationId: string, id: string) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, organizationId },
       select: {
@@ -88,9 +74,7 @@ export class EmployeesService {
     return employee;
   }
 
-  async create(dto: CreateEmployeeDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async create(organizationId: string, dto: CreateEmployeeDto) {
     const name = dto.name?.trim();
     if (!name) throw new BadRequestException('name is required');
 
@@ -114,9 +98,7 @@ export class EmployeesService {
     });
   }
 
-  async update(id: string, dto: UpdateEmployeeDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async update(organizationId: string, id: string, dto: UpdateEmployeeDto) {
     const exists = await this.prisma.employee.findFirst({
       where: { id, organizationId },
       select: { id: true },
@@ -147,9 +129,7 @@ export class EmployeesService {
     });
   }
 
-  async remove(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async remove(organizationId: string, id: string) {
     const exists = await this.prisma.employee.findFirst({
       where: { id, organizationId },
       select: { id: true },
