@@ -3,17 +3,31 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmployeeForm } from "../../_components/EmployeeForm";
 import { fromEmployeeToFormValues } from "@/lib/validations/employeeSchemas";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
   "http://127.0.0.1:3001";
 
 async function fetchEmployee(id: string) {
   try {
-    const res = await fetch(`${API_BASE}/employees/${id}`, { cache: "no-store" });
-    if (!res.ok) return null;
+    const res = await fetch(`${API_BASE}/employees/${id}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
+    if (res.status === 404) return null;
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[employees/edit] fetch failed:", res.status, text);
+      return null;
+    }
+
     return await res.json();
-  } catch {
+  } catch (error) {
+    console.error("[employees/edit] fetch error:", error);
     return null;
   }
 }

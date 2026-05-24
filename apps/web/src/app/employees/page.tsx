@@ -1,6 +1,7 @@
 // apps/web/src/app/employees/page.tsx
 import { Suspense } from "react";
 import { EmployeesClient } from "./EmployeesClient";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -43,9 +44,13 @@ async function fetchEmployeesOnServer(
   try {
     const res = await fetch(`${API_BASE}/employees?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
 
     if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[employees/page] fetch failed:", res.status, text);
+
       return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
     }
 
@@ -65,7 +70,8 @@ async function fetchEmployeesOnServer(
     }
 
     return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  } catch {
+  } catch (error) {
+    console.error("[employees/page] fetch error:", error);
     return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
   }
 }
@@ -86,10 +92,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   params.set("limit", String(PAGE_LIMIT));
 
   const initialData = await fetchEmployeesOnServer(params);
+  const clientKey = params.toString();
 
   return (
     <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
-      <EmployeesClient initialData={initialData} />
+      <EmployeesClient key={clientKey} initialData={initialData} />
     </Suspense>
   );
 }

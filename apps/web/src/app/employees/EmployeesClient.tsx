@@ -9,10 +9,6 @@ import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 const PAGE_LIMIT = 20;
 
 type Employee = {
@@ -31,37 +27,6 @@ type PaginatedEmployees = {
   limit: number;
   offset: number;
 };
-
-async function fetchEmployees(params: URLSearchParams): Promise<PaginatedEmployees> {
-  try {
-    const res = await fetch(`${API_BASE}/employees?${params.toString()}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-    }
-
-    const data = await res.json();
-
-    if (data && Array.isArray(data.items)) {
-      return data as PaginatedEmployees;
-    }
-
-    if (Array.isArray(data)) {
-      return {
-        items: data,
-        total: data.length,
-        limit: PAGE_LIMIT,
-        offset: 0,
-      };
-    }
-
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  } catch {
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  }
-}
 
 function formatDateJp(iso: string) {
   const d = new Date(iso);
@@ -88,38 +53,12 @@ export function EmployeesClient({
   const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
   const [total, setTotal] = React.useState(initialData.total);
   const [employees, setEmployees] = React.useState<Employee[]>(initialData.items);
-  const [loading, setLoading] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(!!appliedKeyword);
 
-  const isFirstRender = React.useRef(true);
-
-  const isDefaultState =
-    !searchParams.get("keyword") &&
-    !searchParams.get("offset");
-
   React.useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      if (isDefaultState) return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    const nextOffset = Number(searchParams.get("offset") ?? "0");
-
-    params.set("limit", String(PAGE_LIMIT));
-    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
-
-    setLoading(true);
-
-    fetchEmployees(params)
-      .then((data) => {
-        setEmployees(data.items);
-        setTotal(data.total);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [searchParams]);
+    setEmployees(initialData.items);
+    setTotal(initialData.total);
+  }, [initialData]);
 
   React.useEffect(() => {
     const nextKeyword = searchParams.get("keyword") ?? "";
@@ -222,7 +161,7 @@ export function EmployeesClient({
               onSearch={applyFilter}
               onReset={resetFilter}
               showReset={hasFilter}
-              loading={loading}
+              loading={false}
               isDirty={isDirty}
               hasFilter={hasFilter}
               count={total}
@@ -324,7 +263,7 @@ export function EmployeesClient({
                   <button
                     type="button"
                     onClick={() => goToOffset(offset - PAGE_LIMIT)}
-                    disabled={!hasPrev || loading}
+                    disabled={!hasPrev}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ← 前へ
@@ -332,7 +271,7 @@ export function EmployeesClient({
                   <button
                     type="button"
                     onClick={() => goToOffset(offset + PAGE_LIMIT)}
-                    disabled={!hasNext || loading}
+                    disabled={!hasNext}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     次へ →

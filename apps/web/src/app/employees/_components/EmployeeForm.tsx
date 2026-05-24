@@ -16,10 +16,6 @@ import {
   toEmployeePayload,
 } from "@/lib/validations/employeeSchemas";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 type Props = {
   mode: "create" | "edit";
   employee: (EmployeeFormValues & { id?: string }) | null;
@@ -74,7 +70,7 @@ export function EmployeeForm({ mode, employee }: Props) {
     try {
       setDeleteLoading(true);
 
-      const res = await fetch(`${API_BASE}/employees/${employee.id}`, {
+      const res = await fetch(`/api/employees/${employee.id}`, {
         method: "DELETE",
       });
 
@@ -109,8 +105,8 @@ export function EmployeeForm({ mode, employee }: Props) {
 
       const url =
         mode === "create"
-          ? `${API_BASE}/employees`
-          : `${API_BASE}/employees/${employeeId}`;
+          ? `/api/employees`
+          : `/api/employees/${employeeId}`;
 
       const method = mode === "create" ? "POST" : "PATCH";
 

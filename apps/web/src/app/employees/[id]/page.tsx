@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Pencil, Phone, Mail, UserRound, BadgeCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 type Employee = {
   id: string;
@@ -26,7 +27,10 @@ const getApiBaseUrl = () => {
 async function fetchEmployee(id: string): Promise<Employee | null> {
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/employees/${id}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: await getApiAuthHeaders(),
+  });
 
   if (res.status === 404) return null;
   if (!res.ok) {
