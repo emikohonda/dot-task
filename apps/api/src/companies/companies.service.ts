@@ -13,22 +13,7 @@ const normalize = (v?: string | null): string | null => {
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getTemporaryOrganizationId() {
-    const organization = await this.prisma.organization.findFirst({
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    if (!organization) {
-      throw new BadRequestException("Temporary organization not found");
-    }
-
-    return organization.id;
-  }
-
-  async create(dto: CreateCompanyDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async create(organizationId: string, dto: CreateCompanyDto) {
     const name = dto.name?.trim();
     if (!name) throw new BadRequestException("name is required");
 
@@ -55,9 +40,10 @@ export class CompaniesService {
     });
   }
 
-  async findAll(params: { keyword?: string; limit?: number; offset?: number } = {}) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async findAll(
+    organizationId: string,
+    params: { keyword?: string; limit?: number; offset?: number } = {},
+  ) {
     const { keyword } = params;
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
@@ -95,9 +81,7 @@ export class CompaniesService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async findOne(organizationId: string, id: string) {
     const company = await this.prisma.company.findFirst({
       where: { id, organizationId },
       include: { contacts: true },
@@ -108,9 +92,7 @@ export class CompaniesService {
     return company;
   }
 
-  async update(id: string, dto: UpdateCompanyDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async update(organizationId: string, id: string, dto: UpdateCompanyDto) {
     const contacts =
       dto.contacts
         ?.map((c) => ({
@@ -157,7 +139,9 @@ export class CompaniesService {
           contacts.map((c) => c.id).filter((v): v is string => Boolean(v))
         );
 
-        const toDeleteIds = [...existingIds].filter((existingId) => !incomingIds.has(existingId));
+        const toDeleteIds = [...existingIds].filter(
+          (existingId) => !incomingIds.has(existingId),
+        );
 
         if (toDeleteIds.length > 0) {
           await tx.siteCompanyContact.deleteMany({
@@ -202,9 +186,7 @@ export class CompaniesService {
     });
   }
 
-  async remove(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async remove(organizationId: string, id: string) {
     const exists = await this.prisma.company.findFirst({
       where: { id, organizationId },
       select: { id: true },

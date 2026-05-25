@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 type Contact = {
   id?: string;
@@ -36,7 +37,10 @@ async function fetchCompany(id: string): Promise<Company | null> {
   if (!baseUrl) throw new Error("API_BASE_URL is not set");
 
   const url = `${baseUrl}/companies/${id}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: await getApiAuthHeaders(),
+  });
 
   if (res.status === 404) return null;
   if (!res.ok) {

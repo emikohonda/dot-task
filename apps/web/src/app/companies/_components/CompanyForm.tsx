@@ -17,10 +17,6 @@ import {
   toCompanyUpdatePayload,
 } from "@/lib/validations/companySchemas";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 type Props = {
   mode: "create" | "edit";
   company: (CompanyFormValues & { id?: string }) | null;
@@ -95,7 +91,7 @@ export function CompanyForm({ mode, company }: Props) {
     try {
       setDeleteLoading(true);
 
-      const res = await fetch(`${API_BASE}/companies/${company.id}`, {
+      const res = await fetch(`/api/companies/${company.id}`, {
         method: "DELETE",
       });
 
@@ -133,8 +129,8 @@ export function CompanyForm({ mode, company }: Props) {
 
       const url =
         mode === "create"
-          ? `${API_BASE}/companies`
-          : `${API_BASE}/companies/${companyId}`;
+          ? `/api/companies`
+          : `/api/companies/${companyId}`;
 
       const method = mode === "create" ? "POST" : "PATCH";
 

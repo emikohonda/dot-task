@@ -9,9 +9,6 @@ import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
-
 const PAGE_LIMIT = 20;
 
 type Contact = { name: string; phone?: string; email?: string };
@@ -38,7 +35,9 @@ type PaginatedCompanies = {
 
 async function fetchCompanies(params: URLSearchParams): Promise<PaginatedCompanies> {
   try {
-    const res = await fetch(`${API_BASE}/companies?${params.toString()}`, {
+    const query = params.toString();
+
+    const res = await fetch(`/api/companies${query ? `?${query}` : ""}`, {
       cache: "no-store",
     });
 

@@ -1,6 +1,7 @@
 // apps/web/src/app/companies/page.tsx
 import { Suspense } from "react";
 import { CompaniesClient } from "./CompaniesClient";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -46,6 +47,7 @@ async function fetchCompaniesOnServer(params: URLSearchParams): Promise<Paginate
   try {
     const res = await fetch(`${API_BASE}/companies?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
 
     if (!res.ok) {
