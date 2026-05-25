@@ -9,9 +9,6 @@ import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
-
 const PAGE_LIMIT = 20;
 
 type Contact = { name: string; phone?: string; email?: string };
@@ -38,7 +35,7 @@ type PaginatedContractors = {
 
 async function fetchContractors(params: URLSearchParams): Promise<PaginatedContractors> {
   try {
-    const res = await fetch(`${API_BASE}/contractors?${params.toString()}`, {
+    const res = await fetch(`/api/contractors?${params.toString()}`, {
       cache: "no-store",
     });
 
@@ -133,7 +130,7 @@ export function ContractorsClient({
       .finally(() => {
         setLoading(false);
       });
-  }, [searchParams]);
+  }, [searchParams, isDefaultState]);
 
   React.useEffect(() => {
     const nextKeyword = searchParams.get("keyword") ?? "";

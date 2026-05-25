@@ -1,6 +1,7 @@
 // apps/web/src/app/contractors/page.tsx
 import { Suspense } from "react";
 import { ContractorsClient } from "./ContractorsClient";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -48,6 +49,7 @@ async function fetchContractorsOnServer(
   try {
     const res = await fetch(`${API_BASE}/contractors?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
 
     if (!res.ok) {
@@ -93,7 +95,13 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
   const initialData = await fetchContractorsOnServer(params);
 
   return (
-    <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
+    <Suspense
+      fallback={
+        <div className="py-6 text-center text-sm text-slate-400">
+          読み込み中…
+        </div>
+      }
+    >
       <ContractorsClient initialData={initialData} />
     </Suspense>
   );

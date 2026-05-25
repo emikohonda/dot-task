@@ -3,15 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContractorForm } from "../../_components/ContractorForm";
 import { fromContractorToFormValues } from "@/lib/validations/contractorSchemas";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
   "http://127.0.0.1:3001";
 
 async function fetchContractor(id: string) {
   try {
-    const res = await fetch(`${API_BASE}/contractors/${id}`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}/contractors/${id}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
     if (!res.ok) return null;
+
     return await res.json();
   } catch {
     return null;

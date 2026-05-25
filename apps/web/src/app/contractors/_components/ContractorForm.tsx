@@ -17,10 +17,6 @@ import {
   toContractorUpdatePayload,
 } from "@/lib/validations/contractorSchemas";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 type Props = {
   mode: "create" | "edit";
   contractor: (ContractorFormValues & { id?: string }) | null;
@@ -95,11 +91,14 @@ export function ContractorForm({ mode, contractor }: Props) {
     try {
       setDeleteLoading(true);
 
-      const res = await fetch(`${API_BASE}/contractors/${contractor.id}`, {
+      const res = await fetch(`/api/contractors/${contractor.id}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `削除に失敗しました（${res.status}）`);
+      }
 
       setDeleteSucceeded(true);
       setToast({ show: true, message: "外注先を削除しました" });
@@ -108,10 +107,13 @@ export function ContractorForm({ mode, contractor }: Props) {
         router.push("/contractors");
         router.refresh();
       }, 1200);
-    } catch {
+    } catch (e) {
       setToast({
         show: true,
-        message: "削除に失敗しました。もう一度お試しください。",
+        message:
+          e instanceof Error
+            ? e.message
+            : "削除に失敗しました。もう一度お試しください。",
       });
     } finally {
       setDeleteLoading(false);
@@ -133,8 +135,8 @@ export function ContractorForm({ mode, contractor }: Props) {
 
       const url =
         mode === "create"
-          ? `${API_BASE}/contractors`
-          : `${API_BASE}/contractors/${contractorId}`;
+          ? "/api/contractors"
+          : `/api/contractors/${contractorId}`;
 
       const method = mode === "create" ? "POST" : "PATCH";
 
@@ -151,7 +153,8 @@ export function ContractorForm({ mode, contractor }: Props) {
 
       setToast({
         show: true,
-        message: mode === "create" ? "外注先を追加しました" : "外注先を更新しました",
+        message:
+          mode === "create" ? "外注先を追加しました" : "外注先を更新しました",
       });
 
       redirectTimerRef.current = window.setTimeout(() => {
@@ -195,12 +198,16 @@ export function ContractorForm({ mode, contractor }: Props) {
                 placeholder="例：〇〇設備 / 〇〇電工 など"
               />
               {errors.name?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.name.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">郵便番号</label>
+              <label className="block text-sm font-medium text-slate-700">
+                郵便番号
+              </label>
               <input
                 {...register("postalCode")}
                 disabled={isLocked}
@@ -208,43 +215,57 @@ export function ContractorForm({ mode, contractor }: Props) {
                 placeholder="123-4567"
               />
               {errors.postalCode?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.postalCode.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.postalCode.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">住所</label>
+              <label className="block text-sm font-medium text-slate-700">
+                住所
+              </label>
               <input
                 {...register("address")}
                 disabled={isLocked}
                 className={[baseInputClass, "border-slate-200"].join(" ")}
               />
               {errors.address?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.address.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.address.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">電話番号</label>
+              <label className="block text-sm font-medium text-slate-700">
+                電話番号
+              </label>
               <input
                 {...register("phone")}
                 disabled={isLocked}
                 className={[baseInputClass, "border-slate-200"].join(" ")}
               />
               {errors.phone?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.phone.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">メールアドレス</label>
+              <label className="block text-sm font-medium text-slate-700">
+                メールアドレス
+              </label>
               <input
                 {...register("email")}
                 disabled={isLocked}
                 className={[baseInputClass, "border-slate-200"].join(" ")}
               />
               {errors.email?.message && (
-                <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {errors.email.message}
+                </p>
               )}
             </div>
           </div>
@@ -252,14 +273,18 @@ export function ContractorForm({ mode, contractor }: Props) {
 
         <CardSection title="担当者">
           {!hasAnyContact && (
-            <p className="mb-3 text-xs text-slate-500">※ 担当者が登録されていません。</p>
+            <p className="mb-3 text-xs text-slate-500">
+              ※ 担当者が登録されていません。
+            </p>
           )}
 
           <div className="divide-y divide-slate-100">
             {fields.map((field, i) => (
               <div key={field.id} className="space-y-3 py-4 first:pt-0">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">担当者名</label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    担当者名
+                  </label>
                   <input
                     {...register(`contacts.${i}.name` as const)}
                     disabled={isLocked}
@@ -268,7 +293,9 @@ export function ContractorForm({ mode, contractor }: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">電話番号</label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    電話番号
+                  </label>
                   <input
                     {...register(`contacts.${i}.phone` as const)}
                     disabled={isLocked}
@@ -277,7 +304,9 @@ export function ContractorForm({ mode, contractor }: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">メールアドレス</label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    メールアドレス
+                  </label>
                   <input
                     {...register(`contacts.${i}.email` as const)}
                     disabled={isLocked}
@@ -301,7 +330,9 @@ export function ContractorForm({ mode, contractor }: Props) {
 
           <button
             type="button"
-            onClick={() => append({ id: undefined, name: "", phone: "", email: "" })}
+            onClick={() =>
+              append({ id: undefined, name: "", phone: "", email: "" })
+            }
             disabled={isLocked}
             className="mt-4 text-sm font-medium text-sky-600 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -320,12 +351,20 @@ export function ContractorForm({ mode, contractor }: Props) {
                 : "bg-sky-600 hover:bg-sky-700",
             ].join(" ")}
           >
-            {isSubmitting ? "保存中..." : mode === "create" ? "保存する" : "更新する"}
+            {isSubmitting
+              ? "保存中..."
+              : mode === "create"
+                ? "保存する"
+                : "更新する"}
           </button>
 
           <div className="flex gap-3">
             <Link
-              href={mode === "edit" && contractor?.id ? `/contractors/${contractor.id}` : "/contractors"}
+              href={
+                mode === "edit" && contractor?.id
+                  ? `/contractors/${contractor.id}`
+                  : "/contractors"
+              }
               aria-disabled={isLocked}
               className={[
                 "flex-1 min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold transition-colors",

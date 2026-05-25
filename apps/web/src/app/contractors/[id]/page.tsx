@@ -1,15 +1,15 @@
 // apps/web/src/app/contractors/[id]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Pencil,
-  Phone,
-  Mail,
-  Building2,
-  MapPin,
-} from "lucide-react";
+import { Pencil, Phone, Mail, Building2, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import { CardSection } from "@/components/CardSection";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
+
+const API_BASE =
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 type Contact = {
   id?: string;
@@ -32,13 +32,15 @@ type Contractor = {
 };
 
 async function fetchContractor(id: string): Promise<Contractor | null> {
-  const baseUrl = process.env.API_BASE_URL;
-  if (!baseUrl) throw new Error("API_BASE_URL is not set");
+  const url = `${API_BASE}/contractors/${id}`;
 
-  const url = `${baseUrl}/contractors/${id}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: await getApiAuthHeaders(),
+  });
 
   if (res.status === 404) return null;
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Failed to fetch contractor: ${res.status} ${text}`);
