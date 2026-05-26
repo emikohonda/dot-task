@@ -39,6 +39,32 @@ export type CompanyOption = {
   contacts: ContactOption[];
 };
 
+async function getErrorMessage(res: Response, fallback: string) {
+  const text = await res.text().catch(() => "");
+
+  if (!text) return fallback;
+
+  try {
+    const data = JSON.parse(text) as {
+      message?: string | string[];
+      error?: string;
+      statusCode?: number;
+    };
+
+    if (Array.isArray(data.message)) {
+      return data.message.join("\n");
+    }
+
+    if (typeof data.message === "string" && data.message.trim()) {
+      return data.message;
+    }
+
+    return fallback;
+  } catch {
+    return text || fallback;
+  }
+}
+
 type Props = {
   mode: "create" | "edit";
   site: SiteFormSource | null;
@@ -73,8 +99,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
       });
 
       if (!res.ok) {
-        const message = await res.text().catch(() => "削除に失敗しました");
-        throw new Error(message || "削除に失敗しました");
+        throw new Error(await getErrorMessage(res, "削除に失敗しました"));
       }
 
       clearCalendarScheduleCache();
@@ -190,7 +215,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
-          throw new Error(await res.text().catch(() => "作成に失敗しました"));
+          throw new Error(await getErrorMessage(res, "作成に失敗しました"));
         }
 
         clearCalendarScheduleCache();
@@ -208,7 +233,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(await res.text().catch(() => "更新に失敗しました"));
+        throw new Error(await getErrorMessage(res, "更新に失敗しました"));
       }
 
       clearCalendarScheduleCache();
