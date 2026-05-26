@@ -1,25 +1,47 @@
 // apps/web/src/lib/fetchers/sites.ts
 import type { Site } from "@/lib/api";
 import type { SiteDetail } from "@/types/site";
-import { safeJson } from "@/lib/safeFetch";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE_URL =
   process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-// 一覧は必ず配列を返す（pagination形式・配列の両方に対応）
 export async function fetchSites(limit = 200): Promise<Site[]> {
   if (!API_BASE_URL) return [];
-  const data = await safeJson<{ items: Site[] } | Site[]>(`${API_BASE_URL}/sites?limit=${limit}`);
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.items)) return data.items;
-  return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/sites?limit=${limit}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as { items?: Site[] } | Site[];
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchSite(siteId: string): Promise<SiteDetail | null> {
   if (!API_BASE_URL) return null;
-  const data = await safeJson<SiteDetail>(`${API_BASE_URL}/sites/${siteId}`);
-  return data ?? null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/sites/${siteId}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
+    if (!res.ok) return null;
+
+    return (await res.json()) as SiteDetail;
+  } catch {
+    return null;
+  }
 }
 
 export type SiteSchedule = {
@@ -44,10 +66,23 @@ export async function fetchSiteSchedules(
   options?: { includeCompleted?: boolean }
 ): Promise<SiteScheduleResult> {
   if (!API_BASE_URL) return { items: [], total: 0 };
+
   const query = new URLSearchParams({ limit: String(limit) });
   if (options?.includeCompleted) query.set("includeCompleted", "true");
-  const data = await safeJson<SiteScheduleResult>(
-    `${API_BASE_URL}/sites/${siteId}/schedules?${query.toString()}`
-  );
-  return data ?? { items: [], total: 0 };
+
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/sites/${siteId}/schedules?${query.toString()}`,
+      {
+        cache: "no-store",
+        headers: await getApiAuthHeaders(),
+      }
+    );
+
+    if (!res.ok) return { items: [], total: 0 };
+
+    return (await res.json()) as SiteScheduleResult;
+  } catch {
+    return { items: [], total: 0 };
+  }
 }

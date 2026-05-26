@@ -1,5 +1,5 @@
 // apps/web/src/lib/api.ts
-import { safeJson } from "@/lib/safeFetch";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 // =====================
 // Types (API Models)
@@ -10,7 +10,7 @@ export type Site = {
   name: string;
   color: string | null;
   address: string | null;
-  startDate: string | null; // ISO string (e.g. "2026-02-23T00:00:00.000Z")
+  startDate: string | null;
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
@@ -62,14 +62,13 @@ export type EmployeeLite = {
   name: string;
 };
 
-// ✅ 本番で 127.0.0.1 に逃がさない（＝落ちる原因を潰す）
-const API_BASE_URL = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API_BASE_URL =
+  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 // =====================
 // Sites
 // =====================
 
-// ✅ 一覧：失敗しても落とさない（常に配列を返す）
 export async function fetchSites(
   limit = 200,
   options?: {
@@ -84,27 +83,45 @@ export async function fetchSites(
   params.set("tab", options?.tab ?? "active");
   params.set("sortDate", options?.sortDate ?? "asc");
 
-  const data = await safeJson<{ items: Site[] } | Site[]>(
-    `${API_BASE_URL}/sites?${params.toString()}`
-  );
+  try {
+    const res = await fetch(`${API_BASE_URL}/sites?${params.toString()}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
 
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.items)) return data.items;
-  return [];
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as { items?: Site[] } | Site[];
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 // =====================
-// Companies (optional - 使いたくなったら)
+// Companies
 // =====================
 
-// 今は page.tsx 側で fetch してるけど、
-// 後で「API呼び出しも集約したい」になったらここに増やせる。
 export async function fetchCompanies(): Promise<Company[]> {
   if (!API_BASE_URL) return [];
-  const data = await safeJson<{ items: Company[] } | Company[]>(`${API_BASE_URL}/companies`);
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.items)) return data.items;
-  return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/companies`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as { items?: Company[] } | Company[];
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    return [];
+  } catch {
+    return [];
+  }
 }

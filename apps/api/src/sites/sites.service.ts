@@ -5,27 +5,13 @@ import { CreateSiteDto } from "./dto/create-site.dto";
 import { UpdateSiteDto } from "./dto/update-site.dto";
 import { Prisma } from "@prisma/client";
 
-type SiteTabType    = "active" | "done";
-type SiteSortType   = "asc" | "desc";
+type SiteTabType = "active" | "done";
+type SiteSortType = "asc" | "desc";
 type SiteStatusType = "upcoming" | "active" | "completed";
 
 @Injectable()
 export class SitesService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // --------------------------------
-  // 仮 organizationId 取得
-  // --------------------------------
-  private async getTemporaryOrganizationId() {
-    const organization = await this.prisma.organization.findFirst({
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-    if (!organization) {
-      throw new BadRequestException("Organization not found");
-    }
-    return organization.id;
-  }
 
   // --------------------------------
   // 取引先（Company）解決ヘルパー
@@ -88,8 +74,7 @@ export class SitesService {
     }
   }
 
-  async create(dto: CreateSiteDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async create(organizationId: string, dto: CreateSiteDto) {
     const { contactIds, startDate, endDate, color, companyNameToCreate, ...rest } = dto;
 
     const resolvedCompanyId = await this.resolveCompanyId(
@@ -112,43 +97,45 @@ export class SitesService {
         endDate: endDate ? new Date(endDate) : undefined,
         ...(contactIds?.length
           ? {
-              companyContacts: {
-                createMany: {
-                  data: contactIds.map((id) => ({ companyContactId: id })),
-                  skipDuplicates: true,
-                },
+            companyContacts: {
+              createMany: {
+                data: contactIds.map((id) => ({ companyContactId: id })),
+                skipDuplicates: true,
               },
-            }
+            },
+          }
           : {}),
       },
     });
   }
 
-  async findAll(params: {
-    keyword?:   string;
-    companyId?: string;
-    status?:    string;
-    tab?:       string;
-    sortDate?:  string;
-    monthFrom?: string;
-    monthTo?:   string;
-    limit?:     number;
-    offset?:    number;
-  } = {}) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async findAll(
+    organizationId: string,
+    params: {
+      keyword?: string;
+      companyId?: string;
+      status?: string;
+      tab?: string;
+      sortDate?: string;
+      monthFrom?: string;
+      monthTo?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) {
     const { keyword, companyId, status, tab, sortDate, monthFrom, monthTo } = params;
-    const limit  = Math.min(params.limit  ?? 20, 100);
+    const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
 
     const today = new Date();
-    const now   = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const andClauses: Prisma.SiteWhereInput[] = [
       { organizationId },
     ];
 
-    const validTabs:     SiteTabType[]    = ["active", "done"];
-    const validSorts:    SiteSortType[]   = ["asc", "desc"];
+    const validTabs: SiteTabType[] = ["active", "done"];
+    const validSorts: SiteSortType[] = ["asc", "desc"];
     const validStatuses: SiteStatusType[] = ["upcoming", "active", "completed"];
     const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -175,7 +162,7 @@ export class SitesService {
       const kw = keyword.trim();
       andClauses.push({
         OR: [
-          { name:    { contains: kw, mode: "insensitive" } },
+          { name: { contains: kw, mode: "insensitive" } },
           { address: { contains: kw, mode: "insensitive" } },
         ],
       });
@@ -252,9 +239,7 @@ export class SitesService {
     };
   }
 
-  async findOne(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
+  async findOne(organizationId: string, id: string) {
     const site = await this.prisma.site.findFirst({
       where: { id, organizationId },
       include: {
@@ -287,8 +272,7 @@ export class SitesService {
     return site;
   }
 
-  async update(id: string, dto: UpdateSiteDto) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async update(organizationId: string, id: string, dto: UpdateSiteDto) {
     await this.ensureExists(id, organizationId);
 
     const { contactIds, startDate, endDate, color, companyNameToCreate, ...siteFields } = dto;
@@ -298,10 +282,10 @@ export class SitesService {
 
     const resolvedCompanyId = shouldResolveCompany
       ? await this.resolveCompanyId(
-          organizationId,
-          siteFields.companyId ?? null,
-          companyNameToCreate ?? null,
-        )
+        organizationId,
+        siteFields.companyId ?? null,
+        companyNameToCreate ?? null,
+      )
       : undefined;
 
     if (contactIds?.length) {
@@ -322,42 +306,50 @@ export class SitesService {
         }),
         ...(contactIds !== undefined
           ? {
-              companyContacts: {
-                deleteMany: {},
-                ...(contactIds.length
-                  ? {
-                      createMany: {
-                        data: contactIds.map((cid) => ({ companyContactId: cid })),
-                        skipDuplicates: true,
-                      },
-                    }
-                  : {}),
-              },
-            }
+            companyContacts: {
+              deleteMany: {},
+              ...(contactIds.length
+                ? {
+                  createMany: {
+                    data: contactIds.map((cid) => ({ companyContactId: cid })),
+                    skipDuplicates: true,
+                  },
+                }
+                : {}),
+            },
+          }
           : {}),
       },
     });
   }
 
-  async remove(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async remove(organizationId: string, id: string) {
     await this.ensureExists(id, organizationId);
 
-    const scheduleCount = await this.prisma.schedule.count({ where: { siteId: id } });
+    const scheduleCount = await this.prisma.schedule.count({
+      where: { siteId: id, organizationId },
+    });
+
     if (scheduleCount > 0) {
       throw new BadRequestException(
         "この現場には予定が登録されているため削除できません。先に予定を削除してください。",
       );
     }
 
-    const workRecordCount = await this.prisma.workRecord.count({ where: { siteId: id } });
+    const workRecordCount = await this.prisma.workRecord.count({
+      where: { siteId: id },
+    });
+
     if (workRecordCount > 0) {
       throw new BadRequestException(
         "この現場には作業記録が登録されているため削除できません。",
       );
     }
 
-    const invoiceCount = await this.prisma.invoice.count({ where: { siteId: id } });
+    const invoiceCount = await this.prisma.invoice.count({
+      where: { siteId: id },
+    });
+
     if (invoiceCount > 0) {
       throw new BadRequestException(
         "この現場には請求書が登録されているため削除できません。",
@@ -375,8 +367,11 @@ export class SitesService {
     if (!site) throw new NotFoundException("Site not found");
   }
 
-  async findSchedulesBySiteId(siteId: string, limit = 3) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async findSchedulesBySiteId(
+    organizationId: string,
+    siteId: string,
+    limit = 3,
+  ) {
     await this.ensureExists(siteId, organizationId);
 
     const where: Prisma.ScheduleWhereInput = {
@@ -405,6 +400,7 @@ export class SitesService {
         },
       }),
     ]);
+
     return { items, total };
   }
 }

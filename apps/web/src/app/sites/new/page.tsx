@@ -1,13 +1,20 @@
 // apps/web/src/app/sites/new/page.tsx
 import Link from "next/link";
 import SiteForm from "../_components/SiteForm";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 async function fetchCompanies() {
   try {
-    const res = await fetch(`${API_BASE}/companies?limit=200`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}/companies?limit=200`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
     if (!res.ok) return [];
     const data = await res.json();
     if (Array.isArray(data)) return data;

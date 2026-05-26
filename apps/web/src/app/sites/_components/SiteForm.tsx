@@ -26,10 +26,6 @@ import {
 } from "@/lib/validations/siteSchemas";
 import CompanyQuickCreateInput from "./CompanyQuickCreateInput";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 type ContactOption = {
   id: string;
   name: string | null;
@@ -72,13 +68,13 @@ export default function SiteForm({ mode, site, companies }: Props) {
     try {
       setDeleteLoading(true);
 
-      const res = await fetch(`${API_BASE}/sites/${site.id}`, {
+      const res = await fetch(`/api/sites/${site.id}`, {
         method: "DELETE",
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "削除に失敗しました");
+        const message = await res.text().catch(() => "削除に失敗しました");
+        throw new Error(message || "削除に失敗しました");
       }
 
       clearCalendarScheduleCache();
@@ -188,7 +184,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
       const payload = toSitePayload(values);
 
       if (mode === "create") {
-        const res = await fetch(`${API_BASE}/sites`, {
+        const res = await fetch("/api/sites", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -206,7 +202,7 @@ export default function SiteForm({ mode, site, companies }: Props) {
 
       if (!site?.id) throw new Error("site.id が見つかりません");
 
-      const res = await fetch(`${API_BASE}/sites/${site.id}`, {
+      const res = await fetch(`/api/sites/${site.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

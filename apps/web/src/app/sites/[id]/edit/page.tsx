@@ -2,13 +2,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteForm from "../../_components/SiteForm";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 async function fetchCompanies() {
   try {
-    const res = await fetch(`${API_BASE}/companies?limit=200`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}/companies?limit=200`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
     if (!res.ok) return [];
     const data = await res.json();
     if (Array.isArray(data)) return data;
@@ -21,7 +28,11 @@ async function fetchCompanies() {
 
 async function fetchSite(id: string) {
   try {
-    const res = await fetch(`${API_BASE}/sites/${id}`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}/sites/${id}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
     if (!res.ok) return null;
     return await res.json();
   } catch {
