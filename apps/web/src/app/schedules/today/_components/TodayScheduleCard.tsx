@@ -33,12 +33,12 @@ function NameTag({ name, color = "slate" }: { name: string; color?: "sky" | "sla
 
 export default function TodayScheduleCard({ schedule }: { schedule: Schedule }) {
   const employeeNames = (schedule.employees ?? [])
-    .map((e) => e.employee.name)
-    .filter(Boolean);
+    .map((e) => e.employee?.name)
+    .filter((name): name is string => Boolean(name));
 
   const contractorNames = (schedule.contractors ?? [])
-    .map((c) => c.contractor.name)
-    .filter(Boolean);
+    .map((c) => c.contractor?.name)
+    .filter((name): name is string => Boolean(name));
 
   const timeLabel = formatTimeRange(schedule.startTime, schedule.endTime);
   const isTimed = !!schedule.startTime || !!schedule.endTime;

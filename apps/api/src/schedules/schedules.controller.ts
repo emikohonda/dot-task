@@ -10,17 +10,23 @@ import {
   Query,
   ParseIntPipe,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthUser } from '../auth/auth-user.type';
 
 @Controller('schedules')
+@UseGuards(JwtAuthGuard)
 export class SchedulesController {
-  constructor(private readonly schedulesService: SchedulesService) { }
+  constructor(private readonly schedulesService: SchedulesService) {}
 
   @Get()
   findAll(
+    @CurrentUser() user: AuthUser,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
     @Query('date') date?: string,
@@ -33,7 +39,7 @@ export class SchedulesController {
     @Query('employeeId') employeeId?: string,
     @Query('contractorId') contractorId?: string,
   ) {
-    return this.schedulesService.findAll({
+    return this.schedulesService.findAll(user.organizationId, {
       limit,
       offset,
       date,
@@ -49,13 +55,19 @@ export class SchedulesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.schedulesService.findOne(id);
+  findOne(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.schedulesService.findOne(user.organizationId, id);
   }
 
   @Post()
-  create(@Body() dto: CreateScheduleDto) {
-    return this.schedulesService.create({
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateScheduleDto,
+  ) {
+    return this.schedulesService.create(user.organizationId, {
       title: dto.title,
       date: dto.date,
       endDate: dto.endDate ?? null,
@@ -71,8 +83,12 @@ export class SchedulesController {
   }
 
   @Patch(':id')
-  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateScheduleDto) {
-    return this.schedulesService.update(id, {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateScheduleDto,
+  ) {
+    return this.schedulesService.update(user.organizationId, id, {
       title: dto.title,
       date: dto.date,
       endDate: dto.endDate,
@@ -88,7 +104,10 @@ export class SchedulesController {
   }
 
   @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.schedulesService.remove(id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.schedulesService.remove(user.organizationId, id);
   }
 }

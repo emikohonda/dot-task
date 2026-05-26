@@ -26,10 +26,6 @@ import {
   type SiteRange,
 } from "@/lib/validations/scheduleSchemas";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3001";
-
 type Props = {
   mode: "create" | "edit";
   sites: Site[];
@@ -75,7 +71,7 @@ export default function ScheduleForm({
     try {
       setDeleteLoading(true);
 
-      const res = await fetch(`${API_BASE}/schedules/${schedule.id}`, {
+      const res = await fetch(`/api/schedules/${schedule.id}`, {
         method: "DELETE",
       });
 
@@ -178,7 +174,7 @@ export default function ScheduleForm({
           contractorNamesToCreate: contractorNewNames,
         };
 
-        const res = await fetch(`${API_BASE}/schedules`, {
+        const res = await fetch(`/api/schedules`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -202,7 +198,7 @@ export default function ScheduleForm({
         ...toScheduleUpdatePayload(values),
         contractorNamesToCreate: contractorNewNames,
       };
-      const res = await fetch(`${API_BASE}/schedules/${schedule.id}`, {
+      const res = await fetch(`/api/schedules/${schedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

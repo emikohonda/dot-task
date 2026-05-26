@@ -18,9 +18,6 @@ import {
 } from "./_components/calendar";
 import { getSiteColor } from "@/lib/siteColors";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
-
 const WEEK_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 const STORAGE_KEY = "calendar:selectedYmd";
 const MONTH_STORAGE_KEY = "calendar:visibleMonth";
@@ -30,11 +27,17 @@ async function fetchGridSchedules(year: number, month0: number): Promise<Schedul
   try {
     const { from, to } = gridRange(year, month0);
     const params = new URLSearchParams({ dateFrom: from, dateTo: to, limit: "200" });
-    const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, { cache: "no-store" });
+
+    const res = await fetch(`/api/schedules?${params.toString()}`, {
+      cache: "no-store",
+    });
+
     if (!res.ok) return [];
+
     const data = await res.json();
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.items)) return data.items;
+
     return [];
   } catch {
     return [];
@@ -49,13 +52,17 @@ async function fetchSchedulesByDate(ymd: string): Promise<Schedule[]> {
       dateTo: ymd,
       limit: "200",
     });
-    const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
+
+    const res = await fetch(`/api/schedules?${params.toString()}`, {
       cache: "no-store",
     });
+
     if (!res.ok) return [];
+
     const data = await res.json();
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.items)) return data.items;
+
     return [];
   } catch {
     return [];
@@ -105,8 +112,7 @@ function formatTimeBlock(s: Schedule): { line1: string; line2: string } {
 }
 
 function companyName(s: Schedule): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (s.site as any)?.company?.name ?? "元請未設定";
+  return s.site?.company?.name ?? "元請未設定";
 }
 
 export type CalendarClientProps = {
@@ -509,9 +515,9 @@ export default function CalendarClient({
                               ? "bg-slate-200 text-slate-400"
                               : `${siteColor.bgSoft} ${siteColor.text}`,
                           ].join(" ")}
-                          title={s.site?.name ?? s.title}
+                          title={s.site?.name ?? s.title ?? undefined}
                         >
-                          {s.site?.name ?? s.title}
+                          {s.site?.name ?? s.title ?? "無題の予定"}
                         </div>
                       );
                     })}

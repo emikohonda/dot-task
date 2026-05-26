@@ -71,20 +71,6 @@ function buildOverlapConditions(
 export class SchedulesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // --------------------------------
-  // 仮 organizationId 取得
-  // --------------------------------
-  private async getTemporaryOrganizationId() {
-    const organization = await this.prisma.organization.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    if (!organization) {
-      throw new BadRequestException('Organization not found');
-    }
-    return organization.id;
-  }
-
   private includeForScheduleList() {
     return {
       site: {
@@ -195,20 +181,22 @@ export class SchedulesService {
     return created.id;
   }
 
-  async findAll(params: {
-    limit?: number;
-    offset?: number;
-    date?: string;
-    keyword?: string;
-    tab?: string;
-    sortDate?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    siteId?: string;
-    employeeId?: string;
-    contractorId?: string;
-  }) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async findAll(
+    organizationId: string,
+    params: {
+      limit?: number;
+      offset?: number;
+      date?: string;
+      keyword?: string;
+      tab?: string;
+      sortDate?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      siteId?: string;
+      employeeId?: string;
+      contractorId?: string;
+    },
+  ) {
     const { date, keyword, tab, sortDate, dateFrom, dateTo, siteId, employeeId, contractorId } = params;
 
     const limit = Math.min(params.limit ?? 20, 200);
@@ -309,8 +297,7 @@ export class SchedulesService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async findOne(organizationId: string, id: string) {
     const schedule = await this.prisma.schedule.findFirst({
       where: { id, organizationId },
       include: this.includeForScheduleDetail(),
@@ -319,20 +306,22 @@ export class SchedulesService {
     return schedule;
   }
 
-  async create(input: {
-    title?: string;
-    date: string;
-    endDate?: string | null;
-    siteId?: string | null;
-    siteNameToCreate?: string | null;
-    contractorIds?: string[];
-    contractorNamesToCreate?: string[];
-    employeeIds?: string[];
-    description?: string | null;
-    startTime?: string | null;
-    endTime?: string | null;
-  }) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async create(
+    organizationId: string,
+    input: {
+      title?: string;
+      date: string;
+      endDate?: string | null;
+      siteId?: string | null;
+      siteNameToCreate?: string | null;
+      contractorIds?: string[];
+      contractorNamesToCreate?: string[];
+      employeeIds?: string[];
+      description?: string | null;
+      startTime?: string | null;
+      endTime?: string | null;
+    },
+  ) {
     const title = input.title?.trim() ?? '';
 
     const dateObj = ymdToUtcDate(input.date, 'date');
@@ -408,6 +397,7 @@ export class SchedulesService {
   }
 
   async update(
+    organizationId: string,
     id: string,
     input: {
       title?: string;
@@ -423,8 +413,6 @@ export class SchedulesService {
       endTime?: string | null;
     },
   ) {
-    const organizationId = await this.getTemporaryOrganizationId();
-
     const exists = await this.prisma.schedule.findFirst({
       where: { id, organizationId },
       select: { id: true, startTime: true, endTime: true, date: true, endDate: true },
@@ -527,8 +515,7 @@ export class SchedulesService {
     });
   }
 
-  async remove(id: string) {
-    const organizationId = await this.getTemporaryOrganizationId();
+  async remove(organizationId: string, id: string) {
     const exists = await this.prisma.schedule.findFirst({
       where: { id, organizationId },
       select: { id: true },

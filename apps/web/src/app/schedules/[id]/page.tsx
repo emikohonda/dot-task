@@ -17,17 +17,6 @@ import type { ReactNode } from "react";
 import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 import { formatScheduleTitle, formatDateRange } from "@/lib/validations/scheduleSchemas";
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "—";
-  const weekday = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}年${month}月${day}日（${weekday}）`;
-}
-
 function formatDateTime(dateStr: string | null | undefined) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);

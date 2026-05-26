@@ -3,6 +3,7 @@ import { gridRange } from "./_components/calendar";
 import { Suspense } from "react";
 import { CalendarClientNoSsr } from "./CalendarClientNoSsr";
 import { between } from "holiday-jp";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 function toYmdTokyo(d: Date): string {
   return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
@@ -20,7 +21,9 @@ function buildHolidays(years: number[]): Record<string, string> {
 }
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  "http://127.0.0.1:3001";
 
 async function fetchInitialSchedules(year: number, month0: number) {
   try {
@@ -32,6 +35,7 @@ async function fetchInitialSchedules(year: number, month0: number) {
     });
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
     if (!res.ok) return [];
     const data = await res.json();

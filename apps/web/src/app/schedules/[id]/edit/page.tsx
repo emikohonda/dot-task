@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { fetchSites } from "@/lib/fetchers/sites";
 import { fetchContractors } from "@/lib/fetchers/contractors";
-import { fetchScheduleById } from "@/lib/fetchers/scheduleById";
+import { fetchScheduleById } from "@/lib/fetchers/schedules";
 import { fetchEmployees } from "@/lib/fetchers/employees";
 import ScheduleForm from "../../_components/ScheduleForm";
 

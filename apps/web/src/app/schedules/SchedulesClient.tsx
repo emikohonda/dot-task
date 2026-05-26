@@ -16,9 +16,6 @@ import type { ComboboxOption } from "@/components/Combobox";
 import { formatScheduleTitle, formatDateRangeShort, } from "@/lib/validations/scheduleSchemas";
 import { getSiteColor } from "@/lib/siteColors";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3001";
-
 const PAGE_LIMIT = 20;
 
 type PaginatedSchedules = {
@@ -33,11 +30,20 @@ type SortType = "asc" | "desc";
 
 async function fetchSchedules(params: URLSearchParams): Promise<PaginatedSchedules> {
   try {
-    const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, { cache: "no-store" });
+    const res = await fetch(`/api/schedules?${params.toString()}`, {
+      cache: "no-store",
+    });
+
     if (!res.ok) return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
+
     const data = await res.json();
+
     if (data && Array.isArray(data.items)) return data as PaginatedSchedules;
-    if (Array.isArray(data)) return { items: data, total: data.length, limit: PAGE_LIMIT, offset: 0 };
+
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length, limit: PAGE_LIMIT, offset: 0 };
+    }
+
     return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
   } catch {
     return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
@@ -46,11 +52,17 @@ async function fetchSchedules(params: URLSearchParams): Promise<PaginatedSchedul
 
 async function fetchOptions(path: string): Promise<ComboboxOption[]> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+    const res = await fetch(path, { cache: "no-store" });
+
     if (!res.ok) return [];
+
     const data = await res.json();
     const list = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
-    return list.map((x: { id: string; name: string }) => ({ id: x.id, name: x.name }));
+
+    return list.map((x: { id: string; name: string }) => ({
+      id: x.id,
+      name: x.name,
+    }));
   } catch {
     return [];
   }
@@ -95,7 +107,7 @@ export default function SchedulesClient({
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
 
   React.useEffect(() => {
-    fetchOptions("/sites?limit=200").then(setSiteOptions);
+    fetchOptions("/api/sites?limit=200").then(setSiteOptions);
   }, []);
 
   React.useEffect(() => {

@@ -1,5 +1,7 @@
+// apps/web/src/app/schedules/page.tsx
 import { Suspense } from "react";
 import SchedulesClient from "./SchedulesClient";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const PAGE_LIMIT = 20;
 
@@ -53,6 +55,7 @@ async function fetchInitialSchedules(sp: { [key: string]: string | string[] | un
   try {
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
     if (!res.ok) return { items: [], total: 0 };
 

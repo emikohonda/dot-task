@@ -5,6 +5,7 @@ import { MapPin, ChevronLeft } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import { getSiteColor } from "@/lib/siteColors";
+import { getApiAuthHeaders } from "@/lib/apiAuth";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -39,8 +40,7 @@ function formatTimeBlock(s: Schedule): { line1: string; line2: string } {
 }
 
 function companyName(s: Schedule): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (s.site as any)?.company?.name ?? "元請未設定";
+  return s.site?.company?.name ?? "元請未設定";
 }
 
 async function fetchDaySchedules(date: string): Promise<Schedule[]> {
@@ -48,6 +48,7 @@ async function fetchDaySchedules(date: string): Promise<Schedule[]> {
     const params = new URLSearchParams({ dateFrom: date, dateTo: date, limit: "100" });
     const res = await fetch(`${API_BASE}/schedules?${params.toString()}`, {
       cache: "no-store",
+      headers: await getApiAuthHeaders(),
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -99,65 +100,65 @@ export default async function CalendarDayPage({ params }: Props) {
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
-              {schedules.map((s) => {
-                const { line1, line2 } = formatTimeBlock(s);
-                const company = companyName(s);
-                const siteName = s.site?.name ?? "";
-                const siteColor = getSiteColor(s.site?.color);
+            {schedules.map((s) => {
+              const { line1, line2 } = formatTimeBlock(s);
+              const company = companyName(s);
+              const siteName = s.site?.name ?? "";
+              const siteColor = getSiteColor(s.site?.color);
 
-                return (
-                  <li key={s.id}>
-                    <Link
-                      href={`/schedules/${s.id}`}
-                      className="flex w-full items-stretch gap-0 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100"
-                    >
-                      <div
-                        className={[
-                          "mr-3 w-1 shrink-0 rounded-full",
-                          siteColor.dot,
-                        ].join(" ")}
-                        aria-hidden="true"
-                      />
+              return (
+                <li key={s.id}>
+                  <Link
+                    href={`/schedules/${s.id}`}
+                    className="flex w-full items-stretch gap-0 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                  >
+                    <div
+                      className={[
+                        "mr-3 w-1 shrink-0 rounded-full",
+                        siteColor.dot,
+                      ].join(" ")}
+                      aria-hidden="true"
+                    />
 
-                      <div className="w-[48px] shrink-0 pr-2 text-right">
-                        <p className="text-[14px] font-semibold leading-5 text-slate-700">
-                          {line1}
+                    <div className="w-[48px] shrink-0 pr-2 text-right">
+                      <p className="text-[14px] font-semibold leading-5 text-slate-700">
+                        {line1}
+                      </p>
+                      <p className="text-[14px] font-semibold leading-5 text-slate-500">
+                        {line2}
+                      </p>
+                    </div>
+
+                    <div className="mx-2 w-px shrink-0 self-stretch bg-slate-200" />
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] leading-5 text-slate-500">
+                        {company}
+                      </p>
+
+                      {siteName && (
+                        <p
+                          className={[
+                            "flex items-center gap-1.5 truncate text-[16px] font-semibold leading-6",
+                            siteColor.text,
+                          ].join(" ")}
+                        >
+                          <MapPin className={["h-4 w-4 shrink-0", siteColor.text].join(" ")} />
+                          {siteName}
                         </p>
-                        <p className="text-[14px] font-semibold leading-5 text-slate-500">
-                          {line2}
-                        </p>
-                      </div>
-
-                      <div className="mx-2 w-px shrink-0 self-stretch bg-slate-200" />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] leading-5 text-slate-500">
-                          {company}
-                        </p>
-
-                        {siteName && (
-                          <p
-                            className={[
-                              "flex items-center gap-1.5 truncate text-[16px] font-semibold leading-6",
-                              siteColor.text,
-                            ].join(" ")}
-                          >
-                            <MapPin className={["h-4 w-4 shrink-0", siteColor.text].join(" ")} />
-                            {siteName}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
 
       {/* 右下固定FAB */}
       <FloatingAddButton href={`/schedules/new?date=${date}`} />
-      
+
     </div>
   );
 }
