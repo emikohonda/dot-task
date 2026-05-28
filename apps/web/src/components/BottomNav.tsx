@@ -11,7 +11,13 @@ type Props = {
   menuOpen: boolean;
 };
 
-const MENU_PATHS = ["/schedules", "/companies", "/contractors"];
+const MENU_PATHS = [
+  "/schedules",
+  "/employees",
+  "/companies",
+  "/contractors",
+  "/settings",
+];
 
 export function BottomNav({ onMenuClick, menuOpen }: Props) {
   const pathname = usePathname();
