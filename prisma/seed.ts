@@ -5,6 +5,12 @@ const prisma = new PrismaClient();
 const INIT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 async function main() {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+
+  if (databaseUrl.includes("neon.tech")) {
+    throw new Error("❌ Neon DBでは seed.ts を実行しないでください。ローカルDBでのみ実行してください。");
+  }
+
   // 掃除
   await prisma.scheduleContractor.deleteMany();
   await prisma.scheduleEmployee.deleteMany();
@@ -99,14 +105,6 @@ async function main() {
       employees:   { createMany: { data: [{ employeeId: e2.id }, { employeeId: e3.id }],   skipDuplicates: true } },
     },
   });
-
-  // 念のため backfill（安全網）
-  await prisma.company.updateMany({    where: { organizationId: null }, data: { organizationId: initOrg.id } });
-  await prisma.contractor.updateMany({ where: { organizationId: null }, data: { organizationId: initOrg.id } });
-  await prisma.employee.updateMany({   where: { organizationId: null }, data: { organizationId: initOrg.id } });
-  await prisma.site.updateMany({       where: { organizationId: null }, data: { organizationId: initOrg.id } });
-  await prisma.schedule.updateMany({   where: { organizationId: null }, data: { organizationId: initOrg.id } });
-  console.log("✅ backfill 完了:", initOrg.id);
 
   console.log("✅ Seed done");
 }
