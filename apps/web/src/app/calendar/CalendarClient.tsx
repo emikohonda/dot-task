@@ -97,12 +97,12 @@ function loadMonthSchedules(y: number, m0: number): Schedule[] | null {
 const variants = {
   enter: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
-    opacity: dir === 0 ? 1 : 0,
+    opacity: 1,
   }),
   center: { x: 0, opacity: 1 },
   exit: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "-100%" : "100%",
-    opacity: dir === 0 ? 1 : 0,
+    opacity: 1,
   }),
 };
 
@@ -447,7 +447,6 @@ export default function CalendarClient({
             exit="exit"
             transition={{
               x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.15 },
             }}
             className="absolute inset-0 grid grid-cols-7 grid-rows-6 gap-px bg-slate-100"
           >
