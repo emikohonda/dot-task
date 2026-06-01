@@ -228,20 +228,27 @@ export default function CalendarClient({
       const cachedData = cache[key] ?? loadMonthSchedules(y, m0);
 
       setDirection(dir);
+      setYear(y);
+      setMonth0(m0);
+      saveVisibleMonth(y, m0);
 
       if (cachedData) {
+        // キャッシュがある月は即表示して、画面はそのまま安定させる
         setSchedules(cachedData);
         setCache((prev) => ({
           ...prev,
           [key]: cachedData,
         }));
+
+        // 裏で最新データは取得するが、表示中の schedules は上書きしない
+        const data = await fetchGridSchedules(y, m0);
+        setCache((prev) => ({ ...prev, [key]: data }));
+        saveMonthSchedules(y, m0, data);
+
+        return;
       }
 
-      setYear(y);
-      setMonth0(m0);
-      saveVisibleMonth(y, m0);
-
-      // ただし、必ず裏で最新データを取得して更新する
+      // キャッシュがない月だけ、取得結果を画面に反映する
       const data = await fetchGridSchedules(y, m0);
       setSchedules(data);
       setCache((prev) => ({ ...prev, [key]: data }));
