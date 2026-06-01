@@ -23,7 +23,7 @@ const STORAGE_KEY = "calendar:selectedYmd";
 const MONTH_STORAGE_KEY = "calendar:visibleMonth";
 const MONTH_DATA_STORAGE_PREFIX = "calendar:monthSchedules:";
 
-async function fetchGridSchedules(year: number, month0: number): Promise<Schedule[]> {
+async function fetchGridSchedules(year: number, month0: number): Promise<Schedule[] | null> {
   try {
     const { from, to } = gridRange(year, month0);
     const params = new URLSearchParams({ dateFrom: from, dateTo: to, limit: "200" });
@@ -32,7 +32,7 @@ async function fetchGridSchedules(year: number, month0: number): Promise<Schedul
       cache: "no-store",
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) return null;
 
     const data = await res.json();
     if (Array.isArray(data)) return data;
@@ -40,7 +40,7 @@ async function fetchGridSchedules(year: number, month0: number): Promise<Schedul
 
     return [];
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -177,6 +177,8 @@ export default function CalendarClient({
     return result;
   });
 
+  const monthRequestIdRef = React.useRef(0);
+
   const selectYmd = React.useCallback((ymd: string) => {
     setSelectedYmd(ymd);
     sessionStorage.setItem(STORAGE_KEY, ymd);
@@ -198,7 +200,7 @@ export default function CalendarClient({
       const savedMonth0 = savedMonthNumber - 1;
 
       fetchGridSchedules(savedYear, savedMonth0).then((data) => {
-        if (cancelled) return;
+        if (cancelled || data === null) return;
 
         setSchedules(data);
         setCache((prev) => ({
@@ -223,8 +225,10 @@ export default function CalendarClient({
 
   const goToMonth = React.useCallback(
     async (y: number, m0: number, dir: number) => {
-      const key = monthKey(y, m0);
+      const requestId = monthRequestIdRef.current + 1;
+      monthRequestIdRef.current = requestId;
 
+      const key = monthKey(y, m0);
       const cachedData = cache[key] ?? loadMonthSchedules(y, m0);
 
       setDirection(dir);
@@ -233,23 +237,26 @@ export default function CalendarClient({
       saveVisibleMonth(y, m0);
 
       if (cachedData) {
-        // キャッシュがある月は即表示して、画面はそのまま安定させる
         setSchedules(cachedData);
         setCache((prev) => ({
           ...prev,
           [key]: cachedData,
         }));
 
-        // 裏で最新データは取得するが、表示中の schedules は上書きしない
         const data = await fetchGridSchedules(y, m0);
+
+        if (monthRequestIdRef.current !== requestId || data === null) return;
+
         setCache((prev) => ({ ...prev, [key]: data }));
         saveMonthSchedules(y, m0, data);
 
         return;
       }
 
-      // キャッシュがない月だけ、取得結果を画面に反映する
       const data = await fetchGridSchedules(y, m0);
+
+      if (monthRequestIdRef.current !== requestId || data === null) return;
+
       setSchedules(data);
       setCache((prev) => ({ ...prev, [key]: data }));
       saveMonthSchedules(y, m0, data);
