@@ -96,8 +96,8 @@ model Company {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  organizationId String?       @map("organization_id")
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // この元請が担当している現場一覧
   sites Site[]
@@ -152,8 +152,8 @@ model Employee {
   email String?
   role  String?
 
-  organizationId String?       @map("organization_id")
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   schedules ScheduleEmployee[]
 
@@ -193,8 +193,8 @@ model Site {
 
   color String @default("sky")
 
-  organizationId String?       @map("organization_id")
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // この現場の元請
   companyId       String?
@@ -227,8 +227,8 @@ model Contractor {
   phone      String?
   email      String?
 
-  organizationId String?       @map("organization_id")
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   contacts ContractorContact[]
 
@@ -284,7 +284,7 @@ model SiteContractor {
 model Schedule {
   id             String    @id @default(uuid())
   siteId         String
-  organizationId String?   @map("organization_id")
+  organizationId String    @map("organization_id")
   title          String
   description    String?
   date           DateTime
@@ -292,8 +292,8 @@ model Schedule {
   startTime      String?
   endTime        String?
 
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  site         Site          @relation(fields: [siteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  site         Site         @relation(fields: [siteId], references: [id])
 
   contractors ScheduleContractor[]
   employees   ScheduleEmployee[]

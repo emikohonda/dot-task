@@ -1,5 +1,5 @@
 // apps/api/src/contractors/contractors.service.ts
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateContractorDto } from "./dto/create-contractor.dto";
 import { UpdateContractorDto } from "./dto/update-contractor.dto";
@@ -9,6 +9,11 @@ export class ContractorsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(organizationId: string, dto: CreateContractorDto) {
+    const name = dto.name?.trim();
+    if (!name) {
+      throw new BadRequestException("name is required");
+    }
+
     const contacts = (dto.contacts ?? [])
       .map((c) => ({
         name: c.name?.trim() || null,
@@ -20,7 +25,7 @@ export class ContractorsService {
     return this.prisma.contractor.create({
       data: {
         organizationId,
-        name: dto.name.trim(),
+        name,
         postalCode: dto.postalCode?.trim() || null,
         address: dto.address?.trim() || null,
         phone: dto.phone?.trim() || null,
@@ -44,31 +49,31 @@ export class ContractorsService {
       organizationId,
       ...(trimmedKeyword
         ? {
-            OR: [
-              {
-                name: {
-                  contains: trimmedKeyword,
-                  mode: "insensitive" as const,
-                },
+          OR: [
+            {
+              name: {
+                contains: trimmedKeyword,
+                mode: "insensitive" as const,
               },
-              {
-                address: {
-                  contains: trimmedKeyword,
-                  mode: "insensitive" as const,
-                },
+            },
+            {
+              address: {
+                contains: trimmedKeyword,
+                mode: "insensitive" as const,
               },
-              {
-                contacts: {
-                  some: {
-                    name: {
-                      contains: trimmedKeyword,
-                      mode: "insensitive" as const,
-                    },
+            },
+            {
+              contacts: {
+                some: {
+                  name: {
+                    contains: trimmedKeyword,
+                    mode: "insensitive" as const,
                   },
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : {}),
     };
 
@@ -120,10 +125,15 @@ export class ContractorsService {
         throw new NotFoundException("Contractor not found");
       }
 
+      const name = dto.name !== undefined ? dto.name.trim() : undefined;
+      if (name === "") {
+        throw new BadRequestException("name cannot be empty");
+      }
+
       await tx.contractor.update({
         where: { id },
         data: {
-          name: dto.name?.trim() ?? undefined,
+          ...(name !== undefined ? { name } : {}),
           postalCode:
             dto.postalCode !== undefined
               ? dto.postalCode.trim() || null
