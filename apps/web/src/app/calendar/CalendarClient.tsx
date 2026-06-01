@@ -189,8 +189,6 @@ export default function CalendarClient({
 
     let cancelled = false;
 
-    saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
-
     const savedYmd = sessionStorage.getItem(STORAGE_KEY);
     if (savedYmd) setSelectedYmd(savedYmd);
 
