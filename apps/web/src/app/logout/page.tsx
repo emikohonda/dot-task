@@ -1,5 +1,6 @@
 // apps/web/src/app/logout/page.tsx
 import { signOut } from "@/auth";
+import { LogoutButton } from "./LogoutButton";
 
 export default function LogoutPage() {
   return (
@@ -20,12 +21,7 @@ export default function LogoutPage() {
           await signOut({ redirectTo: "/login" });
         }}
       >
-        <button
-          type="submit"
-          className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-700"
-        >
-          ログアウトする
-        </button>
+        <LogoutButton />
       </form>
     </main>
   );

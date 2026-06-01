@@ -1,5 +1,6 @@
 // apps/web/src/app/login/page.tsx
 import { signIn } from "@/auth";
+import { LoginButton } from "./LoginButton";
 
 export default function LoginPage() {
   return (
@@ -20,12 +21,7 @@ export default function LoginPage() {
           await signIn("google", { redirectTo: "/" });
         }}
       >
-        <button
-          type="submit"
-          className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-700"
-        >
-          Googleでログイン
-        </button>
+        <LoginButton />
       </form>
     </main>
   );
