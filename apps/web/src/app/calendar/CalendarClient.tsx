@@ -189,6 +189,8 @@ export default function CalendarClient({
 
     let cancelled = false;
 
+    saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
+
     const savedYmd = sessionStorage.getItem(STORAGE_KEY);
     if (savedYmd) setSelectedYmd(savedYmd);
 
@@ -245,6 +247,7 @@ export default function CalendarClient({
 
         if (monthRequestIdRef.current !== requestId || data === null) return;
 
+        setSchedules(data);
         setCache((prev) => ({ ...prev, [key]: data }));
         saveMonthSchedules(y, m0, data);
 
