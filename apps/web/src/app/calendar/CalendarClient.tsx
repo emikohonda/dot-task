@@ -97,12 +97,12 @@ function loadMonthSchedules(y: number, m0: number): Schedule[] | null {
 const variants = {
   enter: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
-    opacity: 0,
+    opacity: dir === 0 ? 1 : 0,
   }),
   center: { x: 0, opacity: 1 },
   exit: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "-100%" : "100%",
-    opacity: 0,
+    opacity: dir === 0 ? 1 : 0,
   }),
 };
 
@@ -265,8 +265,10 @@ export default function CalendarClient({
   React.useEffect(() => {
     if (!selectedReady) return;
 
-    // グリッド内の日付は即表示
-    if (byDate.has(selectedYmd)) {
+    const { from, to } = gridRange(year, month0);
+
+    // 表示中グリッド内の日付なら、予定あり/なしを即反映する
+    if (selectedYmd >= from && selectedYmd <= to) {
       setSelectedSchedules(byDate.get(selectedYmd) ?? []);
       return;
     }
@@ -282,7 +284,7 @@ export default function CalendarClient({
     return () => {
       cancelled = true;
     };
-  }, [selectedReady, selectedYmd, byDate]);
+  }, [selectedReady, selectedYmd, byDate, year, month0]);
 
   // ── スワイプ検出（安全版）──
   const touchStartX = React.useRef<number | null>(null);
