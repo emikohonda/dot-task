@@ -19,6 +19,7 @@ import {
 import { getSiteColor } from "@/lib/siteColors";
 
 const WEEK_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
+const EMPTY_SCHEDULES: Schedule[] = [];
 const STORAGE_KEY = "calendar:selectedYmd";
 const MONTH_STORAGE_KEY = "calendar:visibleMonth";
 const MONTH_DATA_STORAGE_PREFIX = "calendar:monthSchedules:";
@@ -177,6 +178,13 @@ export default function CalendarClient({
     return result;
   });
 
+  const [schedulesMonthKey, setSchedulesMonthKey] = React.useState(() => {
+    if (typeof window === "undefined") return monthKey(initialYear, initialMonth0);
+    const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
+    if (saved && /^\d{4}-\d{2}$/.test(saved)) return saved;
+    return monthKey(initialYear, initialMonth0);
+  });
+
   const monthRequestIdRef = React.useRef(0);
 
   const selectYmd = React.useCallback((ymd: string) => {
@@ -202,10 +210,13 @@ export default function CalendarClient({
       fetchGridSchedules(savedYear, savedMonth0).then((data) => {
         if (cancelled || data === null) return;
 
+        const key = monthKey(savedYear, savedMonth0);
+
         setSchedules(data);
+        setSchedulesMonthKey(key);
         setCache((prev) => ({
           ...prev,
-          [monthKey(savedYear, savedMonth0)]: data,
+          [key]: data,
         }));
         saveMonthSchedules(savedYear, savedMonth0, data);
       });
@@ -238,6 +249,7 @@ export default function CalendarClient({
 
       if (cachedData) {
         setSchedules(cachedData);
+        setSchedulesMonthKey(key);
         setCache((prev) => ({
           ...prev,
           [key]: cachedData,
@@ -248,6 +260,7 @@ export default function CalendarClient({
         if (monthRequestIdRef.current !== requestId || data === null) return;
 
         setSchedules(data);
+        setSchedulesMonthKey(key);
         setCache((prev) => ({ ...prev, [key]: data }));
         saveMonthSchedules(y, m0, data);
 
@@ -259,13 +272,22 @@ export default function CalendarClient({
       if (monthRequestIdRef.current !== requestId || data === null) return;
 
       setSchedules(data);
+      setSchedulesMonthKey(key);
       setCache((prev) => ({ ...prev, [key]: data }));
       saveMonthSchedules(y, m0, data);
     },
     [cache]
   );
 
-  const byDate = React.useMemo(() => groupByDate(schedules), [schedules]);
+  const activeMonthKey = monthKey(year, month0);
+
+  const visibleSchedules =
+    schedulesMonthKey === activeMonthKey ? schedules : cache[activeMonthKey] ?? EMPTY_SCHEDULES;
+
+  const byDate = React.useMemo(
+    () => groupByDate(visibleSchedules),
+    [visibleSchedules]
+  );
 
   const goPrev = React.useCallback(() => {
     const next = addMonths(year, month0, -1);
