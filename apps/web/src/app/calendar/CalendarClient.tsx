@@ -223,17 +223,23 @@ export default function CalendarClient({
 
   const goToMonth = React.useCallback(
     async (y: number, m0: number, dir: number) => {
+      const key = monthKey(y, m0);
+
+      const cachedData = cache[key] ?? loadMonthSchedules(y, m0);
+
       setDirection(dir);
+
+      if (cachedData) {
+        setSchedules(cachedData);
+        setCache((prev) => ({
+          ...prev,
+          [key]: cachedData,
+        }));
+      }
+
       setYear(y);
       setMonth0(m0);
       saveVisibleMonth(y, m0);
-
-      const key = monthKey(y, m0);
-
-      // キャッシュがあれば先に即表示
-      if (cache[key]) {
-        setSchedules(cache[key]);
-      }
 
       // ただし、必ず裏で最新データを取得して更新する
       const data = await fetchGridSchedules(y, m0);
