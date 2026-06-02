@@ -64,12 +64,12 @@ export default async function OrganizationSettingsPage() {
             ◀︎ ホームに戻る
           </Link>
           <h1 className="text-2xl font-bold leading-snug text-slate-900">
-            自社設定
+            アカウント設定
           </h1>
         </div>
 
         <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700">
-          自社情報を取得できませんでした。ログイン状態を確認してください。
+          アカウント情報を取得できませんでした。ログイン状態を確認してください。
         </div>
       </div>
     );
@@ -85,17 +85,17 @@ export default async function OrganizationSettingsPage() {
           ◀︎ ホームに戻る
         </Link>
         <h1 className="text-2xl font-bold leading-snug text-slate-900">
-          自社設定
+          アカウント設定
         </h1>
         <p className="text-sm leading-6 text-slate-600">
-          自社のワークスペース名や、ログイン中のアカウント情報を確認できます。
+          ログイン中のアカウント情報と、会社・業者名を確認・変更できます。
         </p>
       </div>
 
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            ワークスペース情報
+            会社・業者情報
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             この名前は、今後の共有申請・招待・連携設定の表示名として使う予定です。
@@ -108,7 +108,7 @@ export default async function OrganizationSettingsPage() {
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            アカウント情報
+            ログイン情報
           </h2>
         </div>
 
@@ -145,6 +145,24 @@ export default async function OrganizationSettingsPage() {
           <li>・メンバー招待</li>
           <li>・取引先・外注先との連携設定</li>
         </ul>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+        <div>
+          <h2 className="text-base font-bold text-rose-700">
+            アカウント削除
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-rose-700">
+            アカウントを削除すると、登録した現場・予定・取引先などのデータも削除されます。
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:w-auto"
+        >
+          アカウントを削除する
+        </button>
       </section>
     </div>
   );

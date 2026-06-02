@@ -31,7 +31,8 @@ export function OrganizationSettingsForm({ organization }: Props) {
 
   const trimmedName = name.trim();
   const isChanged = trimmedName !== organization.name;
-  const canSubmit = trimmedName.length > 0 && trimmedName.length <= 100 && isChanged;
+  const canSubmit =
+    trimmedName.length > 0 && trimmedName.length <= 100 && isChanged;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,15 +57,17 @@ export function OrganizationSettingsForm({ organization }: Props) {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(data?.message ?? "自社情報の更新に失敗しました");
+        throw new Error(data?.message ?? "会社・業者情報の更新に失敗しました");
       }
 
-      setMessage("自社名を更新しました");
+      setMessage("会社・業者名を更新しました");
       window.dispatchEvent(new Event("organization-updated"));
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "自社情報の更新に失敗しました",
+        err instanceof Error
+          ? err.message
+          : "会社・業者情報の更新に失敗しました",
       );
     } finally {
       setIsSaving(false);
@@ -78,7 +81,7 @@ export function OrganizationSettingsForm({ organization }: Props) {
           htmlFor="organization-name"
           className="text-sm font-semibold text-slate-700"
         >
-          自社名・ワークスペース名
+          会社名・屋号・業者名
         </label>
         <input
           id="organization-name"

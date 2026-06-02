@@ -177,7 +177,7 @@ export function MobileShell() {
               )}
             >
               <Settings className="h-4 w-4" />
-              自社設定
+              アカウント設定
             </Link>
 
             <Link
