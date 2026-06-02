@@ -60,6 +60,7 @@ export function OrganizationSettingsForm({ organization }: Props) {
       }
 
       setMessage("自社名を更新しました");
+      window.dispatchEvent(new Event("organization-updated"));
       router.refresh();
     } catch (err) {
       setError(

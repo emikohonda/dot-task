@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import { LogOut, Settings } from "lucide-react";
 import { BottomNav } from "./BottomNav";
@@ -32,6 +32,21 @@ export function MobileShell() {
   const [organization, setOrganization] = useState<OrganizationMe | null>(null);
   const pathname = usePathname();
 
+  const fetchOrganizationMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/organizations/me", {
+        cache: "no-store",
+      });
+
+      if (!res.ok) return;
+
+      const data = (await res.json()) as OrganizationMe;
+      setOrganization(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
   // ページ遷移で閉じる
   useEffect(() => {
     setMenuOpen(false);
@@ -42,32 +57,24 @@ export function MobileShell() {
     if (!menuOpen) return;
     if (organization) return;
 
-    let cancelled = false;
-
-    async function fetchOrganizationMe() {
-      try {
-        const res = await fetch("/api/organizations/me", {
-          cache: "no-store",
-        });
-
-        if (!res.ok) return;
-
-        const data = (await res.json()) as OrganizationMe;
-
-        if (!cancelled) {
-          setOrganization(data);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
     fetchOrganizationMe();
+  }, [menuOpen, organization, fetchOrganizationMe]);
+
+  // 自社設定更新後にアカウント情報を再取得
+  useEffect(() => {
+    const handleOrganizationUpdated = () => {
+      fetchOrganizationMe();
+    };
+
+    window.addEventListener("organization-updated", handleOrganizationUpdated);
 
     return () => {
-      cancelled = true;
+      window.removeEventListener(
+        "organization-updated",
+        handleOrganizationUpdated,
+      );
     };
-  }, [menuOpen, organization]);
+  }, [fetchOrganizationMe]);
 
   // メニューオープン中は後ろのページをスクロール禁止
   useEffect(() => {
