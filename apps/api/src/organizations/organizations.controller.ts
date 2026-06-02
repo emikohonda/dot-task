@@ -1,5 +1,12 @@
 // apps/api/src/organizations/organizations.controller.ts
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthUser } from '../auth/auth-user.type';
@@ -22,6 +29,14 @@ export class OrganizationsController {
       user.userId,
       user.organizationId,
       dto,
+    );
+  }
+
+  @Delete('me')
+  deleteMe(@CurrentUser() user: AuthUser) {
+    return this.organizationsService.deleteMe(
+      user.userId,
+      user.organizationId,
     );
   }
 }

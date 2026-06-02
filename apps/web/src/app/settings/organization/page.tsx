@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getApiAuthHeaders } from "@/lib/apiAuth";
 import { OrganizationSettingsForm } from "./OrganizationSettingsForm";
+import { AccountDeleteSection } from "./AccountDeleteSection";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -147,23 +148,7 @@ export default async function OrganizationSettingsPage() {
         </ul>
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-        <div>
-          <h2 className="text-base font-bold text-rose-700">
-            アカウント削除
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-rose-700">
-            アカウントを削除すると、登録した現場・予定・取引先などのデータも削除されます。
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:w-auto"
-        >
-          アカウントを削除する
-        </button>
-      </section>
+      <AccountDeleteSection />
     </div>
   );
 }

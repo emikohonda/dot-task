@@ -90,4 +90,170 @@ export class OrganizationsService {
       updatedAt: organization.updatedAt,
     };
   }
+
+  async deleteMe(userId: string, organizationId: string) {
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Organization membership not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const sites = await tx.site.findMany({
+        where: { organizationId },
+        select: { id: true },
+      });
+
+      const siteIds = sites.map((site) => site.id);
+
+      const contractors = await tx.contractor.findMany({
+        where: { organizationId },
+        select: { id: true },
+      });
+
+      const contractorIds = contractors.map((contractor) => contractor.id);
+
+      const invoices = await tx.invoice.findMany({
+        where: {
+          siteId: {
+            in: siteIds,
+          },
+        },
+        select: { id: true },
+      });
+
+      const invoiceIds = invoices.map((invoice) => invoice.id);
+
+      const workRecords = await tx.workRecord.findMany({
+        where: {
+          siteId: {
+            in: siteIds,
+          },
+        },
+        select: { id: true },
+      });
+
+      const workRecordIds = workRecords.map((workRecord) => workRecord.id);
+
+      await tx.receipt.deleteMany({
+        where: {
+          invoiceId: {
+            in: invoiceIds,
+          },
+        },
+      });
+
+      await tx.invoiceItem.deleteMany({
+        where: {
+          OR: [
+            {
+              invoiceId: {
+                in: invoiceIds,
+              },
+            },
+            {
+              workRecordId: {
+                in: workRecordIds,
+              },
+            },
+          ],
+        },
+      });
+
+      await tx.invoice.deleteMany({
+        where: {
+          id: {
+            in: invoiceIds,
+          },
+        },
+      });
+
+      await tx.workRecord.deleteMany({
+        where: {
+          id: {
+            in: workRecordIds,
+          },
+        },
+      });
+
+      await tx.siteContractor.deleteMany({
+        where: {
+          OR: [
+            {
+              siteId: {
+                in: siteIds,
+              },
+            },
+            {
+              contractorId: {
+                in: contractorIds,
+              },
+            },
+          ],
+        },
+      });
+
+      await tx.schedule.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.site.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.employee.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.contractor.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.company.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.organizationMember.deleteMany({
+        where: {
+          organizationId,
+        },
+      });
+
+      await tx.organization.delete({
+        where: {
+          id: organizationId,
+        },
+      });
+
+      await tx.user.delete({
+        where: {
+          id: userId,
+        },
+      });
+    });
+
+    return {
+      ok: true,
+    };
+  }
 }

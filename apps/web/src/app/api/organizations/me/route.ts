@@ -61,3 +61,27 @@ export async function PATCH(req: Request) {
     );
   }
 }
+
+export async function DELETE() {
+  try {
+    const res = await fetch(`${API_BASE}/organizations/me`, {
+      method: "DELETE",
+      headers: await getApiAuthHeaders(),
+    });
+
+    const text = await res.text();
+
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "Content-Type": res.headers.get("Content-Type") ?? "application/json",
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "アカウント削除に失敗しました" },
+      { status: 500 },
+    );
+  }
+}
