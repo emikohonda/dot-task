@@ -25,7 +25,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         pathname === "/login" ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/_next") ||
-        pathname === "/favicon.ico";
+        pathname === "/favicon.ico" ||
+        pathname === "/manifest.webmanifest" ||
+        pathname === "/apple-touch-icon.png" ||
+        pathname.startsWith("/icons/");
 
       if (isPublicPath) {
         return true;
