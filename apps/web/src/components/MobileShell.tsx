@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
-import { LogOut, Settings, Smartphone, X } from "lucide-react";
+import { LogOut, RefreshCw, Settings, Smartphone, X } from "lucide-react";
 import { BottomNav } from "./BottomNav";
 
 const menuItems = [
@@ -290,6 +290,15 @@ export function MobileShell() {
                 ホーム画面に追加
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="flex w-full items-center gap-2 px-5 py-3.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+              最新の状態に更新
+            </button>
 
             <Link
               href="/logout"
