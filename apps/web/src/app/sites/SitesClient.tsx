@@ -273,8 +273,8 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   const rangeEnd = Math.min(offset + PAGE_LIMIT, total);
 
   return (
-    <div className="space-y-4">
-      <h1 className="px-1 text-2xl font-bold leading-none text-slate-900">
+    <div className="space-y-4 pb-10">
+      <h1 className="px-1 text-center text-2xl font-bold leading-none text-slate-900">
         現場一覧
       </h1>
 

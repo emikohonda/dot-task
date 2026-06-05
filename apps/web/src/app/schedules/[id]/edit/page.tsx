@@ -43,7 +43,9 @@ export default async function EditSchedulePage({
         >
           ◀︎ 詳細に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">予定を編集</h1>
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
+          予定を編集
+        </h1>
       </div>
 
       <ScheduleForm

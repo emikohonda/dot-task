@@ -53,7 +53,7 @@ export default async function EmployeeEditPage({
         >
           ◀︎ 社員詳細に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
           社員を編集
         </h1>
       </div>

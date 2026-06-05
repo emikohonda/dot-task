@@ -59,7 +59,7 @@ export default async function SiteEditPage({
         >
           ◀︎ 現場詳細に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
           現場を編集
         </h1>
       </div>

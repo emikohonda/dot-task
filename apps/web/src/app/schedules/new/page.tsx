@@ -32,7 +32,7 @@ export default async function NewSchedulePage({
         >
           {backHref ? "◀︎ 一覧に戻る" : "◀︎ 予定一覧に戻る"}
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
           予定を追加
         </h1>
       </div>

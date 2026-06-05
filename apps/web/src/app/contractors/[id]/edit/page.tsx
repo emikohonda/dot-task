@@ -46,7 +46,7 @@ export default async function ContractorEditPage({
         >
           ◀︎ 外注先詳細に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
           外注先を編集
         </h1>
       </div>

@@ -12,7 +12,7 @@ export default function NewCompanyPage() {
         >
           ◀︎ 取引先一覧に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-center text-2xl font-bold leading-snug text-slate-900">
           取引先を追加
         </h1>
       </div>

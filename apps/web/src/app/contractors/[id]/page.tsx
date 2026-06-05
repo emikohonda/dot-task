@@ -127,7 +127,7 @@ export default async function ContractorDetailPage({
         >
           ◀︎ 一覧に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="break-words text-center text-2xl font-bold leading-snug text-slate-900">
           {contractor.name}
         </h1>
       </div>

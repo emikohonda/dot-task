@@ -101,7 +101,7 @@ export default async function EmployeeDetailPage({
         >
           ◀︎ 一覧に戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="break-words text-center text-2xl font-bold leading-snug text-slate-900">
           {employee.name}
         </h1>
       </div>

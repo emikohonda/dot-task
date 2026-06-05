@@ -257,23 +257,24 @@ export default function SchedulesClient({
   const rangeEnd = Math.min(offset + PAGE_LIMIT, total);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between px-1">
-        <h1 className="text-2xl font-bold leading-none text-slate-900">予定一覧</h1>
-        <div className="hidden md:flex items-center gap-2">
-          <Link
-            href="/schedules/today"
-            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100"
-          >
-            <Sun className="h-4 w-4" />今日の予定
-          </Link>
-          <Link
-            href="/schedules/new"
-            className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
-          >
-            ＋ 予定を追加
-          </Link>
-        </div>
+  <div className="space-y-4 pb-10">
+      <h1 className="px-1 text-center text-2xl font-bold leading-none text-slate-900">
+        予定一覧
+      </h1>
+
+      <div className="hidden items-center justify-end gap-2 px-1 md:flex">
+        <Link
+          href="/schedules/today"
+          className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100"
+        >
+          <Sun className="h-4 w-4" />今日の予定
+        </Link>
+        <Link
+          href="/schedules/new"
+          className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+        >
+          ＋ 予定を追加
+        </Link>
       </div>
 
       <div
