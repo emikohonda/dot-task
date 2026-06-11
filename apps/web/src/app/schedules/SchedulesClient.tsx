@@ -98,6 +98,7 @@ export default function SchedulesClient({
   const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
   const [total, setTotal] = React.useState(initialTotal);
   const [loading, setLoading] = React.useState(false);
+  const didMountRef = React.useRef(false);
 
   const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
   const sortDate: SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
@@ -111,6 +112,11 @@ export default function SchedulesClient({
   }, []);
 
   React.useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     const nextOffset = Number(searchParams.get("offset") ?? "0");
     const currentDateFrom = searchParams.get("dateFrom") ?? "";
@@ -257,7 +263,7 @@ export default function SchedulesClient({
   const rangeEnd = Math.min(offset + PAGE_LIMIT, total);
 
   return (
-  <div className="space-y-4 pb-10">
+    <div className="space-y-4 pb-10">
       <h1 className="px-1 text-center text-2xl font-bold leading-none text-slate-900">
         予定一覧
       </h1>
