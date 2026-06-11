@@ -197,26 +197,44 @@ export default function CalendarClient({
 
     let cancelled = false;
 
+    const initialKey = monthKey(initialYear, initialMonth0);
+
     saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
 
     const savedYmd = sessionStorage.getItem(STORAGE_KEY);
     if (savedYmd) setSelectedYmd(savedYmd);
 
     const savedMonth = sessionStorage.getItem(MONTH_STORAGE_KEY);
+
     if (savedMonth && /^\d{4}-\d{2}$/.test(savedMonth)) {
       const [savedYear, savedMonthNumber] = savedMonth.split("-").map(Number);
       const savedMonth0 = savedMonthNumber - 1;
+      const savedKey = monthKey(savedYear, savedMonth0);
+
+      // 初期表示月と同じなら、server側で取得済みの initialSchedules を使う
+      // ここで再fetchしないことで、カレンダー初回表示時の二重取得を防ぐ
+      if (savedKey === initialKey) {
+        setSchedules(initialSchedules);
+        setSchedulesMonthKey(initialKey);
+        setCache((prev) => ({
+          ...prev,
+          [initialKey]: initialSchedules,
+        }));
+        setSelectedReady(true);
+
+        return () => {
+          cancelled = true;
+        };
+      }
 
       fetchGridSchedules(savedYear, savedMonth0).then((data) => {
         if (cancelled || data === null) return;
 
-        const key = monthKey(savedYear, savedMonth0);
-
         setSchedules(data);
-        setSchedulesMonthKey(key);
+        setSchedulesMonthKey(savedKey);
         setCache((prev) => ({
           ...prev,
-          [key]: data,
+          [savedKey]: data,
         }));
         saveMonthSchedules(savedYear, savedMonth0, data);
       });
@@ -227,7 +245,7 @@ export default function CalendarClient({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialYear, initialMonth0, initialSchedules]);
 
   function saveVisibleMonth(y: number, m0: number) {
     if (typeof window === "undefined") return;
