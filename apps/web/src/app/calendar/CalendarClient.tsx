@@ -170,6 +170,7 @@ export default function CalendarClient({
   const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
   const [selectedReady, setSelectedReady] = React.useState(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Schedule[]>([]);
+  const [isMonthLoading, setIsMonthLoading] = React.useState(false);
 
   const [cache, setCache] = React.useState<Record<string, Schedule[]>>(() => {
     const initialKey = monthKey(initialYear, initialMonth0);
@@ -272,6 +273,8 @@ export default function CalendarClient({
       saveVisibleMonth(y, m0);
 
       if (cachedData) {
+        // キャッシュがある場合は即表示できるので、ローディング表示は出さない
+        setIsMonthLoading(false);
         setSchedules(cachedData);
         setSchedulesMonthKey(key);
         setCache((prev) => ({
@@ -281,24 +284,43 @@ export default function CalendarClient({
 
         const data = await fetchGridSchedules(y, m0);
 
-        if (monthRequestIdRef.current !== requestId || data === null) return;
+        if (monthRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        if (data === null) {
+          setIsMonthLoading(false);
+          return;
+        }
 
         setSchedules(data);
         setSchedulesMonthKey(key);
         setCache((prev) => ({ ...prev, [key]: data }));
         saveMonthSchedules(y, m0, data);
+        setIsMonthLoading(false);
 
         return;
       }
 
+      // キャッシュがない場合だけ「予定確認中…」を表示する
+      setIsMonthLoading(true);
+
       const data = await fetchGridSchedules(y, m0);
 
-      if (monthRequestIdRef.current !== requestId || data === null) return;
+      if (monthRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (data === null) {
+        setIsMonthLoading(false);
+        return;
+      }
 
       setSchedules(data);
       setSchedulesMonthKey(key);
       setCache((prev) => ({ ...prev, [key]: data }));
       saveMonthSchedules(y, m0, data);
+      setIsMonthLoading(false);
     },
     [cache]
   );
@@ -453,7 +475,11 @@ export default function CalendarClient({
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
-          {/* {loading && <span className="animate-pulse text-xs text-slate-400">読み込み中…</span>} */}
+          {isMonthLoading && (
+            <span className="animate-pulse text-xs text-slate-400">
+              予定を確認中…
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
