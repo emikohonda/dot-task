@@ -101,6 +101,77 @@ export async function fetchSites(
   }
 }
 
+export type PaginatedSites = {
+  items: Site[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export async function fetchPaginatedSites(
+  options?: {
+    limit?: number;
+    offset?: number;
+    tab?: "active" | "done";
+    sortDate?: "asc" | "desc";
+    keyword?: string;
+    companyId?: string;
+    monthFrom?: string;
+    monthTo?: string;
+  }
+): Promise<PaginatedSites> {
+  const limit = options?.limit ?? 20;
+  const offset = options?.offset ?? 0;
+
+  if (!API_BASE_URL) {
+    return { items: [], total: 0, limit, offset };
+  }
+
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  params.set("tab", options?.tab ?? "active");
+  params.set("sortDate", options?.sortDate ?? "asc");
+
+  if (options?.keyword) params.set("keyword", options.keyword);
+  if (options?.companyId) params.set("companyId", options.companyId);
+  if (options?.monthFrom) params.set("monthFrom", options.monthFrom);
+  if (options?.monthTo) params.set("monthTo", options.monthTo);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/sites?${params.toString()}`, {
+      cache: "no-store",
+      headers: await getApiAuthHeaders(),
+    });
+
+    if (!res.ok) {
+      return { items: [], total: 0, limit, offset };
+    }
+
+    const data = (await res.json()) as
+      | { items?: Site[]; total?: number; limit?: number; offset?: number }
+      | Site[];
+
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length, limit, offset };
+    }
+
+    return {
+      items: Array.isArray(data.items) ? data.items : [],
+      total:
+        typeof data.total === "number"
+          ? data.total
+          : Array.isArray(data.items)
+            ? data.items.length
+            : 0,
+      limit: typeof data.limit === "number" ? data.limit : limit,
+      offset: typeof data.offset === "number" ? data.offset : offset,
+    };
+  } catch {
+    return { items: [], total: 0, limit, offset };
+  }
+}
+
 // =====================
 // Companies
 // =====================

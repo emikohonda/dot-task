@@ -11,25 +11,9 @@ import { SearchActionRow } from "@/components/SearchActionRow";
 import type { ComboboxOption } from "@/components/Combobox";
 import { Building2, Calendar, ArrowUpDown } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
+import type { PaginatedSites, Site } from "@/lib/api";
 
 const PAGE_LIMIT = 20;
-
-type Site = {
-  id: string;
-  name: string;
-  companyName?: string | null;
-  address?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  createdAt?: string | null;
-};
-
-type PaginatedSites = {
-  items: Site[];
-  total: number;
-  limit: number;
-  offset: number;
-};
 
 type TabType = "active" | "done";
 type SortType = "asc" | "desc";
@@ -64,27 +48,6 @@ const SITE_STATUS_META: Record<
   completed: { label: "完了", className: "bg-emerald-100 text-emerald-700" },
 };
 
-async function fetchSites(params: URLSearchParams): Promise<PaginatedSites> {
-  try {
-    const query = params.toString();
-    const res = await fetch(`/api/sites${query ? `?${query}` : ""}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-
-    const data = await res.json();
-    if (data && Array.isArray(data.items)) return data as PaginatedSites;
-    if (Array.isArray(data)) {
-      return { items: data, total: data.length, limit: PAGE_LIMIT, offset: 0 };
-    }
-
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  } catch {
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  }
-}
-
 async function fetchOptions(path: string): Promise<ComboboxOption[]> {
   try {
     const res = await fetch(`/api${path}`, {
@@ -118,7 +81,11 @@ function formatPeriod(start?: string | null, end?: string | null) {
   return `${s} ～ ${e}`;
 }
 
-export default function SitesClient({ initialSites }: { initialSites: Site[] }) {
+export default function SitesClient({
+  initialData,
+}: {
+  initialData: PaginatedSites;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -129,13 +96,12 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   const [monthTo, setMonthTo] = React.useState(searchParams.get("monthTo") ?? "");
   const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
 
-  const [total, setTotal] = React.useState(initialSites.length);
+  const [total, setTotal] = React.useState(initialData.total);
   const [companyOptions, setCompanyOptions] = React.useState<ComboboxOption[]>([]);
-  const [sites, setSites] = React.useState<Site[]>(initialSites);
+  const [companyOptionsLoaded, setCompanyOptionsLoaded] = React.useState(false);
+  const [sites, setSites] = React.useState<Site[]>(initialData.items);
   const [loading, setLoading] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
-
-  const isFirstRender = React.useRef(true);
 
   // ── Fix 1: as キャストではなく安全な分岐で読み取る ──
   const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
@@ -144,44 +110,22 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
   const hasFilter = !!(keyword || companyId || monthFrom || monthTo);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
 
-  const isDefaultState =
-    !searchParams.get("keyword") &&
-    !searchParams.get("companyId") &&
-    !searchParams.get("monthFrom") &&
-    !searchParams.get("monthTo") &&
-    !searchParams.get("offset") &&
-    (searchParams.get("tab") ?? "active") === "active" &&
-    (searchParams.get("sortDate") ?? "asc") === "asc";
-
-  // ── URL変化時にデータ取得 ──
   React.useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      if (isDefaultState) return;
-    }
+    setSites(initialData.items);
+    setTotal(initialData.total);
+    setOffset(initialData.offset);
+    setLoading(false);
+    setIsResetting(false);
+  }, [initialData]);
 
-    const params = new URLSearchParams(searchParams.toString());
-    const nextOffset = Number(searchParams.get("offset") ?? "0");
-    params.set("limit", String(PAGE_LIMIT));
-    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
-    params.set("tab", activeTab);
-    params.set("sortDate", sortDate);
-
-    setLoading(true);
-    fetchSites(params)
-      .then((data) => {
-        setSites(data.items);
-        setTotal(data.total);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [searchParams, activeTab, sortDate, isDefaultState]);
-
-  // ── 初回だけ会社一覧取得 ──
   React.useEffect(() => {
-    fetchOptions("/companies?limit=200").then(setCompanyOptions);
-  }, []);
+    if (!filterOpen || companyOptionsLoaded) return;
+
+    fetchOptions("/companies?limit=200").then((options) => {
+      setCompanyOptions(options);
+      setCompanyOptionsLoaded(true);
+    });
+  }, [filterOpen, companyOptionsLoaded]);
 
   // ── state を URL と同期 ──
   React.useEffect(() => {
@@ -219,21 +163,35 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
     params.set("tab", activeTab);
     params.set("sortDate", sortDate);
     params.set("offset", "0");
-    router.replace(`/sites?${params.toString()}`, { scroll: false });
-  }, [buildFilterParams, activeTab, sortDate, router]);
+
+    const nextUrl = `/sites?${params.toString()}`;
+    const currentUrl = searchParams.toString()
+      ? `/sites?${searchParams.toString()}`
+      : "/sites";
+
+    if (nextUrl === currentUrl) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    router.replace(nextUrl, { scroll: false });
+  }, [buildFilterParams, activeTab, sortDate, router, searchParams]);
 
   // ── Fix 2: リセットは初期値（tab=active, sortDate=asc）に戻す ──
   const resetFilter = () => {
+    setLoading(true);
     setIsResetting(true);
-    setKeyword(""); setCompanyId(null); setMonthFrom(""); setMonthTo("");
-    const params = new URLSearchParams();
-    params.set("tab", "active");
-    params.set("sortDate", "asc");
-    router.replace(`/sites?${params.toString()}`, { scroll: false });
+    setKeyword("");
+    setCompanyId(null);
+    setMonthFrom("");
+    setMonthTo("");
+    router.replace("/sites", { scroll: false });
   };
 
   // ── タブ切り替え ──
   const handleTabChange = (tab: TabType) => {
+    setLoading(true);
     const params = buildFilterParams();
     params.set("tab", tab);
     params.set("sortDate", sortDate);
@@ -243,6 +201,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
 
   // ── ソート切り替え ──
   const handleSortToggle = () => {
+    setLoading(true);
     const next: SortType = sortDate === "asc" ? "desc" : "asc";
     const params = buildFilterParams();
     params.set("tab", activeTab);
@@ -253,6 +212,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
 
   // ── ページネーション ──
   const goToOffset = (nextOffset: number) => {
+    setLoading(true);
     const params = buildFilterParams();
     params.set("tab", activeTab);
     params.set("sortDate", sortDate);
@@ -488,7 +448,7 @@ export default function SitesClient({ initialSites }: { initialSites: Site[] }) 
 
       {/* スマホ用FAB */}
       <FloatingAddButton href="/sites/new" label="現場を追加" />
-      
+
     </div>
   );
 }
