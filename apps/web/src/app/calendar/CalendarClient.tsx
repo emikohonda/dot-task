@@ -95,6 +95,12 @@ function loadMonthSchedules(y: number, m0: number): Schedule[] | null {
   }
 }
 
+function loadMonthSchedulesByYmd(ymd: string): Schedule[] | null {
+  const [y, m] = ymd.split("-").map(Number);
+  if (!y || !m) return null;
+  return loadMonthSchedules(y, m - 1);
+}
+
 const variants = {
   enter: (dir: number) => ({
     x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
@@ -328,7 +334,16 @@ export default function CalendarClient({
       return;
     }
 
-    // グリッド外の日付だけfetch
+    // グリッド外の日付でも、まず月キャッシュから即表示を試す
+    const cachedMonthSchedules = loadMonthSchedulesByYmd(selectedYmd);
+    if (cachedMonthSchedules) {
+      const cachedByDate = groupByDate(cachedMonthSchedules);
+      setSelectedSchedules(cachedByDate.get(selectedYmd) ?? []);
+    } else {
+      setSelectedSchedules([]);
+    }
+
+    // その後、1日分だけ最新取得する
     let cancelled = false;
 
     (async () => {
