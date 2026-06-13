@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: ".TASK",
+    title: "ドットタスク",
     statusBarStyle: "default",
   },
   icons: {

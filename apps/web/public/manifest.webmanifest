@@ -1,6 +1,6 @@
 {
-  "name": ".TASK",
-  "short_name": ".TASK",
+  "name": "ドットタスク",
+  "short_name": "ドットタスク",
   "description": "現場と予定を管理するための業務アプリ",
   "start_url": "/",
   "scope": "/",
