@@ -33,41 +33,9 @@ type PaginatedContractors = {
   offset: number;
 };
 
-async function fetchContractors(params: URLSearchParams): Promise<PaginatedContractors> {
-  try {
-    const res = await fetch(`/api/contractors?${params.toString()}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-    }
-
-    const data = await res.json();
-
-    if (data && Array.isArray(data.items)) {
-      return data as PaginatedContractors;
-    }
-
-    if (Array.isArray(data)) {
-      return {
-        items: data,
-        total: data.length,
-        limit: PAGE_LIMIT,
-        offset: 0,
-      };
-    }
-
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  } catch {
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  }
-}
-
 function formatDateJp(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-
   return d.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "2-digit",
@@ -78,9 +46,7 @@ function formatDateJp(iso: string) {
 function formatPrimaryContact(contacts?: Contact[]) {
   const list = contacts ?? [];
   const firstName = list[0]?.name?.trim();
-
   if (!firstName) return "担当者が登録されていません";
-
   const rest = list.slice(1).filter((c) => (c.name ?? "").trim()).length;
   return rest > 0 ? `👤 ${firstName} +${rest}` : `👤 ${firstName}`;
 }
@@ -102,35 +68,12 @@ export function ContractorsClient({
   const [loading, setLoading] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(!!appliedKeyword);
 
-  const isFirstRender = React.useRef(true);
-
-  const isDefaultState =
-    !searchParams.get("keyword") &&
-    !searchParams.get("offset");
-
   React.useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      if (isDefaultState) return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    const nextOffset = Number(searchParams.get("offset") ?? "0");
-
-    params.set("limit", String(PAGE_LIMIT));
-    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
-
-    setLoading(true);
-
-    fetchContractors(params)
-      .then((data) => {
-        setContractors(data.items);
-        setTotal(data.total);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [searchParams, isDefaultState]);
+    setContractors(initialData.items);
+    setTotal(initialData.total);
+    setOffset(initialData.offset);
+    setLoading(false);
+  }, [initialData]);
 
   React.useEffect(() => {
     const nextKeyword = searchParams.get("keyword") ?? "";
@@ -139,9 +82,7 @@ export function ContractorsClient({
     const nextOffset = Number(searchParams.get("offset") ?? "0");
     setOffset(Number.isFinite(nextOffset) ? nextOffset : 0);
 
-    if (nextKeyword) {
-      setFilterOpen(true);
-    }
+    if (nextKeyword) setFilterOpen(true);
   }, [searchParams]);
 
   const hasFilter = !!appliedKeyword;
@@ -150,17 +91,41 @@ export function ContractorsClient({
   const applyFilter = React.useCallback(() => {
     const params = new URLSearchParams();
     if (keyword) params.set("keyword", keyword);
-    params.set("offset", "0");
-    router.replace(`/contractors?${params.toString()}`, { scroll: false });
-  }, [keyword, router]);
+
+    const query = params.toString();
+    const nextUrl = query ? `/contractors?${query}` : "/contractors";
+    const currentUrl = searchParams.toString()
+      ? `/contractors?${searchParams.toString()}`
+      : "/contractors";
+
+    if (nextUrl === currentUrl) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    router.replace(nextUrl, { scroll: false });
+  }, [keyword, router, searchParams]);
 
   const resetFilter = React.useCallback(() => {
     setKeyword("");
+
+    const currentUrl = searchParams.toString()
+      ? `/contractors?${searchParams.toString()}`
+      : "/contractors";
+
+    if (currentUrl === "/contractors") {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     router.replace("/contractors", { scroll: false });
-  }, [router]);
+  }, [router, searchParams]);
 
   const goToOffset = React.useCallback(
     (nextOffset: number) => {
+      setLoading(true);
       const params = new URLSearchParams();
       if (appliedKeyword) params.set("keyword", appliedKeyword);
       params.set("offset", String(nextOffset));
@@ -204,7 +169,6 @@ export function ContractorsClient({
               <span>絞り込み検索</span>
             )}
           </span>
-
           <span className="text-xs font-medium text-slate-500">
             {filterOpen ? "閉じる" : "開く"}
           </span>
@@ -228,7 +192,6 @@ export function ContractorsClient({
                 onSearch={applyFilter}
               />
             </div>
-
             <SearchActionRow
               onSearch={applyFilter}
               onReset={resetFilter}
@@ -283,9 +246,7 @@ export function ContractorsClient({
                     <th className="border-b border-slate-200 pb-3">住所</th>
                     <th className="border-b border-slate-200 pb-3">連絡先</th>
                     <th className="border-b border-slate-200 pb-3">登録日</th>
-                    <th className="w-[88px] border-b border-slate-200 pb-3 text-center">
-                      詳細
-                    </th>
+                    <th className="w-[88px] border-b border-slate-200 pb-3 text-center">詳細</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm text-slate-900">
@@ -304,9 +265,7 @@ export function ContractorsClient({
                         {item.postalCode || item.address ? (
                           <>
                             {item.postalCode && (
-                              <span className="text-xs text-slate-500">
-                                〒{item.postalCode}{" "}
-                              </span>
+                              <span className="text-xs text-slate-500">〒{item.postalCode} </span>
                             )}
                             {item.address ?? ""}
                           </>
@@ -318,9 +277,7 @@ export function ContractorsClient({
                         <div>{item.phone ?? "—"}</div>
                         <div className="text-xs text-slate-500">{item.email ?? "—"}</div>
                       </td>
-                      <td className="py-4 pr-4 text-slate-700">
-                        {formatDateJp(item.createdAt)}
-                      </td>
+                      <td className="py-4 pr-4 text-slate-700">{formatDateJp(item.createdAt)}</td>
                       <td className="w-[88px] py-4 text-center">
                         <Link
                           href={`/contractors/${item.id}`}
@@ -340,7 +297,6 @@ export function ContractorsClient({
                 <p className="text-xs text-slate-500">
                   {rangeStart}〜{rangeEnd}件 / 全{total}件
                 </p>
-
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
