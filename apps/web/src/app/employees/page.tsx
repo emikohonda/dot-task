@@ -92,11 +92,10 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   params.set("limit", String(PAGE_LIMIT));
 
   const initialData = await fetchEmployeesOnServer(params);
-  const clientKey = params.toString();
 
   return (
     <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
-      <EmployeesClient key={clientKey} initialData={initialData} />
+      <EmployeesClient initialData={initialData} />
     </Suspense>
   );
 }

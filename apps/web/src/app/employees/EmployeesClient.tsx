@@ -31,7 +31,6 @@ type PaginatedEmployees = {
 function formatDateJp(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-
   return d.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "2-digit",
@@ -53,11 +52,14 @@ export function EmployeesClient({
   const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
   const [total, setTotal] = React.useState(initialData.total);
   const [employees, setEmployees] = React.useState<Employee[]>(initialData.items);
+  const [loading, setLoading] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(!!appliedKeyword);
 
   React.useEffect(() => {
     setEmployees(initialData.items);
     setTotal(initialData.total);
+    setOffset(initialData.offset);
+    setLoading(false);
   }, [initialData]);
 
   React.useEffect(() => {
@@ -67,9 +69,7 @@ export function EmployeesClient({
     const nextOffset = Number(searchParams.get("offset") ?? "0");
     setOffset(Number.isFinite(nextOffset) ? nextOffset : 0);
 
-    if (nextKeyword) {
-      setFilterOpen(true);
-    }
+    if (nextKeyword) setFilterOpen(true);
   }, [searchParams]);
 
   const hasFilter = !!appliedKeyword;
@@ -78,17 +78,41 @@ export function EmployeesClient({
   const applyFilter = React.useCallback(() => {
     const params = new URLSearchParams();
     if (keyword) params.set("keyword", keyword);
-    params.set("offset", "0");
-    router.replace(`/employees?${params.toString()}`, { scroll: false });
-  }, [keyword, router]);
+
+    const query = params.toString();
+    const nextUrl = query ? `/employees?${query}` : "/employees";
+    const currentUrl = searchParams.toString()
+      ? `/employees?${searchParams.toString()}`
+      : "/employees";
+
+    if (nextUrl === currentUrl) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    router.replace(nextUrl, { scroll: false });
+  }, [keyword, router, searchParams]);
 
   const resetFilter = React.useCallback(() => {
     setKeyword("");
+
+    const currentUrl = searchParams.toString()
+      ? `/employees?${searchParams.toString()}`
+      : "/employees";
+
+    if (currentUrl === "/employees") {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     router.replace("/employees", { scroll: false });
-  }, [router]);
+  }, [router, searchParams]);
 
   const goToOffset = React.useCallback(
     (nextOffset: number) => {
+      setLoading(true);
       const params = new URLSearchParams();
       if (appliedKeyword) params.set("keyword", appliedKeyword);
       params.set("offset", String(nextOffset));
@@ -132,7 +156,6 @@ export function EmployeesClient({
               <span>絞り込み検索</span>
             )}
           </span>
-
           <span className="text-xs font-medium text-slate-500">
             {filterOpen ? "閉じる" : "開く"}
           </span>
@@ -156,12 +179,11 @@ export function EmployeesClient({
                 onSearch={applyFilter}
               />
             </div>
-
             <SearchActionRow
               onSearch={applyFilter}
               onReset={resetFilter}
               showReset={hasFilter}
-              loading={false}
+              loading={loading}
               isDirty={isDirty}
               hasFilter={hasFilter}
               count={total}
@@ -215,9 +237,7 @@ export function EmployeesClient({
                     <th className="border-b border-slate-200 pb-3">役職・担当</th>
                     <th className="border-b border-slate-200 pb-3">連絡先</th>
                     <th className="border-b border-slate-200 pb-3">登録日</th>
-                    <th className="w-[88px] border-b border-slate-200 pb-3 text-center">
-                      詳細
-                    </th>
+                    <th className="w-[88px] border-b border-slate-200 pb-3 text-center">詳細</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm text-slate-900">
@@ -229,16 +249,12 @@ export function EmployeesClient({
                       <td className="py-4 pr-4">
                         <div className="font-medium">{item.name}</div>
                       </td>
-                      <td className="py-4 pr-4 text-slate-700">
-                        {item.role ?? "—"}
-                      </td>
+                      <td className="py-4 pr-4 text-slate-700">{item.role ?? "—"}</td>
                       <td className="py-4 pr-4 text-slate-700">
                         <div>{item.phone ?? "—"}</div>
                         <div className="text-xs text-slate-500">{item.email ?? "—"}</div>
                       </td>
-                      <td className="py-4 pr-4 text-slate-700">
-                        {formatDateJp(item.createdAt)}
-                      </td>
+                      <td className="py-4 pr-4 text-slate-700">{formatDateJp(item.createdAt)}</td>
                       <td className="w-[88px] py-4 text-center">
                         <Link
                           href={`/employees/${item.id}`}
@@ -258,12 +274,11 @@ export function EmployeesClient({
                 <p className="text-xs text-slate-500">
                   {rangeStart}〜{rangeEnd}件 / 全{total}件
                 </p>
-
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => goToOffset(offset - PAGE_LIMIT)}
-                    disabled={!hasPrev}
+                    disabled={!hasPrev || loading}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ← 前へ
@@ -271,7 +286,7 @@ export function EmployeesClient({
                   <button
                     type="button"
                     onClick={() => goToOffset(offset + PAGE_LIMIT)}
-                    disabled={!hasNext}
+                    disabled={!hasNext || loading}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     次へ →
