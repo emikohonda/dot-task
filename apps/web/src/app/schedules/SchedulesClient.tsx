@@ -18,37 +18,8 @@ import { getSiteColor } from "@/lib/siteColors";
 
 const PAGE_LIMIT = 20;
 
-type PaginatedSchedules = {
-  items: Schedule[];
-  total: number;
-  limit: number;
-  offset: number;
-};
-
 type TabType = "active" | "done";
 type SortType = "asc" | "desc";
-
-async function fetchSchedules(params: URLSearchParams): Promise<PaginatedSchedules> {
-  try {
-    const res = await fetch(`/api/schedules?${params.toString()}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-
-    const data = await res.json();
-
-    if (data && Array.isArray(data.items)) return data as PaginatedSchedules;
-
-    if (Array.isArray(data)) {
-      return { items: data, total: data.length, limit: PAGE_LIMIT, offset: 0 };
-    }
-
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  } catch {
-    return { items: [], total: 0, limit: PAGE_LIMIT, offset: 0 };
-  }
-}
 
 async function fetchOptions(path: string): Promise<ComboboxOption[]> {
   try {
@@ -95,10 +66,10 @@ export default function SchedulesClient({
   const [offset, setOffset] = React.useState(Number(searchParams.get("offset") ?? 0));
 
   const [siteOptions, setSiteOptions] = React.useState<ComboboxOption[]>([]);
+  const [siteOptionsLoaded, setSiteOptionsLoaded] = React.useState(false);
   const [schedules, setSchedules] = React.useState<Schedule[]>(initialSchedules);
   const [total, setTotal] = React.useState(initialTotal);
   const [loading, setLoading] = React.useState(false);
-  const didMountRef = React.useRef(false);
 
   const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
   const sortDate: SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
@@ -108,59 +79,19 @@ export default function SchedulesClient({
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
 
   React.useEffect(() => {
-    fetchOptions("/api/sites?limit=200").then(setSiteOptions);
-  }, []);
+    setSchedules(initialSchedules);
+    setTotal(initialTotal);
+    setLoading(false);
+  }, [initialSchedules, initialTotal]);
 
   React.useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
+    if (!filterOpen || siteOptionsLoaded) return;
 
-    const params = new URLSearchParams(searchParams.toString());
-    const nextOffset = Number(searchParams.get("offset") ?? "0");
-    const currentDateFrom = searchParams.get("dateFrom") ?? "";
-    const currentDateTo = searchParams.get("dateTo") ?? "";
-
-    params.set("limit", String(PAGE_LIMIT));
-    params.set("offset", String(Number.isFinite(nextOffset) ? nextOffset : 0));
-    params.set("sortDate", sortDate);
-
-    const todayYmd = getTodayYmd();
-    const yesterdayYmd = getYesterdayYmd();
-
-    if (activeTab === "active") {
-      const effectiveDateFrom =
-        currentDateFrom && currentDateFrom > todayYmd ? currentDateFrom : todayYmd;
-      params.set("dateFrom", effectiveDateFrom);
-
-      if (currentDateTo) {
-        params.set("dateTo", currentDateTo);
-      } else {
-        params.delete("dateTo");
-      }
-    } else {
-      const effectiveDateTo =
-        currentDateTo && currentDateTo < yesterdayYmd ? currentDateTo : yesterdayYmd;
-      params.set("dateTo", effectiveDateTo);
-
-      if (currentDateFrom) {
-        params.set("dateFrom", currentDateFrom);
-      } else {
-        params.delete("dateFrom");
-      }
-    }
-
-    setLoading(true);
-    fetchSchedules(params)
-      .then((data) => {
-        setSchedules(data.items);
-        setTotal(data.total);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [searchParams, sortDate, activeTab]);
+    fetchOptions("/api/sites?limit=200").then((options) => {
+      setSiteOptions(options);
+      setSiteOptionsLoaded(true);
+    });
+  }, [filterOpen, siteOptionsLoaded]);
 
   React.useEffect(() => {
     setKeyword(searchParams.get("keyword") ?? "");
@@ -183,9 +114,6 @@ export default function SchedulesClient({
 
   const applyFilter = React.useCallback(() => {
     const params = buildFilterParams();
-    params.set("tab", activeTab);
-    params.set("sortDate", sortDate);
-    params.set("offset", "0");
 
     const todayYmd = getTodayYmd();
     const yesterdayYmd = getYesterdayYmd();
@@ -194,18 +122,31 @@ export default function SchedulesClient({
       const currentFrom = params.get("dateFrom") ?? "";
       const nextFrom = !currentFrom || currentFrom < todayYmd ? todayYmd : currentFrom;
       params.set("dateFrom", nextFrom);
-      if (nextFrom !== dateFrom) setDateFrom(nextFrom);
     }
 
     if (activeTab === "done") {
       const currentTo = params.get("dateTo") ?? "";
       const nextTo = !currentTo || currentTo > yesterdayYmd ? yesterdayYmd : currentTo;
       params.set("dateTo", nextTo);
-      if (nextTo !== dateTo) setDateTo(nextTo);
     }
 
-    router.replace(`/schedules?${params.toString()}`, { scroll: false });
-  }, [buildFilterParams, activeTab, sortDate, router, dateFrom, dateTo]);
+    params.set("tab", activeTab);
+    params.set("sortDate", sortDate);
+    params.set("offset", "0");
+
+    const nextUrl = `/schedules?${params.toString()}`;
+    const currentUrl = searchParams.toString()
+      ? `/schedules?${searchParams.toString()}`
+      : "/schedules";
+
+    if (nextUrl === currentUrl) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    router.replace(nextUrl, { scroll: false });
+  }, [buildFilterParams, activeTab, sortDate, router, searchParams]);
 
   const resetFilter = () => {
     setKeyword("");
@@ -213,13 +154,21 @@ export default function SchedulesClient({
     setDateTo("");
     setSiteId(null);
 
-    const params = new URLSearchParams();
-    params.set("tab", "active");
-    params.set("sortDate", "asc");
-    router.replace(`/schedules?${params.toString()}`, { scroll: false });
+    const currentUrl = searchParams.toString()
+      ? `/schedules?${searchParams.toString()}`
+      : "/schedules";
+
+    if (currentUrl === "/schedules") {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    router.replace("/schedules", { scroll: false });
   };
 
   const goToOffset = (nextOffset: number) => {
+    setLoading(true);
     const params = buildFilterParams();
     params.set("tab", activeTab);
     params.set("sortDate", sortDate);
@@ -229,6 +178,7 @@ export default function SchedulesClient({
 
   // ── Fix: タブ切り替え時も dateFrom/dateTo 両方残す ──
   const handleTabChange = (tab: TabType) => {
+    setLoading(true);
     const params = new URLSearchParams();
     if (keyword) params.set("keyword", keyword);
     if (siteId) params.set("siteId", siteId);
@@ -241,6 +191,7 @@ export default function SchedulesClient({
   };
 
   const handleSortToggle = () => {
+    setLoading(true);
     const next: SortType = sortDate === "asc" ? "desc" : "asc";
     const params = buildFilterParams();
     params.set("tab", activeTab);
