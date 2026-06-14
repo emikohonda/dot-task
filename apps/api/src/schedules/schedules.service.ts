@@ -69,7 +69,7 @@ function buildOverlapConditions(
 
 @Injectable()
 export class SchedulesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private includeForScheduleList() {
     return {
@@ -142,6 +142,65 @@ export class SchedulesService {
         data: { organizationId: params.organizationId, name },
         select: { id: true },
       });
+      resolvedIds.push(created.id);
+    }
+
+    return uniq(resolvedIds);
+  }
+
+  // --------------------------------
+  // 社員解決ヘルパー（organizationId対応）
+  // --------------------------------
+  private async resolveEmployeeIds(params: {
+    organizationId: string;
+    employeeIds: string[];
+    employeeNamesToCreate: string[];
+  }): Promise<string[]> {
+    const baseIds = uniq(params.employeeIds).filter(Boolean);
+
+    if (baseIds.length) {
+      const found = await this.prisma.employee.findMany({
+        where: { id: { in: baseIds }, organizationId: params.organizationId },
+        select: { id: true },
+      });
+
+      if (found.length !== baseIds.length) {
+        throw new NotFoundException('Employee not found');
+      }
+    }
+
+    const uniqueNames = uniq(
+      params.employeeNamesToCreate
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0),
+    );
+
+    if (!uniqueNames.length) return baseIds;
+
+    const resolvedIds = [...baseIds];
+
+    for (const name of uniqueNames) {
+      const existing = await this.prisma.employee.findFirst({
+        where: {
+          organizationId: params.organizationId,
+          name: { equals: name, mode: 'insensitive' },
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        if (!resolvedIds.includes(existing.id)) resolvedIds.push(existing.id);
+        continue;
+      }
+
+      const created = await this.prisma.employee.create({
+        data: {
+          organizationId: params.organizationId,
+          name,
+        },
+        select: { id: true },
+      });
+
       resolvedIds.push(created.id);
     }
 
@@ -317,6 +376,7 @@ export class SchedulesService {
       contractorIds?: string[];
       contractorNamesToCreate?: string[];
       employeeIds?: string[];
+      employeeNamesToCreate?: string[];
       description?: string | null;
       startTime?: string | null;
       endTime?: string | null;
@@ -340,15 +400,11 @@ export class SchedulesService {
       siteNameToCreate: input.siteNameToCreate ?? null,
     });
 
-    const employeeIds = uniq(input.employeeIds ?? []).filter(Boolean);
-
-    if (employeeIds.length) {
-      const found = await this.prisma.employee.findMany({
-        where: { id: { in: employeeIds }, organizationId },
-        select: { id: true },
-      });
-      if (found.length !== employeeIds.length) throw new NotFoundException('Employee not found');
-    }
+    const employeeIds = await this.resolveEmployeeIds({
+      organizationId,
+      employeeIds: input.employeeIds ?? [],
+      employeeNamesToCreate: input.employeeNamesToCreate ?? [],
+    });
 
     if (input.startTime && !isValidHm(input.startTime)) throw new BadRequestException('startTime must be HH:mm');
     if (input.endTime && !isValidHm(input.endTime)) throw new BadRequestException('endTime must be HH:mm');
@@ -408,6 +464,7 @@ export class SchedulesService {
       contractorIds?: string[];
       contractorNamesToCreate?: string[];
       employeeIds?: string[];
+      employeeNamesToCreate?: string[];
       description?: string | null;
       startTime?: string | null;
       endTime?: string | null;
@@ -423,10 +480,10 @@ export class SchedulesService {
       input.siteId !== undefined || input.siteNameToCreate !== undefined;
     const resolvedSiteId = shouldUpdateSite
       ? await this.resolveSiteId({
-          organizationId,
-          siteId: input.siteId ?? null,
-          siteNameToCreate: input.siteNameToCreate ?? null,
-        })
+        organizationId,
+        siteId: input.siteId ?? null,
+        siteNameToCreate: input.siteNameToCreate ?? null,
+      })
       : undefined;
 
     const dateObj = input.date !== undefined ? ymdToUtcDate(input.date, 'date') : undefined;
@@ -460,23 +517,22 @@ export class SchedulesService {
 
     const contractorIds = shouldUpdateContractors
       ? await this.resolveContractorIds({
-          organizationId,
-          contractorIds: input.contractorIds ?? [],
-          contractorNamesToCreate: input.contractorNamesToCreate ?? [],
-        })
+        organizationId,
+        contractorIds: input.contractorIds ?? [],
+        contractorNamesToCreate: input.contractorNamesToCreate ?? [],
+      })
       : undefined;
 
-    const employeeIds = input.employeeIds !== undefined
-      ? uniq(input.employeeIds).filter(Boolean)
-      : undefined;
+    const shouldUpdateEmployees =
+      input.employeeIds !== undefined || input.employeeNamesToCreate !== undefined;
 
-    if (employeeIds?.length) {
-      const found = await this.prisma.employee.findMany({
-        where: { id: { in: employeeIds }, organizationId },
-        select: { id: true },
-      });
-      if (found.length !== employeeIds.length) throw new NotFoundException('Employee not found');
-    }
+    const employeeIds = shouldUpdateEmployees
+      ? await this.resolveEmployeeIds({
+        organizationId,
+        employeeIds: input.employeeIds ?? [],
+        employeeNamesToCreate: input.employeeNamesToCreate ?? [],
+      })
+      : undefined;
 
     return this.prisma.schedule.update({
       where: { id },

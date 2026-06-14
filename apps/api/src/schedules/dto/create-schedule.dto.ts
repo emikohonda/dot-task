@@ -44,6 +44,11 @@ export class CreateScheduleDto {
   employeeIds?: string[];
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  employeeNamesToCreate?: string[];
+
+  @IsOptional()
   @IsString()
   description?: string | null;
 

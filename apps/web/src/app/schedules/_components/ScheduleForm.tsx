@@ -13,6 +13,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { Toast } from "@/components/Toast";
 import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 import { ContractorTagInput } from "./ContractorTagInput";
+import { EmployeeTagInput } from "./EmployeeTagInput";
 import SiteQuickCreateInput from "./SiteQuickCreateInput";
 
 import {
@@ -141,9 +142,13 @@ export default function ScheduleForm({
   const contractorIds = useWatch({ control, name: "contractorIds" }) ?? [];
   const [contractorNewNames, setContractorNewNames] = useState<string[]>([]);
 
+  const employeeIds = useWatch({ control, name: "employeeIds" }) ?? [];
+  const [employeeNewNames, setEmployeeNewNames] = useState<string[]>([]);
+
   useEffect(() => {
     reset(defaultValues);
     setContractorNewNames([]);
+    setEmployeeNewNames([]);
   }, [defaultValues, reset]);
 
 
@@ -172,6 +177,7 @@ export default function ScheduleForm({
         const payload = {
           ...toScheduleCreatePayload(values),
           contractorNamesToCreate: contractorNewNames,
+          employeeNamesToCreate: employeeNewNames,
         };
 
         const res = await fetch(`/api/schedules`, {
@@ -197,6 +203,7 @@ export default function ScheduleForm({
       const payload = {
         ...toScheduleUpdatePayload(values),
         contractorNamesToCreate: contractorNewNames,
+        employeeNamesToCreate: employeeNewNames,
       };
       const res = await fetch(`/api/schedules/${schedule.id}`, {
         method: "PATCH",
@@ -384,30 +391,23 @@ export default function ScheduleForm({
                   </span>
                 )}
               </label>
-              <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-white p-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {employees.map((e) => (
-                    <label
-                      key={e.id}
-                      className="flex cursor-pointer items-center gap-3 text-[15px] text-slate-700"
-                    >
-                      <input
-                        type="checkbox"
-                        value={e.id}
-                        {...register("employeeIds")}
-                        disabled={isLocked}
-                        className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                      />
-                      <span>{e.name}</span>
-                    </label>
-                  ))}
-                  {employees.length === 0 && (
-                    <p className="text-xs text-slate-500 sm:col-span-2">
-                      社員がまだ登録されていません
-                    </p>
-                  )}
-                </div>
+
+              <div className="mt-2">
+                <EmployeeTagInput
+                  employees={employees}
+                  selectedIds={employeeIds}
+                  selectedNewNames={employeeNewNames}
+                  disabled={isLocked}
+                  onChange={(ids, newNames) => {
+                    setValue("employeeIds", ids, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    setEmployeeNewNames(newNames);
+                  }}
+                />
               </div>
+
               {errors.employeeIds?.message && (
                 <p className="mt-1 text-xs text-rose-600">
                   {String(errors.employeeIds.message)}
