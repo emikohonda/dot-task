@@ -40,6 +40,8 @@ export const scheduleFormSchema = z
   .object({
     siteId: z.string().optional().or(z.literal("")),
     siteNameToCreate: z.string().optional(),
+    siteCompanyId: z.string().optional().or(z.literal("")),
+    siteCompanyNameToCreate: z.string().optional(),
     date: ymdSchema,
     endDate: optionalYmdSchema,
     title: z
@@ -149,6 +151,8 @@ export function fromScheduleToFormValues(s: ScheduleApi | null): ScheduleFormVal
   return {
     siteId: s?.siteId ?? "",
     siteNameToCreate: "", // 編集時は常に空（既存 siteId で表示する）
+    siteCompanyId: "",
+    siteCompanyNameToCreate: "",
     date: s?.date ? normalizeToYmd(s.date) : todayYmd(),
     endDate: s?.endDate ? normalizeToYmd(s.endDate) : "",
     title: s?.title ?? "",
@@ -164,9 +168,13 @@ export function fromScheduleToFormValues(s: ScheduleApi | null): ScheduleFormVal
 export function toScheduleCreatePayload(v: ScheduleFormValues) {
   const siteId = v.siteId?.trim();
   const siteNameToCreate = v.siteNameToCreate?.trim();
+  const siteCompanyId = v.siteCompanyId?.trim();
+  const siteCompanyNameToCreate = v.siteCompanyNameToCreate?.trim();
   return {
     ...(siteId ? { siteId } : {}),
     ...(siteNameToCreate ? { siteNameToCreate } : {}),
+    ...(siteNameToCreate && siteCompanyId ? { siteCompanyId } : {}),
+    ...(siteNameToCreate && siteCompanyNameToCreate ? { siteCompanyNameToCreate } : {}),
     date: v.date,
     endDate: v.endDate?.trim() ? v.endDate : null,
     title: v.title?.trim() ?? "",

@@ -1,6 +1,7 @@
 // apps/web/src/app/schedules/new/page.tsx
 import Link from "next/link";
 
+import { fetchCompanies } from "@/lib/api";
 import { fetchSites } from "@/lib/fetchers/sites";
 import { fetchContractors } from "@/lib/fetchers/contractors";
 import { fetchEmployees } from "@/lib/fetchers/employees";
@@ -17,10 +18,11 @@ export default async function NewSchedulePage({
   const { date, siteId, back } = await searchParams;
   const backHref = back?.startsWith("/") ? back : undefined;
 
-  const [sites, contractors, employees] = await Promise.all([
+  const [sites, contractors, employees, companies] = await Promise.all([
     fetchSites(200),
     fetchContractors(200),
     fetchEmployees(),
+    fetchCompanies(),
   ]);
 
   return (
@@ -40,6 +42,7 @@ export default async function NewSchedulePage({
       <ScheduleForm
         mode="create"
         sites={sites}
+        companies={companies}
         contractors={contractors}
         employees={employees}
         schedule={null}

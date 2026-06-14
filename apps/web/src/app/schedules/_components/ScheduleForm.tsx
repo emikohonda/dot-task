@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Site, ContractorLite } from "@/lib/api";
+import type { Site, ContractorLite, Company } from "@/lib/api";
 import type { EmployeeLite } from "@/lib/fetchers/employees";
 import { CardSection } from "@/components/CardSection";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -15,6 +15,7 @@ import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 import { ContractorTagInput } from "./ContractorTagInput";
 import { EmployeeTagInput } from "./EmployeeTagInput";
 import SiteQuickCreateInput from "./SiteQuickCreateInput";
+import CompanyQuickCreateInput from "@/app/sites/_components/CompanyQuickCreateInput";
 
 import {
   makeScheduleSchemaWithSiteRange,
@@ -30,6 +31,7 @@ import {
 type Props = {
   mode: "create" | "edit";
   sites: Site[];
+  companies: Company[];
   contractors: ContractorLite[];
   employees: EmployeeLite[];
   schedule: ScheduleApi | null;
@@ -43,6 +45,7 @@ const toYmd = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null
 export default function ScheduleForm({
   mode,
   sites,
+  companies,
   contractors,
   employees,
   schedule,
@@ -104,6 +107,8 @@ export default function ScheduleForm({
       date: mode === "create" && initialDate ? initialDate : v.date,
       siteId: mode === "create" && initialSiteId ? initialSiteId : v.siteId,
       siteNameToCreate: "",
+      siteCompanyId: "",
+      siteCompanyNameToCreate: "",
       contractorIds: v.contractorIds ?? [],
       employeeIds: v.employeeIds ?? [],
     };
@@ -134,7 +139,12 @@ export default function ScheduleForm({
 
   const siteId = useWatch({ control, name: "siteId" }) ?? "";
   const siteNameToCreate = useWatch({ control, name: "siteNameToCreate" }) ?? "";
+  const siteCompanyId = useWatch({ control, name: "siteCompanyId" }) ?? "";
+  const siteCompanyNameToCreate =
+    useWatch({ control, name: "siteCompanyNameToCreate" }) ?? "";
   const selectedSite = sites.find((s) => s.id === siteId);
+  const isCreatingNewSite = siteId === "" && siteNameToCreate.trim().length > 0;
+  const selectedSiteCompanyName = selectedSite?.companyName ?? null;
   const selectedSiteEndDate = toYmd(selectedSite?.endDate);
   const today = todayYmd();
   const selectedSiteIsCompleted =
@@ -264,8 +274,75 @@ export default function ScheduleForm({
                     shouldDirty: true,
                     shouldValidate: true,
                   });
+
+                  if (siteId || !siteNameToCreate.trim()) {
+                    setValue("siteCompanyId", "", {
+                      shouldDirty: true,
+                      shouldValidate: false,
+                    });
+                    setValue("siteCompanyNameToCreate", "", {
+                      shouldDirty: true,
+                      shouldValidate: false,
+                    });
+                  }
                 }}
               />
+
+              {isCreatingNewSite && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700">
+                    元請会社
+                  </label>
+
+                  <div className="mt-2">
+                    <CompanyQuickCreateInput
+                      companies={companies.map((c) => ({
+                        id: c.id,
+                        name: c.name,
+                        contacts: c.contacts ?? [],
+                      }))}
+                      companyId={siteCompanyId}
+                      companyNameToCreate={siteCompanyNameToCreate}
+                      disabled={isLocked}
+                      onChange={({ companyId, companyNameToCreate }) => {
+                        setValue("siteCompanyId", companyId, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                        setValue("siteCompanyNameToCreate", companyNameToCreate, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    新しく作る現場に紐づける元請会社です。未登録の場合は予定保存時に一緒に追加されます。
+                  </p>
+                </div>
+              )}
+
+              {siteId && (
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                  <div className="font-semibold text-slate-700">元請会社</div>
+                  <div className="mt-1">
+                    {selectedSiteCompanyName ?? "元請未設定"}
+                  </div>
+                  <p className="mt-1 text-slate-500">
+                    既存現場の元請会社は予定画面から変更できません。
+                  </p>
+                  {selectedSite?.id && (
+                    <Link
+                      href={`/sites/${selectedSite.id}/edit`}
+                      className="mt-2 inline-block font-semibold text-sky-700 underline"
+                    >
+                      現場編集で変更
+                    </Link>
+                  )}
+                </div>
+              )}
+
               {(selectedSiteRange.startDate || selectedSiteRange.endDate) && (
                 <p className="mt-2 text-xs text-slate-500">
                   工期: {selectedSiteRange.startDate ?? "未設定"} 〜{" "}

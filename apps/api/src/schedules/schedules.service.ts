@@ -208,12 +208,59 @@ export class SchedulesService {
   }
 
   // --------------------------------
+  // 元請会社解決ヘルパー（organizationId対応）
+  // --------------------------------
+  private async resolveCompanyId(params: {
+    organizationId: string;
+    companyId?: string | null;
+    companyNameToCreate?: string | null;
+  }): Promise<string | null> {
+    if (params.companyId) {
+      const company = await this.prisma.company.findFirst({
+        where: {
+          id: params.companyId,
+          organizationId: params.organizationId,
+        },
+        select: { id: true },
+      });
+
+      if (!company) throw new NotFoundException('Company not found');
+      return company.id;
+    }
+
+    const name = params.companyNameToCreate?.trim();
+    if (!name) return null;
+
+    const existing = await this.prisma.company.findFirst({
+      where: {
+        organizationId: params.organizationId,
+        name: { equals: name, mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+
+    if (existing) return existing.id;
+
+    const created = await this.prisma.company.create({
+      data: {
+        organizationId: params.organizationId,
+        name,
+      },
+      select: { id: true },
+    });
+
+    return created.id;
+  }
+
+  // --------------------------------
   // 現場解決ヘルパー（organizationId対応）
   // --------------------------------
   private async resolveSiteId(params: {
     organizationId: string;
     siteId?: string | null;
     siteNameToCreate?: string | null;
+    siteCompanyId?: string | null;
+    siteCompanyNameToCreate?: string | null;
   }): Promise<string> {
     if (params.siteId) {
       const site = await this.prisma.site.findFirst({
@@ -221,6 +268,8 @@ export class SchedulesService {
         select: { id: true },
       });
       if (!site) throw new NotFoundException('Site not found');
+
+      // 既存現場を選んだ場合、元請会社は予定画面から変更しない
       return site.id;
     }
 
@@ -228,15 +277,30 @@ export class SchedulesService {
     if (!name) throw new BadRequestException('siteId or siteNameToCreate is required');
 
     const existing = await this.prisma.site.findFirst({
-      where: { organizationId: params.organizationId, name: { equals: name, mode: 'insensitive' } },
+      where: {
+        organizationId: params.organizationId,
+        name: { equals: name, mode: 'insensitive' },
+      },
       select: { id: true },
     });
+
     if (existing) return existing.id;
 
+    const companyId = await this.resolveCompanyId({
+      organizationId: params.organizationId,
+      companyId: params.siteCompanyId ?? null,
+      companyNameToCreate: params.siteCompanyNameToCreate ?? null,
+    });
+
     const created = await this.prisma.site.create({
-      data: { organizationId: params.organizationId, name },
+      data: {
+        organizationId: params.organizationId,
+        name,
+        companyId,
+      },
       select: { id: true },
     });
+
     return created.id;
   }
 
@@ -373,6 +437,8 @@ export class SchedulesService {
       endDate?: string | null;
       siteId?: string | null;
       siteNameToCreate?: string | null;
+      siteCompanyId?: string | null;
+      siteCompanyNameToCreate?: string | null;
       contractorIds?: string[];
       contractorNamesToCreate?: string[];
       employeeIds?: string[];
@@ -398,6 +464,8 @@ export class SchedulesService {
       organizationId,
       siteId: input.siteId ?? null,
       siteNameToCreate: input.siteNameToCreate ?? null,
+      siteCompanyId: input.siteCompanyId ?? null,
+      siteCompanyNameToCreate: input.siteCompanyNameToCreate ?? null,
     });
 
     const employeeIds = await this.resolveEmployeeIds({
@@ -461,6 +529,8 @@ export class SchedulesService {
       endDate?: string | null;
       siteId?: string;
       siteNameToCreate?: string | null;
+      siteCompanyId?: string | null;
+      siteCompanyNameToCreate?: string | null;
       contractorIds?: string[];
       contractorNamesToCreate?: string[];
       employeeIds?: string[];
@@ -483,6 +553,8 @@ export class SchedulesService {
         organizationId,
         siteId: input.siteId ?? null,
         siteNameToCreate: input.siteNameToCreate ?? null,
+        siteCompanyId: input.siteCompanyId ?? null,
+        siteCompanyNameToCreate: input.siteCompanyNameToCreate ?? null,
       })
       : undefined;
 

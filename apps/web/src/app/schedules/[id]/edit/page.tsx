@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { fetchCompanies } from "@/lib/api";
 import { fetchSites } from "@/lib/fetchers/sites";
 import { fetchContractors } from "@/lib/fetchers/contractors";
 import { fetchScheduleById } from "@/lib/fetchers/schedules";
@@ -25,10 +26,11 @@ export default async function EditSchedulePage({
     ? `/schedules/${id}?back=${encodeURIComponent(safeBack)}`
     : `/schedules/${id}`;
 
-  const [sites, contractors, employees, schedule] = await Promise.all([
+  const [sites, contractors, employees, companies, schedule] = await Promise.all([
     fetchSites(200),
     fetchContractors(200),
     fetchEmployees(),
+    fetchCompanies(),
     fetchScheduleById(id),
   ]);
 
@@ -51,6 +53,7 @@ export default async function EditSchedulePage({
       <ScheduleForm
         mode="edit"
         sites={sites}
+        companies={companies}
         contractors={contractors}
         employees={employees}
         schedule={schedule}
