@@ -2,6 +2,8 @@
 import { Suspense } from "react";
 import SchedulesClient from "./SchedulesClient";
 import { getApiAuthHeaders } from "@/lib/apiAuth";
+import { DelayedFallback } from "@/components/skeletons/DelayedFallback";
+import { CardGridSkeleton } from "@/components/skeletons/CardSkeleton";
 
 const PAGE_LIMIT = 20;
 
@@ -86,7 +88,13 @@ export default async function SchedulesPage({
   const initialData = await fetchInitialSchedules(resolved);
 
   return (
-    <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
+    <Suspense
+      fallback={
+        <DelayedFallback delay={200}>
+          <CardGridSkeleton count={5} />
+        </DelayedFallback>
+      }
+    >
       <SchedulesClient
         initialSchedules={initialData.items}
         initialTotal={initialData.total}
