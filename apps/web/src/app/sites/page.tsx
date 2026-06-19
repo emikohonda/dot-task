@@ -2,6 +2,8 @@
 import { Suspense } from "react";
 import { fetchPaginatedSites } from "@/lib/api";
 import SitesClient from "./SitesClient";
+import { DelayedFallback } from "@/components/skeletons/DelayedFallback";
+import { CardGridSkeleton } from "@/components/skeletons/CardSkeleton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +39,13 @@ export default async function SitesPage({
   });
 
   return (
-    <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
+    <Suspense
+      fallback={
+        <DelayedFallback delay={200}>
+          <CardGridSkeleton count={5} />
+        </DelayedFallback>
+      }
+    >
       <SitesClient initialData={initialData} />
     </Suspense>
   );

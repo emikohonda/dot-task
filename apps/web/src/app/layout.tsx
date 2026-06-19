@@ -5,6 +5,7 @@ import "./globals.css";
 import Link from "next/link";
 import { HeaderNav } from "@/components/HeaderNav";
 import { MobileShell } from "@/components/MobileShell";
+import NextTopLoader from "nextjs-toploader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,12 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900`}>
+        <NextTopLoader
+          color="#0ea5e9"
+          height={2}
+          showSpinner={false}
+          shadow={false}
+        />
         {/* 固定ヘッダー */}
         <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white">
           <div className="mx-auto flex min-h-14 max-w-5xl items-center px-4 py-3 md:px-6 md:py-4">
