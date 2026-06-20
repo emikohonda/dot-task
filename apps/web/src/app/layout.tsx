@@ -38,6 +38,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   icons: {
     apple: "/apple-touch-icon.png",
   },
