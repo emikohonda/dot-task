@@ -2,6 +2,8 @@
 import { Suspense } from "react";
 import { CompaniesClient } from "./CompaniesClient";
 import { getApiAuthHeaders } from "@/lib/apiAuth";
+import { DelayedFallback } from "@/components/skeletons/DelayedFallback";
+import { CardGridSkeleton } from "@/components/skeletons/CardSkeleton";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -93,7 +95,13 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
   const initialData = await fetchCompaniesOnServer(params);
 
   return (
-    <Suspense fallback={<div className="py-6 text-center text-sm text-slate-400">読み込み中…</div>}>
+    <Suspense
+      fallback={
+        <DelayedFallback delay={200}>
+          <CardGridSkeleton count={5} />
+        </DelayedFallback>
+      }
+    >
       <CompaniesClient initialData={initialData} />
     </Suspense>
   );
