@@ -41,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    <html lang="ja" className="bg-white">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900`}>
         <NextTopLoader
           color="#0ea5e9"
