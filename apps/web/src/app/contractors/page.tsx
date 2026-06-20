@@ -2,6 +2,8 @@
 import { Suspense } from "react";
 import { ContractorsClient } from "./ContractorsClient";
 import { getApiAuthHeaders } from "@/lib/apiAuth";
+import { DelayedFallback } from "@/components/skeletons/DelayedFallback";
+import { CardGridSkeleton } from "@/components/skeletons/CardSkeleton";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -97,9 +99,9 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
   return (
     <Suspense
       fallback={
-        <div className="py-6 text-center text-sm text-slate-400">
-          読み込み中…
-        </div>
+        <DelayedFallback delay={200}>
+          <CardGridSkeleton count={5} />
+        </DelayedFallback>
       }
     >
       <ContractorsClient initialData={initialData} />
