@@ -25,6 +25,18 @@ export const metadata: Metadata = {
     capable: true,
     title: "ドットタスク",
     statusBarStyle: "default",
+    startupImage: [
+      {
+        url: "/splash/iphone-11-pro-max.png",
+        media:
+          "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
+      },
+      {
+        url: "/splash/iphone-16-pro.png",
+        media:
+          "(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
+      },
+    ],
   },
   icons: {
     apple: "/apple-touch-icon.png",
