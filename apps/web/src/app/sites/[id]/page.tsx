@@ -6,6 +6,7 @@ import {
   Building2,
   MapPin,
   CalendarRange,
+  Calendar,
   Clock,
   Phone,
   Mail,
@@ -15,24 +16,16 @@ import type { ReactNode } from "react";
 
 import { CardSection } from "@/components/CardSection";
 import { fetchSite, fetchSiteSchedules } from "@/lib/fetchers/sites";
-import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
+import {
+  formatScheduleTitle,
+  formatDateRangeShort,
+} from "@/lib/validations/scheduleSchemas";
+import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 
 // ── ユーティリティ ──
 
 function safeTime(value?: string | null) {
   return value && /^\d{2}:\d{2}$/.test(value) ? value : "99:99";
-}
-
-// スケジュール用（年月日＋曜日）← 今のformatDateをそのまま使う
-function formatDate(dateStr: string | null | undefined) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "—";
-  const weekday = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}年${month}月${day}日（${weekday}）`;
 }
 
 // 期間用（スラッシュ形式＋曜日）
@@ -68,18 +61,6 @@ function formatDateTime(dateStr: string | null | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function formatScheduleDateTime(
-  dateStr: string | null | undefined,
-  startTime?: string | null,
-  endTime?: string | null
-) {
-  if (!dateStr) return "—";
-  const dateLabel = formatDate(dateStr);
-  if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
-  if (startTime) return `${dateLabel} ${startTime}`;
-  return `${dateLabel} 終日`;
 }
 
 function EmptySchedule() {
@@ -250,10 +231,20 @@ export default async function SiteDetailPage({
                   >
                     {formatScheduleTitle(s.title)}
                   </p>
-                  {/* 日程・時間のみ表示 */}
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {formatScheduleDateTime(s.date, s.startTime, s.endTime)}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-slate-400" />
+                      {formatDateRangeShort(s.date, s.endDate)}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      <ScheduleTime
+                        startTime={s.startTime ?? null}
+                        endTime={s.endTime ?? null}
+                        variant="list"
+                      />
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}

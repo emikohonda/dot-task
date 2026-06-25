@@ -2,33 +2,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchSite, fetchSiteSchedules } from "@/lib/fetchers/sites";
-import { formatScheduleTitle } from "@/lib/validations/scheduleSchemas";
-import { ArrowUpDown } from "lucide-react";
+import {
+  formatScheduleTitle,
+  formatDateRangeShort,
+} from "@/lib/validations/scheduleSchemas";
+import { ArrowUpDown, Calendar, Clock } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
+import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
 
 // ── ユーティリティ ──
-
-const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
-
-function formatScheduleDate(
-  dateStr: string | null,
-  startTime?: string | null,
-  endTime?: string | null
-) {
-  if (!dateStr) return "—";
-  const d = new Date(`${dateStr.slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return "—";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const w = WEEKDAYS[d.getDay()];
-  const dateLabel = `${y}年${m}月${day}日（${w}）`;
-  if (startTime && endTime) return `${dateLabel} ${startTime}〜${endTime}`;
-  if (startTime) return `${dateLabel} ${startTime}`;
-  if (endTime) return `${dateLabel} ${endTime}`;
-  return `${dateLabel} 終日`;
-}
-
 function safeTime(value?: string | null) {
   return value && /^\d{2}:\d{2}$/.test(value) ? value : "99:99";
 }
@@ -158,9 +140,20 @@ export default async function SiteSchedulesPage({
                   >
                     {formatScheduleTitle(s.title)}
                   </p>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {formatScheduleDate(s.date, s.startTime, s.endTime)}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-slate-400" />
+                      {formatDateRangeShort(s.date, s.endDate)}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      <ScheduleTime
+                        startTime={s.startTime ?? null}
+                        endTime={s.endTime ?? null}
+                        variant="list"
+                      />
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}
