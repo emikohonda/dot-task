@@ -39,16 +39,6 @@ async function fetchOptions(path: string): Promise<ComboboxOption[]> {
   }
 }
 
-function getTodayYmd() {
-  return new Date().toLocaleDateString("sv-SE");
-}
-
-function getYesterdayYmd() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString("sv-SE");
-}
-
 export default function SchedulesClient({
   initialSchedules,
   initialTotal,
@@ -74,7 +64,7 @@ export default function SchedulesClient({
   const activeTab: TabType = searchParams.get("tab") === "done" ? "done" : "active";
   const sortDate: SortType = searchParams.get("sortDate") === "desc" ? "desc" : "asc";
 
-  // ── Fix: effectiveDateFrom/To を削除し、dateFrom/dateTo を直接使う ──
+  // 入力された絞り込み条件をそのままURLへ反映する
   const hasFilter = !!(keyword || dateFrom || dateTo || siteId);
   const [filterOpen, setFilterOpen] = React.useState(hasFilter);
 
@@ -114,21 +104,6 @@ export default function SchedulesClient({
 
   const applyFilter = React.useCallback(() => {
     const params = buildFilterParams();
-
-    const todayYmd = getTodayYmd();
-    const yesterdayYmd = getYesterdayYmd();
-
-    if (activeTab === "active") {
-      const currentFrom = params.get("dateFrom") ?? "";
-      const nextFrom = !currentFrom || currentFrom < todayYmd ? todayYmd : currentFrom;
-      params.set("dateFrom", nextFrom);
-    }
-
-    if (activeTab === "done") {
-      const currentTo = params.get("dateTo") ?? "";
-      const nextTo = !currentTo || currentTo > yesterdayYmd ? yesterdayYmd : currentTo;
-      params.set("dateTo", nextTo);
-    }
 
     params.set("tab", activeTab);
     params.set("sortDate", sortDate);
@@ -200,7 +175,7 @@ export default function SchedulesClient({
     router.replace(`/schedules?${params.toString()}`, { scroll: false });
   };
 
-  // ── Fix: effectiveDateFrom/To をやめて dateFrom/dateTo で比較 ──
+  // 現在のURL条件と入力中の条件を比較する
   const isDirty =
     keyword !== (searchParams.get("keyword") ?? "") ||
     dateFrom !== (searchParams.get("dateFrom") ?? "") ||
@@ -363,49 +338,49 @@ export default function SchedulesClient({
         ) : (
           <>
             <ul className="divide-y divide-slate-100">
-                {schedules.map((s) => {
-                  const siteColor = getSiteColor(s.site?.color);
+              {schedules.map((s) => {
+                const siteColor = getSiteColor(s.site?.color);
 
-                  return (
-                    <li key={s.id} className="py-4">
-                      <Link
-                        href={`/schedules/${s.id}`}
-                        className="block min-w-0 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-                      >
-                        <p className="mb-1 font-bold leading-snug text-[18px] text-slate-900 hover:text-sky-600">
-                          {formatScheduleTitle(s.title)}
+                return (
+                  <li key={s.id} className="py-4">
+                    <Link
+                      href={`/schedules/${s.id}`}
+                      className="block min-w-0 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+                    >
+                      <p className="mb-1 font-bold leading-snug text-[18px] text-slate-900 hover:text-sky-600">
+                        {formatScheduleTitle(s.title)}
+                      </p>
+
+                      {s.site?.name && (
+                        <p
+                          className={[
+                            "mb-1 flex items-center gap-1.5 font-semibold text-[16px] leading-6",
+                            siteColor.text,
+                          ].join(" ")}
+                        >
+                          <MapPin className={["h-4 w-4 shrink-0", siteColor.text].join(" ")} />
+                          {s.site.name}
                         </p>
+                      )}
 
-                        {s.site?.name && (
-                          <p
-                            className={[
-                              "mb-1 flex items-center gap-1.5 font-semibold text-[16px] leading-6",
-                              siteColor.text,
-                            ].join(" ")}
-                          >
-                            <MapPin className={["h-4 w-4 shrink-0", siteColor.text].join(" ")} />
-                            {s.site.name}
-                          </p>
-                        )}
-
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Calendar className="h-4 w-4 text-slate-400" />
-                            {formatDateRangeShort(s.date, s.endDate)}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock className="h-4 w-4 text-slate-400" />
-                            <ScheduleTime
-                              startTime={s.startTime ?? null}
-                              endTime={s.endTime ?? null}
-                              variant="list"
-                            />
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                          {formatDateRangeShort(s.date, s.endDate)}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="h-4 w-4 text-slate-400" />
+                          <ScheduleTime
+                            startTime={s.startTime ?? null}
+                            endTime={s.endTime ?? null}
+                            variant="list"
+                          />
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
 
             {total > PAGE_LIMIT && (

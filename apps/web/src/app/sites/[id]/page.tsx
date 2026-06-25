@@ -182,7 +182,10 @@ export default async function SiteDetailPage({
   const today = new Date().toLocaleDateString("sv-SE");
 
   const activeSchedules = allSchedules
-    .filter((s) => (s.date?.slice(0, 10) ?? "") >= today)
+    .filter((s) => {
+      const compareDate = (s.endDate ?? s.date)?.slice(0, 10) ?? "";
+      return compareDate >= today;
+    })
     .sort((a, b) => {
       const da = a.date ?? "";
       const db = b.date ?? "";
@@ -218,7 +221,7 @@ export default async function SiteDetailPage({
         title={`スケジュール（${scheduleTotal}件）`}
         right={
           <Link
-            href={`/sites/${id}/schedules`}
+            href={`/sites/${id}/schedules?tab=active&sort=asc`}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             すべて見る
@@ -232,7 +235,9 @@ export default async function SiteDetailPage({
             {schedules.map((s) => (
               <li key={s.id} className="py-3">
                 <Link
-                  href={`/schedules/${s.id}?back=/sites/${id}/schedules`}
+                  href={`/schedules/${s.id}?back=${encodeURIComponent(
+                    `/sites/${id}/schedules?tab=active&sort=asc`
+                  )}`}
                   className="group block rounded-xl transition-colors hover:bg-slate-50/60"
                 >
                   <p

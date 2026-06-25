@@ -389,6 +389,7 @@ export class SitesService {
           id: true,
           title: true,
           date: true,
+          endDate: true,
           startTime: true,
           endTime: true,
           contractors: {

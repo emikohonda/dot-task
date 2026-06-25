@@ -48,6 +48,7 @@ export type SiteSchedule = {
   id: string;
   title: string;
   date: string;
+  endDate?: string | null;
   startTime?: string | null;
   endTime?: string | null;
 

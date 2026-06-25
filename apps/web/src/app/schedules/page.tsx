@@ -12,16 +12,6 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
   "";
 
-function todayYmd() {
-  return new Date().toLocaleDateString("sv-SE");
-}
-
-function yesterdayYmd() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString("sv-SE");
-}
-
 async function fetchInitialSchedules(sp: { [key: string]: string | string[] | undefined }) {
   if (!API_BASE) return { items: [], total: 0 };
 
@@ -42,13 +32,9 @@ async function fetchInitialSchedules(sp: { [key: string]: string | string[] | un
   if (keyword) params.set("keyword", keyword);
   if (siteId) params.set("siteId", siteId);
 
-  if (tab === "active") {
-    const effectiveDateFrom = dateFrom && dateFrom > todayYmd() ? dateFrom : todayYmd();
-    params.set("dateFrom", effectiveDateFrom);
-  } else {
-    const effectiveDateTo = dateTo && dateTo < yesterdayYmd() ? dateTo : yesterdayYmd();
-    params.set("dateTo", effectiveDateTo);
-  }
+  params.set("tab", tab);
+  if (dateFrom) params.set("dateFrom", dateFrom);
+  if (dateTo) params.set("dateTo", dateTo);
 
   params.set("limit", String(PAGE_LIMIT));
   params.set("offset", offset);

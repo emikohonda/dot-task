@@ -56,11 +56,10 @@ export default async function SiteSchedulesPage({
   // 日付ベース暫定判定
   const today = new Date().toLocaleDateString("sv-SE");
 
-  const filtered = allSchedules.filter((s) =>
-    tab === "done"
-      ? (s.date?.slice(0, 10) ?? "") < today
-      : (s.date?.slice(0, 10) ?? "") >= today
-  );
+  const filtered = allSchedules.filter((s) => {
+    const compareDate = (s.endDate ?? s.date)?.slice(0, 10) ?? "";
+    return tab === "done" ? compareDate < today : compareDate >= today;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     const da = a.date ?? "";
