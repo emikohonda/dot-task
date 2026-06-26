@@ -11,7 +11,7 @@ import ScheduleForm from "../../_components/ScheduleForm";
 
 type EditSchedulePageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ back?: string }>;
+  searchParams?: Promise<{ back?: string; from?: string }>;
 };
 
 export default async function EditSchedulePage({
@@ -19,12 +19,21 @@ export default async function EditSchedulePage({
   searchParams,
 }: EditSchedulePageProps) {
   const { id } = await params;
-  const sp: { back?: string } = searchParams ? await searchParams : {};
+  const sp: { back?: string; from?: string } = searchParams ? await searchParams : {};
   const rawBack = sp.back ?? "";
-  const safeBack = rawBack.startsWith("/") ? rawBack : "";
-  const detailHref = safeBack
-    ? `/schedules/${id}?back=${encodeURIComponent(safeBack)}`
-    : `/schedules/${id}`;
+  const from = sp.from;
+  const safeBack = rawBack.startsWith("/") && !rawBack.startsWith("//")
+    ? rawBack
+    : "";
+
+  const detailHref = (() => {
+    const base = `/schedules/${id}`;
+    const params = new URLSearchParams();
+    if (from === "calendar") params.set("from", "calendar");
+    if (safeBack) params.set("back", safeBack);
+    const qs = params.toString();
+    return qs ? `${base}?${qs}` : base;
+  })();
 
   const [sites, contractors, employees, companies, schedule] = await Promise.all([
     fetchSites(200),
@@ -58,6 +67,7 @@ export default async function EditSchedulePage({
         employees={employees}
         schedule={schedule}
         backHref={safeBack || undefined}
+        from={from}
       />
     </div>
   );

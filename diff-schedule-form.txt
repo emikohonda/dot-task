@@ -1,0 +1,46 @@
+diff --git a/apps/web/src/app/schedules/_components/ScheduleForm.tsx b/apps/web/src/app/schedules/_components/ScheduleForm.tsx
+index 818a89f..c77287a 100644
+--- a/apps/web/src/app/schedules/_components/ScheduleForm.tsx
++++ b/apps/web/src/app/schedules/_components/ScheduleForm.tsx
+@@ -38,6 +38,7 @@ type Props = {
+   initialDate?: string | null;
+   initialSiteId?: string | null;
+   backHref?: string;
++  from?: string;
+ };
+ 
+ const toYmd = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null);
+@@ -52,6 +53,7 @@ export default function ScheduleForm({
+   initialDate,
+   initialSiteId,
+   backHref,
++  from,
+ }: Props) {
+   const router = useRouter();
+   const [isSubmitting, setIsSubmitting] = useState(false);
+@@ -199,13 +201,21 @@ export default function ScheduleForm({
+           const t = await res.text().catch(() => "");
+           throw new Error(t || `保存に失敗しました（${res.status}）`);
+         }
++
++        clearCalendarScheduleCache();
++
++        // カレンダー経由の場合：保存した予定の開始日でカレンダーに戻る
++        // フォームで日付を変更していた場合も values.date が実際に保存した開始日になる
++        if (from === "calendar") {
++          router.replace(`/calendar?date=${encodeURIComponent(values.date)}`);
++          return;
++        }
++
++        // 通常ルート（push → replace に変更）
+         const createdRedirect = backHref
+           ? `${backHref}${backHref.includes("?") ? "&" : "?"}toast=created`
+           : "/schedules?toast=created";
+-
+-        clearCalendarScheduleCache();
+-        router.push(createdRedirect);
+-        router.refresh();
++        router.replace(createdRedirect);
+         return;
+       }
+ 

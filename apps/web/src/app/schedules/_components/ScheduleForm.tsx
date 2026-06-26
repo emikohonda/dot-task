@@ -38,6 +38,7 @@ type Props = {
   initialDate?: string | null;
   initialSiteId?: string | null;
   backHref?: string;
+  from?: string;
 };
 
 const toYmd = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null);
@@ -52,6 +53,7 @@ export default function ScheduleForm({
   initialDate,
   initialSiteId,
   backHref,
+  from,
 }: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -199,13 +201,21 @@ export default function ScheduleForm({
           const t = await res.text().catch(() => "");
           throw new Error(t || `保存に失敗しました（${res.status}）`);
         }
+
+        clearCalendarScheduleCache();
+
+        // カレンダー経由の場合：保存した予定の開始日でカレンダーに戻る
+        // フォームで日付を変更していた場合も values.date が実際に保存した開始日になる
+        if (from === "calendar") {
+          router.replace(`/calendar?date=${encodeURIComponent(values.date)}`);
+          return;
+        }
+
+        // 通常ルート（push → replace に変更）
         const createdRedirect = backHref
           ? `${backHref}${backHref.includes("?") ? "&" : "?"}toast=created`
           : "/schedules?toast=created";
-
-        clearCalendarScheduleCache();
-        router.push(createdRedirect);
-        router.refresh();
+        router.replace(createdRedirect);
         return;
       }
 
@@ -226,6 +236,13 @@ export default function ScheduleForm({
       }
 
       clearCalendarScheduleCache();
+
+      // カレンダー経由の場合：保存した予定の開始日でカレンダーに戻る
+      if (from === "calendar") {
+        router.replace(`/calendar?date=${encodeURIComponent(values.date)}`);
+        return;
+      }
+
       router.push(
         backHref
           ? `/schedules/${schedule.id}?toast=updated&back=${encodeURIComponent(backHref)}`
@@ -241,6 +258,18 @@ export default function ScheduleForm({
   });
 
   const isLocked = isSubmitting || deleteLoading || deleteSucceeded;
+
+  const cancelHref = (() => {
+    if (mode === "edit" && schedule?.id) {
+      const base = `/schedules/${schedule.id}`;
+      const params = new URLSearchParams();
+      if (from === "calendar") params.set("from", "calendar");
+      if (backHref) params.set("back", backHref);
+      const qs = params.toString();
+      return qs ? `${base}?${qs}` : base;
+    }
+    return backHref ?? "/schedules";
+  })();
 
   const baseInputClass =
     "mt-1 block min-w-0 w-full bg-white rounded-md border px-3 py-2 text-[16px] transition-colors focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100";
@@ -557,13 +586,7 @@ export default function ScheduleForm({
 
           <div className="flex gap-3">
             <Link
-              href={
-                mode === "edit" && schedule?.id
-                  ? backHref
-                    ? `/schedules/${schedule.id}?back=${encodeURIComponent(backHref)}`
-                    : `/schedules/${schedule.id}`
-                  : backHref ?? "/schedules"
-              }
+              href={cancelHref}
               aria-disabled={isLocked}
               className={[
                 "flex-1 min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold transition-colors",

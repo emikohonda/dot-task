@@ -1,4 +1,3 @@
-// apps/web/src/app/calendar/CalendarClient.tsx
 "use client";
 
 import * as React from "react";
@@ -28,49 +27,31 @@ async function fetchGridSchedules(year: number, month0: number): Promise<Schedul
   try {
     const { from, to } = gridRange(year, month0);
     const params = new URLSearchParams({ dateFrom: from, dateTo: to, limit: "200" });
-
-    const res = await fetch(`/api/schedules?${params.toString()}`, {
-      cache: "no-store",
-    });
-
+    const res = await fetch(`/api/schedules?${params.toString()}`, { cache: "no-store" });
     if (!res.ok) return null;
-
     const data = await res.json();
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.items)) return data.items;
-
     return [];
   } catch {
     return null;
   }
 }
 
-// 下部一覧専用：選択日の1日分だけ取得
 async function fetchSchedulesByDate(ymd: string): Promise<Schedule[]> {
   try {
-    const params = new URLSearchParams({
-      dateFrom: ymd,
-      dateTo: ymd,
-      limit: "200",
-    });
-
-    const res = await fetch(`/api/schedules?${params.toString()}`, {
-      cache: "no-store",
-    });
-
+    const params = new URLSearchParams({ dateFrom: ymd, dateTo: ymd, limit: "200" });
+    const res = await fetch(`/api/schedules?${params.toString()}`, { cache: "no-store" });
     if (!res.ok) return [];
-
     const data = await res.json();
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.items)) return data.items;
-
     return [];
   } catch {
     return [];
   }
 }
 
-// ── sessionStorage helpers ──
 function monthKey(y: number, m0: number) {
   return `${y}-${String(m0 + 1).padStart(2, "0")}`;
 }
@@ -127,6 +108,7 @@ export type CalendarClientProps = {
   initialYear: number;
   initialMonth0: number;
   holidays?: Record<string, string>;
+  initialSelectedDate?: string;
 };
 
 export default function CalendarClient({
@@ -134,16 +116,18 @@ export default function CalendarClient({
   initialYear,
   initialMonth0,
   holidays = {},
+  initialSelectedDate,
 }: CalendarClientProps) {
 
   const router = useRouter();
-
   const nowRef = React.useRef(new Date());
   const now = nowRef.current;
   const todayYmd = ymdLocal(now);
 
+  // initialSelectedDate がある場合は sessionStorage より URL を優先する
   const [year, setYear] = React.useState(() => {
     if (typeof window === "undefined") return initialYear;
+    if (initialSelectedDate) return initialYear;
     const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
     if (saved && /^\d{4}-\d{2}$/.test(saved)) return Number(saved.split("-")[0]);
     return initialYear;
@@ -151,6 +135,7 @@ export default function CalendarClient({
 
   const [month0, setMonth0] = React.useState(() => {
     if (typeof window === "undefined") return initialMonth0;
+    if (initialSelectedDate) return initialMonth0;
     const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
     if (saved && /^\d{4}-\d{2}$/.test(saved)) return Number(saved.split("-")[1]) - 1;
     return initialMonth0;
@@ -158,6 +143,7 @@ export default function CalendarClient({
 
   const [schedules, setSchedules] = React.useState<Schedule[]>(() => {
     if (typeof window === "undefined") return initialSchedules;
+    if (initialSelectedDate) return initialSchedules; // URL優先時は古いキャッシュを使わない
     const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
     if (saved && /^\d{4}-\d{2}$/.test(saved)) {
       const [savedYear, savedMonthNumber] = saved.split("-").map(Number);
@@ -166,8 +152,13 @@ export default function CalendarClient({
     }
     return initialSchedules;
   });
+
   const [direction, setDirection] = React.useState(0);
-  const [selectedYmd, setSelectedYmd] = React.useState<string>(todayYmd);
+
+  // initialSelectedDate がある場合はその日付を初期選択にする
+  const [selectedYmd, setSelectedYmd] = React.useState<string>(
+    initialSelectedDate ?? todayYmd
+  );
   const [selectedReady, setSelectedReady] = React.useState(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Schedule[]>([]);
   const [isMonthLoading, setIsMonthLoading] = React.useState(false);
@@ -176,6 +167,7 @@ export default function CalendarClient({
     const initialKey = monthKey(initialYear, initialMonth0);
     const result: Record<string, Schedule[]> = { [initialKey]: initialSchedules };
     if (typeof window === "undefined") return result;
+    if (initialSelectedDate) return result; // URL優先時は古いキャッシュを混ぜない
     const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
     if (saved && /^\d{4}-\d{2}$/.test(saved)) {
       const [savedYear, savedMonthNumber] = saved.split("-").map(Number);
@@ -186,10 +178,12 @@ export default function CalendarClient({
   });
 
   const [schedulesMonthKey, setSchedulesMonthKey] = React.useState(() => {
-    if (typeof window === "undefined") return monthKey(initialYear, initialMonth0);
+    const initialKey = monthKey(initialYear, initialMonth0);
+    if (typeof window === "undefined") return initialKey;
+    if (initialSelectedDate) return initialKey;
     const saved = sessionStorage.getItem(MONTH_STORAGE_KEY);
     if (saved && /^\d{4}-\d{2}$/.test(saved)) return saved;
-    return monthKey(initialYear, initialMonth0);
+    return initialKey;
   });
 
   const monthRequestIdRef = React.useRef(0);
@@ -203,13 +197,20 @@ export default function CalendarClient({
     if (typeof window === "undefined") return;
 
     let cancelled = false;
-
     const initialKey = monthKey(initialYear, initialMonth0);
-
     saveMonthSchedules(initialYear, initialMonth0, initialSchedules);
 
-    const savedYmd = sessionStorage.getItem(STORAGE_KEY);
-    if (savedYmd) setSelectedYmd(savedYmd);
+    if (initialSelectedDate && /^\d{4}-\d{2}-\d{2}$/.test(initialSelectedDate)) {
+      // URL から来た日付を「今回の正」として sessionStorage に上書きする。
+      // これにより以降の月データ判定ロジックが initialSelectedDate の月を正しく参照できる。
+      setSelectedYmd(initialSelectedDate);
+      sessionStorage.setItem(STORAGE_KEY, initialSelectedDate);
+      const [y, m] = initialSelectedDate.split("-").map(Number);
+      sessionStorage.setItem(MONTH_STORAGE_KEY, `${y}-${String(m).padStart(2, "0")}`);
+    } else {
+      const savedYmd = sessionStorage.getItem(STORAGE_KEY);
+      if (savedYmd) setSelectedYmd(savedYmd);
+    }
 
     const savedMonth = sessionStorage.getItem(MONTH_STORAGE_KEY);
 
@@ -218,41 +219,26 @@ export default function CalendarClient({
       const savedMonth0 = savedMonthNumber - 1;
       const savedKey = monthKey(savedYear, savedMonth0);
 
-      // 初期表示月と同じなら、server側で取得済みの initialSchedules を使う
-      // ここで再fetchしないことで、カレンダー初回表示時の二重取得を防ぐ
       if (savedKey === initialKey) {
         setSchedules(initialSchedules);
         setSchedulesMonthKey(initialKey);
-        setCache((prev) => ({
-          ...prev,
-          [initialKey]: initialSchedules,
-        }));
+        setCache((prev) => ({ ...prev, [initialKey]: initialSchedules }));
         setSelectedReady(true);
-
-        return () => {
-          cancelled = true;
-        };
+        return () => { cancelled = true; };
       }
 
       fetchGridSchedules(savedYear, savedMonth0).then((data) => {
         if (cancelled || data === null) return;
-
         setSchedules(data);
         setSchedulesMonthKey(savedKey);
-        setCache((prev) => ({
-          ...prev,
-          [savedKey]: data,
-        }));
+        setCache((prev) => ({ ...prev, [savedKey]: data }));
         saveMonthSchedules(savedYear, savedMonth0, data);
       });
     }
 
     setSelectedReady(true);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [initialYear, initialMonth0, initialSchedules]);
+    return () => { cancelled = true; };
+  }, [initialYear, initialMonth0, initialSchedules, initialSelectedDate]);
 
   function saveVisibleMonth(y: number, m0: number) {
     if (typeof window === "undefined") return;
@@ -273,48 +259,27 @@ export default function CalendarClient({
       saveVisibleMonth(y, m0);
 
       if (cachedData) {
-        // キャッシュがある場合は即表示できるので、ローディング表示は出さない
         setIsMonthLoading(false);
         setSchedules(cachedData);
         setSchedulesMonthKey(key);
-        setCache((prev) => ({
-          ...prev,
-          [key]: cachedData,
-        }));
+        setCache((prev) => ({ ...prev, [key]: cachedData }));
 
         const data = await fetchGridSchedules(y, m0);
-
-        if (monthRequestIdRef.current !== requestId) {
-          return;
-        }
-
-        if (data === null) {
-          setIsMonthLoading(false);
-          return;
-        }
+        if (monthRequestIdRef.current !== requestId) return;
+        if (data === null) { setIsMonthLoading(false); return; }
 
         setSchedules(data);
         setSchedulesMonthKey(key);
         setCache((prev) => ({ ...prev, [key]: data }));
         saveMonthSchedules(y, m0, data);
         setIsMonthLoading(false);
-
         return;
       }
 
-      // キャッシュがない場合だけ「予定確認中…」を表示する
       setIsMonthLoading(true);
-
       const data = await fetchGridSchedules(y, m0);
-
-      if (monthRequestIdRef.current !== requestId) {
-        return;
-      }
-
-      if (data === null) {
-        setIsMonthLoading(false);
-        return;
-      }
+      if (monthRequestIdRef.current !== requestId) return;
+      if (data === null) { setIsMonthLoading(false); return; }
 
       setSchedules(data);
       setSchedulesMonthKey(key);
@@ -326,14 +291,10 @@ export default function CalendarClient({
   );
 
   const activeMonthKey = monthKey(year, month0);
-
   const visibleSchedules =
     schedulesMonthKey === activeMonthKey ? schedules : cache[activeMonthKey] ?? EMPTY_SCHEDULES;
 
-  const byDate = React.useMemo(
-    () => groupByDate(visibleSchedules),
-    [visibleSchedules]
-  );
+  const byDate = React.useMemo(() => groupByDate(visibleSchedules), [visibleSchedules]);
 
   const goPrev = React.useCallback(() => {
     const next = addMonths(year, month0, -1);
@@ -347,16 +308,13 @@ export default function CalendarClient({
 
   React.useEffect(() => {
     if (!selectedReady) return;
-
     const { from, to } = gridRange(year, month0);
 
-    // 表示中グリッド内の日付なら、予定あり/なしを即反映する
     if (selectedYmd >= from && selectedYmd <= to) {
       setSelectedSchedules(byDate.get(selectedYmd) ?? []);
       return;
     }
 
-    // グリッド外の日付でも、まず月キャッシュから即表示を試す
     const cachedMonthSchedules = loadMonthSchedulesByYmd(selectedYmd);
     if (cachedMonthSchedules) {
       const cachedByDate = groupByDate(cachedMonthSchedules);
@@ -365,20 +323,14 @@ export default function CalendarClient({
       setSelectedSchedules([]);
     }
 
-    // その後、1日分だけ最新取得する
     let cancelled = false;
-
     (async () => {
       const data = await fetchSchedulesByDate(selectedYmd);
       if (!cancelled) setSelectedSchedules(data);
     })();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [selectedReady, selectedYmd, byDate, year, month0]);
 
-  // ── スワイプ検出（安全版）──
   const touchStartX = React.useRef<number | null>(null);
   const touchStartY = React.useRef<number | null>(null);
   const isMultiTouch = React.useRef(false);
@@ -392,10 +344,7 @@ export default function CalendarClient({
 
   const onTouchStart = React.useCallback(
     (e: React.TouchEvent) => {
-      if (swipeLockRef.current) {
-        resetTouchState();
-        return;
-      }
+      if (swipeLockRef.current) { resetTouchState(); return; }
       if (e.touches.length !== 1) {
         isMultiTouch.current = true;
         touchStartX.current = null;
@@ -410,9 +359,7 @@ export default function CalendarClient({
   );
 
   const onTouchMove = React.useCallback((e: React.TouchEvent) => {
-    if (e.touches.length > 1) {
-      isMultiTouch.current = true;
-    }
+    if (e.touches.length > 1) isMultiTouch.current = true;
   }, []);
 
   const onTouchEnd = React.useCallback(
@@ -422,47 +369,33 @@ export default function CalendarClient({
         isMultiTouch.current ||
         touchStartX.current === null ||
         touchStartY.current === null
-      ) {
-        resetTouchState();
-        return;
-      }
+      ) { resetTouchState(); return; }
 
       const diffX = touchStartX.current - e.changedTouches[0].clientX;
       const diffY = touchStartY.current - e.changedTouches[0].clientY;
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      if (absX < 40) {
-        resetTouchState();
-        return;
-      }
-      if (absX <= absY * 1.1) {
-        resetTouchState();
-        return;
-      }
+      if (absX < 40) { resetTouchState(); return; }
+      if (absX <= absY * 1.1) { resetTouchState(); return; }
 
       swipeLockRef.current = true;
       if (diffX > 0) goNext();
       else goPrev();
       resetTouchState();
-      window.setTimeout(() => {
-        swipeLockRef.current = false;
-      }, 350);
+      window.setTimeout(() => { swipeLockRef.current = false; }, 350);
     },
     [goNext, goPrev, resetTouchState]
   );
 
   const cells = React.useMemo(() => buildCalendarCells(year, month0), [year, month0]);
   const monthTitle = formatMonthTitle(year, month0);
-
-  // 下部一覧は selectedSchedules を使う
   const selectedList = selectedSchedules;
 
   const selectedLabel = React.useMemo(() => {
     const [y, m, d] = selectedYmd.split("-").map(Number);
     const date = new Date(y, m - 1, d);
     return date.toLocaleDateString("ja-JP", {
-      // year: "numeric",  // ← 追加
       month: "long",
       day: "numeric",
       weekday: "short",
@@ -471,68 +404,39 @@ export default function CalendarClient({
 
   return (
     <div className="relative flex h-[calc(100dvh-112px)] flex-col overflow-hidden bg-white">
-      {/* ── 月見出し ── */}
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
           {isMonthLoading && (
-            <span className="animate-pulse text-xs text-slate-400">
-              予定を確認中…
-            </span>
+            <span className="animate-pulse text-xs text-slate-400">予定を確認中…</span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={goPrev}
+          <button type="button" onClick={goPrev}
             className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label="前月"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              goToMonth(now.getFullYear(), now.getMonth(), 0);
-              selectYmd(todayYmd);
-            }}
-            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
-          >
+            aria-label="前月">‹</button>
+          <button type="button"
+            onClick={() => { goToMonth(now.getFullYear(), now.getMonth(), 0); selectYmd(todayYmd); }}
+            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100">
             今日
           </button>
-          <button
-            type="button"
-            onClick={goNext}
+          <button type="button" onClick={goNext}
             className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label="次月"
-          >
-            ›
-          </button>
+            aria-label="次月">›</button>
         </div>
       </div>
 
-      {/* ── 曜日ヘッダー ── */}
       <div className="grid shrink-0 grid-cols-7 border-b border-slate-100">
         {WEEK_LABELS.map((w, i) => (
-          <div
-            key={w}
-            className={[
-              "py-1 text-center text-[11px] font-semibold",
-              i === 0 ? "text-rose-400" : i === 6 ? "text-sky-500" : "text-slate-400",
-            ].join(" ")}
-          >
-            {w}
-          </div>
+          <div key={w} className={[
+            "py-1 text-center text-[11px] font-semibold",
+            i === 0 ? "text-rose-400" : i === 6 ? "text-sky-500" : "text-slate-400",
+          ].join(" ")}>{w}</div>
         ))}
       </div>
 
-      {/* ── カレンダーグリッド（上部 約60%）── */}
-      <div
-        className="relative min-h-0 flex-[6] overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+      <div className="relative min-h-0 flex-[6] overflow-hidden"
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={`${year}-${month0}`}
@@ -541,9 +445,7 @@ export default function CalendarClient({
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-            }}
+            transition={{ x: { type: "spring", stiffness: 300, damping: 30 } }}
             className="absolute inset-0 grid grid-cols-7 grid-rows-6 gap-px bg-slate-100"
           >
             {cells.map((date, idx) => {
@@ -560,63 +462,33 @@ export default function CalendarClient({
               const overCount = Math.max(0, list.length - maxChips);
 
               return (
-                <div
-                  key={`${ymd}-${idx}`}
-                  onClick={() => selectYmd(ymd)}
+                <div key={`${ymd}-${idx}`} onClick={() => selectYmd(ymd)}
                   className={[
                     "relative flex cursor-pointer flex-col overflow-visible p-0.5 transition-colors active:bg-slate-200",
-                    !isCurrentMonth
-                      ? "bg-slate-50"
-                      : isToday
-                        ? "bg-rose-100"
-                        : "bg-white hover:bg-slate-50",
-                    isSelected
-                      ? "ring-2 ring-inset ring-rose-500"
-                      : "",
+                    !isCurrentMonth ? "bg-slate-50" : isToday ? "bg-rose-100" : "bg-white hover:bg-slate-50",
+                    isSelected ? "ring-2 ring-inset ring-rose-500" : "",
                   ].join(" ")}
                 >
+                  <div className={[
+                    "text-center font-semibold leading-none",
+                    "text-[11px] [@media(max-height:740px)]:text-[10px]",
+                    !isCurrentMonth ? "text-slate-300"
+                      : isToday ? "text-slate-700"
+                      : isHoliday ? "text-rose-500"
+                      : isSunday ? "text-rose-500"
+                      : isSaturday ? "text-sky-500"
+                      : "text-slate-700",
+                  ].join(" ")}>{date.getDate()}</div>
 
-                  {/* 日付 */}
-                  <div
-                    className={[
-                      "text-center font-semibold leading-none",
-                      "text-[11px] [@media(max-height:740px)]:text-[10px]",
-                      !isCurrentMonth
-                        ? "text-slate-300"
-                        : isToday
-                          ? "text-slate-700"
-                          : isHoliday
-                            ? "text-rose-500"
-                            : isSunday
-                              ? "text-rose-500"
-                              : isSaturday
-                                ? "text-sky-500"
-                                : "text-slate-700",
-                    ].join(" ")}
-                  >
-                    {date.getDate()}
-                  </div>
-
-                  {/* 予定チップ */}
-                  <div
-                    className={[
-                      "mt-0.5 min-h-0 flex-1 overflow-hidden",
-                      "pb-3 [@media(max-height:740px)]:pb-2",
-                    ].join(" ")}
-                  >
-
+                  <div className={["mt-0.5 min-h-0 flex-1 overflow-hidden", "pb-3 [@media(max-height:740px)]:pb-2"].join(" ")}>
                     {list.slice(0, maxChips).map((s) => {
                       const siteColor = getSiteColor(s.site?.color);
-
                       return (
-                        <div
-                          key={s.id}
+                        <div key={s.id}
                           className={[
                             "mb-px truncate rounded-[2px] px-0.5",
                             "text-[9px] leading-[14px] [@media(max-height:740px)]:text-[8px] [@media(max-height:740px)]:leading-[11px]",
-                            !isCurrentMonth
-                              ? "bg-slate-200 text-slate-400"
-                              : `${siteColor.bgSoft} ${siteColor.text}`,
+                            !isCurrentMonth ? "bg-slate-200 text-slate-400" : `${siteColor.bgSoft} ${siteColor.text}`,
                           ].join(" ")}
                           title={s.site?.name ?? s.title ?? undefined}
                         >
@@ -626,18 +498,13 @@ export default function CalendarClient({
                     })}
                   </div>
 
-                  {/* +N：中央下固定 */}
                   {overCount > 0 && (
-                    <div
-                      className={[
-                        "absolute left-1/2 -translate-x-1/2 text-center font-bold",
-                        "bottom-0.5 text-[8px] leading-3",
-                        "[@media(max-height:740px)]:bottom-0 [@media(max-height:740px)]:text-[7px]",
-                        !isCurrentMonth ? "text-slate-300" : "text-slate-400",
-                      ].join(" ")}
-                    >
-                      +{overCount}
-                    </div>
+                    <div className={[
+                      "absolute left-1/2 -translate-x-1/2 text-center font-bold",
+                      "bottom-0.5 text-[8px] leading-3",
+                      "[@media(max-height:740px)]:bottom-0 [@media(max-height:740px)]:text-[7px]",
+                      !isCurrentMonth ? "text-slate-300" : "text-slate-400",
+                    ].join(" ")}>+{overCount}</div>
                   )}
                 </div>
               );
@@ -646,7 +513,6 @@ export default function CalendarClient({
         </AnimatePresence>
       </div>
 
-      {/* ── 下部：選択日の予定一覧（約40%）── */}
       <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
         <div className="flex shrink-0 items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
@@ -659,12 +525,9 @@ export default function CalendarClient({
               <span className="h-5 w-28" aria-hidden="true" />
             )}
           </div>
-
           {selectedReady ? (
-            <Link
-              href={`/calendar/day/${selectedYmd}`}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
+            <Link href={`/calendar/day/${selectedYmd}`}
+              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
               一覧を見る
             </Link>
           ) : (
@@ -672,11 +535,8 @@ export default function CalendarClient({
           )}
         </div>
 
-        {/* 下部一覧：スクロール可・上への伝播を防ぐ */}
-        <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
-          style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}>
           {!selectedReady ? (
             <div className="py-6" aria-hidden="true" />
           ) : selectedList.length === 0 ? (
@@ -690,14 +550,17 @@ export default function CalendarClient({
                 const company = companyName(s);
                 const siteName = s.site?.name ?? "";
                 const siteColor = getSiteColor(s.site?.color);
-
                 return (
                   <li key={s.id}>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/schedules/${s.id}`)}
-                      className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
-                    >
+                    <button type="button"
+                      onClick={() =>
+                        router.push(
+                          `/schedules/${s.id}?from=calendar&back=${encodeURIComponent(
+                            `/calendar?date=${selectedYmd}`
+                          )}`
+                        )
+                      }
+                      className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100">
                       <div className="w-[52px] shrink-0 pr-2 text-right">
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line1}</p>
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line2}</p>
@@ -706,12 +569,7 @@ export default function CalendarClient({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] leading-5 text-slate-500">{company}</p>
                         {siteName && (
-                          <p
-                            className={[
-                              "flex items-center gap-1 truncate text-[15px] font-semibold leading-5",
-                              siteColor.text,
-                            ].join(" ")}
-                          >
+                          <p className={["flex items-center gap-1 truncate text-[15px] font-semibold leading-5", siteColor.text].join(" ")}>
                             <MapPin className={["h-3.5 w-3.5 shrink-0", siteColor.text].join(" ")} />
                             {siteName}
                           </p>
@@ -726,8 +584,8 @@ export default function CalendarClient({
         </div>
       </div>
 
-      {/* スマホ用FAB */}
-      <FloatingAddButton href={`/schedules/new?date=${selectedYmd}`} />
+      {/* from=calendar を付けることで保存後に /calendar?date=保存日 に戻れる */}
+      <FloatingAddButton href={`/schedules/new?date=${selectedYmd}&from=calendar`} />
     </div>
   );
 }
