@@ -407,9 +407,6 @@ export default function CalendarClient({
       <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{monthTitle}</h1>
-          {isMonthLoading && (
-            <span className="animate-pulse text-xs text-slate-400">予定を確認中…</span>
-          )}
         </div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={goPrev}
@@ -511,6 +508,15 @@ export default function CalendarClient({
             })}
           </motion.div>
         </AnimatePresence>
+
+        {isMonthLoading && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500" />
+          </div>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
