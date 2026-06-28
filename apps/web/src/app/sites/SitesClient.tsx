@@ -387,6 +387,7 @@ export default function SitesClient({
                           ? `/sites/${site.id}?${searchParams.toString()}`
                           : `/sites/${site.id}`
                       }
+                      prefetch={false}
                       className="group flex items-start gap-3 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
                     >
                       <div className="min-w-0 flex-1">
