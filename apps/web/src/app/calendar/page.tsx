@@ -92,8 +92,42 @@ export default async function CalendarPage({
     <div className="-mx-4 -mt-5 -mb-24 md:-mx-6 md:-mt-6 md:-mb-8">
       <Suspense
         fallback={
-          <div className="p-6 text-center text-sm text-slate-400">
-            読み込み中…
+          <div className="relative flex h-[calc(100dvh-112px)] flex-col overflow-hidden bg-white">
+            <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-1">
+              <div className="h-8 w-28 rounded bg-slate-100" />
+              <div className="flex items-center gap-1">
+                <div className="h-9 w-9 rounded-full bg-slate-100" />
+                <div className="h-8 w-14 rounded-full bg-slate-100" />
+                <div className="h-9 w-9 rounded-full bg-slate-100" />
+              </div>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-7 border-b border-slate-100">
+              {["日", "月", "火", "水", "木", "金", "土"].map((w) => (
+                <div
+                  key={w}
+                  className="py-1 text-center text-[11px] font-semibold text-slate-300"
+                >
+                  {w}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid min-h-0 flex-[6] grid-cols-7 grid-rows-6 gap-px bg-slate-100">
+              {Array.from({ length: 42 }).map((_, i) => (
+                <div key={i} className="bg-white p-0.5">
+                  <div className="mx-auto h-3 w-4 rounded bg-slate-100" />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex min-h-0 flex-[4] flex-col border-t border-slate-200 bg-white">
+              <div className="flex shrink-0 items-center justify-between px-4 py-2">
+                <div className="h-5 w-28 rounded bg-slate-100" />
+                <div className="h-7 w-20 rounded-full bg-slate-100" />
+              </div>
+              <div className="py-6" aria-hidden="true" />
+            </div>
           </div>
         }
       >
