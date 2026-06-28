@@ -345,6 +345,7 @@ export default function SchedulesClient({
                   <li key={s.id} className="py-4">
                     <Link
                       href={`/schedules/${s.id}`}
+                      prefetch={false}
                       className="block min-w-0 rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
                     >
                       <p className="mb-1 font-bold leading-snug text-[18px] text-slate-900 hover:text-sky-600">
