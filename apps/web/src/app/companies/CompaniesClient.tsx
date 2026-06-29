@@ -228,6 +228,7 @@ export function CompaniesClient({
                 <li key={item.id} className="py-4">
                   <Link
                     href={`/companies/${item.id}`}
+                    prefetch={false}
                     className="group flex items-center justify-between rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
                   >
                     <p className="text-[18px] font-bold leading-snug text-slate-900 transition-colors group-hover:text-sky-600">
@@ -283,6 +284,7 @@ export function CompaniesClient({
                       <td className="w-[88px] py-4 text-center">
                         <Link
                           href={`/companies/${item.id}`}
+                          prefetch={false}
                           className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 hover:bg-slate-50"
                         >
                           開く

@@ -213,6 +213,7 @@ export function EmployeesClient({
                 <li key={item.id} className="py-4">
                   <Link
                     href={`/employees/${item.id}`}
+                    prefetch={false}
                     className="group flex items-center justify-between rounded-xl transition-colors hover:bg-slate-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
                   >
                     <div className="min-w-0">
@@ -258,6 +259,7 @@ export function EmployeesClient({
                       <td className="w-[88px] py-4 text-center">
                         <Link
                           href={`/employees/${item.id}`}
+                          prefetch={false}
                           className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 hover:bg-slate-50"
                         >
                           開く
