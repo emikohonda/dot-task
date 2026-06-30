@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Users,
   Pencil,
+  Tag,
 } from "lucide-react";
 import { CardSection } from "@/components/CardSection";
 import { fetchScheduleById } from "@/lib/fetchers/schedules";
@@ -97,60 +98,72 @@ export default async function ScheduleDetailPage({
         >
           {fromCalendar ? "◀︎ カレンダーに戻る" : "◀︎ 一覧に戻る"}
         </Link>
-        <h1 className="break-words text-center text-2xl font-bold leading-snug text-slate-900">
-          {formatScheduleTitle(s.title)}
-        </h1>
+        <h1 className="sr-only">{formatScheduleTitle(s.title)}</h1>
       </div>
 
       <CardSection title="予定内容">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <InfoItem
-            icon={<Calendar className="h-4 w-4" />}
-            label="日程"
-            value={formatDateRange(s.date, s.endDate)}
-          />
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span className="text-slate-400">
+                <Tag className="h-4 w-4" />
+              </span>
+              <span>作業内容</span>
+            </div>
+            <div className="mt-1 break-words text-lg font-bold leading-snug text-slate-900">
+              {formatScheduleTitle(s.title)}
+            </div>
+          </div>
 
-          <InfoItem
-            icon={<Clock className="h-4 w-4" />}
-            label="作業時刻"
-            value={
-              <ScheduleTime
-                startTime={s.startTime ?? null}
-                endTime={s.endTime ?? null}
-                variant="detail"
-              />
-            }
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <InfoItem
+              icon={<Calendar className="h-4 w-4" />}
+              label="日程"
+              value={formatDateRange(s.date, s.endDate)}
+            />
 
-          <InfoItem
-            icon={<Building2 className="h-4 w-4" />}
-            label="現場名"
-            value={s.site?.name ?? <span className="text-slate-500">—</span>}
-          />
+            <InfoItem
+              icon={<Clock className="h-4 w-4" />}
+              label="作業時刻"
+              value={
+                <ScheduleTime
+                  startTime={s.startTime ?? null}
+                  endTime={s.endTime ?? null}
+                  variant="detail"
+                />
+              }
+            />
 
-          <InfoItem
-            icon={<Users className="h-4 w-4" />}
-            label="社員（自社）"
-            value={
-              employeeNames.length ? (
-                <span>{employeeNames.join(" / ")}</span>
-              ) : (
-                <span className="text-slate-500">—</span>
-              )
-            }
-          />
+            <InfoItem
+              icon={<Building2 className="h-4 w-4" />}
+              label="現場名"
+              value={s.site?.name ?? <span className="text-slate-500">—</span>}
+            />
 
-          <InfoItem
-            icon={<Handshake className="h-4 w-4" />}
-            label="協力会社"
-            value={
-              contractorNames.length ? (
-                <span>{contractorNames.join(" / ")}</span>
-              ) : (
-                <span className="text-slate-500">—</span>
-              )
-            }
-          />
+            <InfoItem
+              icon={<Users className="h-4 w-4" />}
+              label="社員（自社）"
+              value={
+                employeeNames.length ? (
+                  <span>{employeeNames.join(" / ")}</span>
+                ) : (
+                  <span className="text-slate-500">—</span>
+                )
+              }
+            />
+
+            <InfoItem
+              icon={<Handshake className="h-4 w-4" />}
+              label="協力会社"
+              value={
+                contractorNames.length ? (
+                  <span>{contractorNames.join(" / ")}</span>
+                ) : (
+                  <span className="text-slate-500">—</span>
+                )
+              }
+            />
+          </div>
         </div>
       </CardSection>
 
