@@ -234,7 +234,12 @@ export default function QuickCreateSelect({
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
                 ＋
               </span>
-              「{keyword}」を{addLabel}
+              <span className="min-w-0">
+                {"「"}
+                <span className="font-semibold">{keyword.trim()}</span>
+                {"」を"}
+                {addLabel}
+              </span>
             </button>
           )}
 

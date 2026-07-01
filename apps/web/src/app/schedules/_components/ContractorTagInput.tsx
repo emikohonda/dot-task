@@ -194,20 +194,20 @@ export function ContractorTagInput({
                                             </li>
                                         ))}
                                     </ul>
-                                ) : (
+                                ) : !showAddNew ? (
                                     <p className="px-3 py-3 text-sm text-slate-500">
                                         該当する協力会社がありません
                                     </p>
-                                )}
+                                ) : null}
 
                                 {showAddNew && (
                                     <button
                                         type="button"
                                         onMouseDown={(e) => e.preventDefault()}
                                         onClick={addNewName}
-                                        className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-3 text-left text-[15px] font-medium text-sky-800 transition-colors hover:bg-sky-50 active:bg-sky-100"
+                                        className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-3 text-left text-[15px] font-medium text-amber-700 transition-colors hover:bg-amber-50 active:bg-amber-100"
                                     >
-                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-base font-bold text-sky-700">＋</span>
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-base font-bold text-white">＋</span>
                                         <span className="min-w-0">
                                             「<span className="font-semibold">{trimmedKeyword}</span>
                                             」を外注先として追加
