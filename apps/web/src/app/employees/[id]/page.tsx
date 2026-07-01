@@ -101,9 +101,7 @@ export default async function EmployeeDetailPage({
         >
           ◀︎ 一覧に戻る
         </Link>
-        <h1 className="break-words text-center text-2xl font-bold leading-snug text-slate-900">
-          {employee.name}
-        </h1>
+        <h1 className="sr-only">{employee.name}</h1>
       </div>
 
       <CardSection title="基本情報">
