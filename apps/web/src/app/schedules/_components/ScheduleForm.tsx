@@ -320,7 +320,7 @@ export default function ScheduleForm({
               {isCreatingNewSite && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-slate-700">
-                    元請会社
+                    元請会社（取引先）
                   </label>
 
                   <div className="mt-2">

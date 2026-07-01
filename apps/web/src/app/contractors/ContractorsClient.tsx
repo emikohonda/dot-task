@@ -143,7 +143,7 @@ export function ContractorsClient({
   return (
     <div className="space-y-4 pb-10">
       <h1 className="px-1 text-center text-2xl font-bold leading-none text-slate-900">
-        外注先一覧
+        外注先一覧 - 協力会社
       </h1>
 
       <div
