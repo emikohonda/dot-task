@@ -145,7 +145,7 @@ export function CompaniesClient({
   return (
     <div className="space-y-4 pb-10">
       <h1 className="px-1 text-center text-2xl font-bold leading-none text-slate-900">
-        取引先一覧 - 元請会社
+        取引先（元請会社）
       </h1>
 
       <div

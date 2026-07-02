@@ -9,10 +9,10 @@ import { LogOut, RefreshCw, Settings, Smartphone, X } from "lucide-react";
 import { BottomNav } from "./BottomNav";
 
 const menuItems = [
-  { href: "/schedules", label: "予定一覧" },
-  { href: "/employees", label: "社員一覧" },
-  { href: "/companies", label: "取引先一覧 - 元請会社" },
-  { href: "/contractors", label: "外注先一覧 - 協力会社" },
+  { href: "/schedules", label: "予定" },
+  { href: "/employees", label: "社員" },
+  { href: "/companies", label: "取引先（元請会社）" },
+  { href: "/contractors", label: "外注先（協力会社）" },
 ];
 
 type OrganizationMe = {
