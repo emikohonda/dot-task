@@ -2,7 +2,7 @@
   "name": "ドットタスク",
   "short_name": "ドットタスク",
   "description": "現場と予定を管理するための業務アプリ",
-  "start_url": "/",
+  "start_url": "/calendar",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
