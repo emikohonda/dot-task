@@ -1,8 +1,6 @@
 // apps/web/src/app/page.tsx
-import TodayPageContent from "./schedules/today/_components/TodayPageContent";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <TodayPageContent />;
+  redirect("/calendar");
 }

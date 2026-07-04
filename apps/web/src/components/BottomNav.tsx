@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { Home, CalendarDays, MapPin, Menu } from "lucide-react";
+import { CalendarDays, MapPin, Menu, Sun } from "lucide-react";
 
 type Props = {
   onMenuClick: () => void;
@@ -22,21 +22,23 @@ const MENU_PATHS = [
 export function BottomNav({ onMenuClick, menuOpen }: Props) {
   const pathname = usePathname();
 
-  const isMenuActive =
-    menuOpen || MENU_PATHS.some((p) => pathname.startsWith(p));
+  const isTodayActive = pathname.startsWith("/schedules/today");
+  const isMenuPath = MENU_PATHS.some((p) => pathname.startsWith(p));
+
+  const isMenuActive = menuOpen || (isMenuPath && !isTodayActive);
 
   const linkItems = [
-    {
-      href: "/",
-      label: "ホーム",
-      icon: Home,
-      isActive: pathname === "/",
-    },
     {
       href: "/calendar",
       label: "カレンダー",
       icon: CalendarDays,
       isActive: pathname.startsWith("/calendar"),
+    },
+    {
+      href: "/schedules/today",
+      label: "今日",
+      icon: Sun,
+      isActive: isTodayActive,
     },
     {
       href: "/sites",

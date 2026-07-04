@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
 const navItems = [
-  { href: "/",            label: "ホーム" },
-  { href: "/calendar",    label: "カレンダー" },
-  { href: "/schedules",   label: "予定一覧" },
-  { href: "/sites",       label: "現場一覧" },
-  { href: "/employees",   label: "社員名簿" },
-  { href: "/companies",   label: "取引先" },
+  { href: "/calendar", label: "カレンダー" },
+  { href: "/schedules/today", label: "今日" },
+  { href: "/schedules", label: "予定一覧" },
+  { href: "/sites", label: "現場一覧" },
+  { href: "/employees", label: "社員名簿" },
+  { href: "/companies", label: "取引先" },
   { href: "/contractors", label: "外注先" },
 ];
 
@@ -23,8 +23,9 @@ export function HeaderNav() {
     <nav className="hidden md:flex gap-6 text-sm">
       {navItems.map((item) => {
         const isActive =
-          item.href === "/"
-            ? pathname === "/"
+          item.href === "/schedules"
+            ? pathname.startsWith("/schedules") &&
+              !pathname.startsWith("/schedules/today")
             : pathname.startsWith(item.href);
 
         return (
