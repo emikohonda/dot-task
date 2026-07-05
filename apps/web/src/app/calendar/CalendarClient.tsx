@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
@@ -119,7 +118,6 @@ export default function CalendarClient({
   initialSelectedDate,
 }: CalendarClientProps) {
 
-  const router = useRouter();
   const nowRef = React.useRef(new Date());
   const now = nowRef.current;
   const todayYmd = ymdLocal(now);
@@ -558,15 +556,13 @@ export default function CalendarClient({
                 const siteColor = getSiteColor(s.site?.color);
                 return (
                   <li key={s.id}>
-                    <button type="button"
-                      onClick={() =>
-                        router.push(
-                          `/schedules/${s.id}?from=calendar&back=${encodeURIComponent(
-                            `/calendar?date=${selectedYmd}`
-                          )}`
-                        )
-                      }
-                      className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100">
+                    <Link
+                      href={`/schedules/${s.id}?from=calendar&back=${encodeURIComponent(
+                        `/calendar?date=${selectedYmd}`
+                      )}`}
+                      prefetch={false}
+                      className="flex w-full items-stretch gap-0 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
+                    >
                       <div className="w-[52px] shrink-0 pr-2 text-right">
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line1}</p>
                         <p className="text-[13px] font-semibold leading-5 text-slate-700">{line2}</p>
@@ -581,7 +577,7 @@ export default function CalendarClient({
                           </p>
                         )}
                       </div>
-                    </button>
+                    </Link>
                   </li>
                 );
               })}
