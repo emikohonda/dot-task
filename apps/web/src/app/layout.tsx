@@ -73,7 +73,7 @@ export default function RootLayout({
 
             {/* ロゴ：in-flow で中央に */}
             <Link
-              href="/"
+              href="/calendar"
               className="text-2xl font-extrabold tracking-tight text-sky-600 md:text-3xl"
             >
               .TASK

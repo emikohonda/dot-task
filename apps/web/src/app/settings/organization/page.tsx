@@ -59,10 +59,10 @@ export default async function OrganizationSettingsPage() {
       <div className="space-y-4">
         <div className="space-y-2 px-1">
           <Link
-            href="/"
+            href="/calendar"
             className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
           >
-            ◀︎ ホームに戻る
+            ◀︎ カレンダーに戻る
           </Link>
           <h1 className="text-2xl font-bold leading-snug text-slate-900">
             アカウント設定
@@ -80,10 +80,10 @@ export default async function OrganizationSettingsPage() {
     <div className="space-y-4">
       <div className="space-y-2 px-1">
         <Link
-          href="/"
+          href="/calendar"
           className="inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700"
         >
-          ◀︎ ホームに戻る
+          ◀︎ カレンダーに戻る
         </Link>
         <h1 className="text-2xl font-bold leading-snug text-slate-900">
           アカウント設定
