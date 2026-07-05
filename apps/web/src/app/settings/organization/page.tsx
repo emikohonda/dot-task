@@ -64,7 +64,7 @@ export default async function OrganizationSettingsPage() {
           >
             ◀︎ カレンダーに戻る
           </Link>
-          <h1 className="text-2xl font-bold leading-snug text-slate-900">
+          <h1 className="text-2xl font-bold leading-snug text-slate-900 text-center">
             アカウント設定
           </h1>
         </div>
@@ -85,7 +85,7 @@ export default async function OrganizationSettingsPage() {
         >
           ◀︎ カレンダーに戻る
         </Link>
-        <h1 className="text-2xl font-bold leading-snug text-slate-900">
+        <h1 className="text-2xl font-bold leading-snug text-slate-900 text-center">
           アカウント設定
         </h1>
         <p className="text-sm leading-6 text-slate-600">
