@@ -1,5 +1,10 @@
 // apps/api/src/organizations/organizations.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrgRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
@@ -101,11 +106,18 @@ export class OrganizationsService {
       },
       select: {
         id: true,
+        role: true,
       },
     });
 
     if (!membership) {
       throw new NotFoundException('Organization membership not found');
+    }
+
+    if (membership.role !== OrgRole.OWNER) {
+      throw new ForbiddenException(
+        'Only an OWNER can delete the organization',
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -242,12 +254,6 @@ export class OrganizationsService {
       await tx.organization.delete({
         where: {
           id: organizationId,
-        },
-      });
-
-      await tx.user.delete({
-        where: {
-          id: userId,
         },
       });
     });
