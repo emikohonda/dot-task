@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { getApiAuthHeaders } from "@/lib/apiAuth";
 import { OrganizationSettingsForm } from "./OrganizationSettingsForm";
-import { AccountDeleteSection } from "./AccountDeleteSection";
+import { OrganizationDeleteSection } from "./OrganizationDeleteSection";
 
 const API_BASE =
   process.env.API_BASE_URL?.replace(/\/+$/, "") ??
@@ -148,7 +148,7 @@ export default async function OrganizationSettingsPage() {
         </ul>
       </section>
 
-      <AccountDeleteSection />
+      <OrganizationDeleteSection role={organization.role} />
     </div>
   );
 }
