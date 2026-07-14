@@ -15,10 +15,7 @@ export class OrganizationsService {
   async findMe(userId: string, organizationId: string) {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
+        userId,
       },
       include: {
         user: {
@@ -40,7 +37,7 @@ export class OrganizationsService {
       },
     });
 
-    if (!membership) {
+    if (!membership || membership.organizationId !== organizationId) {
       throw new NotFoundException('Organization membership not found');
     }
 
@@ -61,14 +58,11 @@ export class OrganizationsService {
   ) {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
+        userId,
       },
     });
 
-    if (!membership) {
+    if (!membership || membership.organizationId !== organizationId) {
       throw new NotFoundException('Organization membership not found');
     }
 
@@ -99,18 +93,16 @@ export class OrganizationsService {
   async deleteMe(userId: string, organizationId: string) {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
+        userId,
       },
       select: {
         id: true,
         role: true,
+        organizationId: true,
       },
     });
 
-    if (!membership) {
+    if (!membership || membership.organizationId !== organizationId) {
       throw new NotFoundException('Organization membership not found');
     }
 
