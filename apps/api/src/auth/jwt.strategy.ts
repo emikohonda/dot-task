@@ -7,6 +7,8 @@ import type { AuthUser } from './auth-user.type';
 
 type JwtPayload = {
   userId?: string;
+  // Web側が旧形式のJWTを送る移行期間との互換性のため残している。
+  // 値は認証処理では使用しない。
   organizationId?: string;
 };
 
@@ -27,13 +29,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   validate(payload: JwtPayload): AuthUser {
-    if (!payload.userId || !payload.organizationId) {
+    if (!payload.userId) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
     return {
       userId: payload.userId,
-      organizationId: payload.organizationId,
     };
   }
 }
