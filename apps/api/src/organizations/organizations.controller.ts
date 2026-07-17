@@ -1,4 +1,3 @@
-// apps/api/src/organizations/organizations.controller.ts
 import {
   Body,
   Controller,
@@ -8,8 +7,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentMembership } from '../auth/current-membership.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OrganizationMembershipGuard } from '../auth/organization-membership.guard';
 import type { AuthUser } from '../auth/auth-user.type';
+import type { AuthMembership } from '../auth/auth-membership.type';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { OrganizationsService } from './organizations.service';
 
@@ -19,24 +21,37 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Get('me')
-  findMe(@CurrentUser() user: AuthUser) {
-    return this.organizationsService.findMe(user.userId, user.organizationId);
+  @UseGuards(OrganizationMembershipGuard)
+  findMe(
+    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
+  ) {
+    return this.organizationsService.findMe(user.userId, membership.organizationId);
   }
 
   @Patch('me')
-  updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateOrganizationDto) {
+  @UseGuards(OrganizationMembershipGuard)
+  updateMe(
+    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
     return this.organizationsService.updateMe(
       user.userId,
-      user.organizationId,
+      membership.organizationId,
       dto,
     );
   }
 
   @Delete('me')
-  deleteMe(@CurrentUser() user: AuthUser) {
+  @UseGuards(OrganizationMembershipGuard)
+  deleteMe(
+    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
+  ) {
     return this.organizationsService.deleteMe(
       user.userId,
-      user.organizationId,
+      membership.organizationId,
     );
   }
 }

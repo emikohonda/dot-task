@@ -16,33 +16,34 @@ import { ContractorsService } from "./contractors.service";
 import { CreateContractorDto } from "./dto/create-contractor.dto";
 import { UpdateContractorDto } from "./dto/update-contractor.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { CurrentUser } from "../auth/current-user.decorator";
-import type { AuthUser } from "../auth/auth-user.type";
+import { OrganizationMembershipGuard } from "../auth/organization-membership.guard";
+import { CurrentMembership } from "../auth/current-membership.decorator";
+import type { AuthMembership } from "../auth/auth-membership.type";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrganizationMembershipGuard)
 @Controller("contractors")
 export class ContractorsController {
   constructor(private readonly contractorsService: ContractorsService) {}
 
   @Post()
   create(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Body() createContractorDto: CreateContractorDto
   ) {
     return this.contractorsService.create(
-      user.organizationId,
+      membership.organizationId,
       createContractorDto
     );
   }
 
   @Get()
   findAll(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Query("keyword") keyword?: string,
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
     @Query("offset", new ParseIntPipe({ optional: true })) offset?: number
   ) {
-    return this.contractorsService.findAll(user.organizationId, {
+    return this.contractorsService.findAll(membership.organizationId, {
       keyword,
       limit,
       offset,
@@ -51,20 +52,20 @@ export class ContractorsController {
 
   @Get(":id")
   findOne(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string
   ) {
-    return this.contractorsService.findOne(user.organizationId, id);
+    return this.contractorsService.findOne(membership.organizationId, id);
   }
 
   @Patch(":id")
   update(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() updateContractorDto: UpdateContractorDto
   ) {
     return this.contractorsService.update(
-      user.organizationId,
+      membership.organizationId,
       id,
       updateContractorDto
     );
@@ -72,9 +73,9 @@ export class ContractorsController {
 
   @Delete(":id")
   remove(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string
   ) {
-    return this.contractorsService.remove(user.organizationId, id);
+    return this.contractorsService.remove(membership.organizationId, id);
   }
 }

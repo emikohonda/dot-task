@@ -16,25 +16,26 @@ import { SitesService } from "./sites.service";
 import { CreateSiteDto } from "./dto/create-site.dto";
 import { UpdateSiteDto } from "./dto/update-site.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { CurrentUser } from "../auth/current-user.decorator";
-import type { AuthUser } from "../auth/auth-user.type";
+import { OrganizationMembershipGuard } from "../auth/organization-membership.guard";
+import { CurrentMembership } from "../auth/current-membership.decorator";
+import type { AuthMembership } from "../auth/auth-membership.type";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrganizationMembershipGuard)
 @Controller("sites")
 export class SitesController {
   constructor(private readonly sitesService: SitesService) {}
 
   @Post()
   create(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Body() createSiteDto: CreateSiteDto,
   ) {
-    return this.sitesService.create(user.organizationId, createSiteDto);
+    return this.sitesService.create(membership.organizationId, createSiteDto);
   }
 
   @Get()
   findAll(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Query("keyword") keyword?: string,
     @Query("companyId") companyId?: string,
     @Query("status") status?: string,
@@ -45,7 +46,7 @@ export class SitesController {
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
     @Query("offset", new ParseIntPipe({ optional: true })) offset?: number,
   ) {
-    return this.sitesService.findAll(user.organizationId, {
+    return this.sitesService.findAll(membership.organizationId, {
       keyword,
       companyId,
       status,
@@ -60,37 +61,37 @@ export class SitesController {
 
   @Get(":id")
   findOne(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string,
   ) {
-    return this.sitesService.findOne(user.organizationId, id);
+    return this.sitesService.findOne(membership.organizationId, id);
   }
 
   @Patch(":id")
   update(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() updateSiteDto: UpdateSiteDto,
   ) {
-    return this.sitesService.update(user.organizationId, id, updateSiteDto);
+    return this.sitesService.update(membership.organizationId, id, updateSiteDto);
   }
 
   @Delete(":id")
   remove(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string,
   ) {
-    return this.sitesService.remove(user.organizationId, id);
+    return this.sitesService.remove(membership.organizationId, id);
   }
 
   @Get(":id/schedules")
   findSchedulesBySiteId(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param("id", new ParseUUIDPipe()) id: string,
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
   ) {
     return this.sitesService.findSchedulesBySiteId(
-      user.organizationId,
+      membership.organizationId,
       id,
       limit ?? 3,
     );

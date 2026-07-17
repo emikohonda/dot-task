@@ -16,27 +16,28 @@ import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { AuthUser } from '../auth/auth-user.type';
+import { OrganizationMembershipGuard } from '../auth/organization-membership.guard';
+import { CurrentMembership } from '../auth/current-membership.decorator';
+import type { AuthMembership } from '../auth/auth-membership.type';
 
 @Controller('employees')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrganizationMembershipGuard)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateEmployeeDto) {
-    return this.employeesService.create(user.organizationId, dto);
+  create(@CurrentMembership() membership: AuthMembership, @Body() dto: CreateEmployeeDto) {
+    return this.employeesService.create(membership.organizationId, dto);
   }
 
   @Get()
   findAll(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Query('keyword') keyword?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
   ) {
-    return this.employeesService.findAll(user.organizationId, {
+    return this.employeesService.findAll(membership.organizationId, {
       keyword,
       limit,
       offset,
@@ -45,26 +46,26 @@ export class EmployeesController {
 
   @Get(':id')
   findOne(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.employeesService.findOne(user.organizationId, id);
+    return this.employeesService.findOne(membership.organizationId, id);
   }
 
   @Patch(':id')
   update(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateEmployeeDto,
   ) {
-    return this.employeesService.update(user.organizationId, id, dto);
+    return this.employeesService.update(membership.organizationId, id, dto);
   }
 
   @Delete(':id')
   remove(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.employeesService.remove(user.organizationId, id);
+    return this.employeesService.remove(membership.organizationId, id);
   }
 }

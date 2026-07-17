@@ -1,4 +1,3 @@
-// apps/api/src/schedules/schedules.controller.ts
 import {
   Controller,
   Get,
@@ -16,17 +15,18 @@ import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { AuthUser } from '../auth/auth-user.type';
+import { OrganizationMembershipGuard } from '../auth/organization-membership.guard';
+import { CurrentMembership } from '../auth/current-membership.decorator';
+import type { AuthMembership } from '../auth/auth-membership.type';
 
 @Controller('schedules')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrganizationMembershipGuard)
 export class SchedulesController {
   constructor(private readonly schedulesService: SchedulesService) {}
 
   @Get()
   findAll(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
     @Query('date') date?: string,
@@ -39,7 +39,7 @@ export class SchedulesController {
     @Query('employeeId') employeeId?: string,
     @Query('contractorId') contractorId?: string,
   ) {
-    return this.schedulesService.findAll(user.organizationId, {
+    return this.schedulesService.findAll(membership.organizationId, {
       limit,
       offset,
       date,
@@ -56,18 +56,18 @@ export class SchedulesController {
 
   @Get(':id')
   findOne(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.schedulesService.findOne(user.organizationId, id);
+    return this.schedulesService.findOne(membership.organizationId, id);
   }
 
   @Post()
   create(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Body() dto: CreateScheduleDto,
   ) {
-    return this.schedulesService.create(user.organizationId, {
+    return this.schedulesService.create(membership.organizationId, {
       title: dto.title,
       date: dto.date,
       endDate: dto.endDate ?? null,
@@ -87,11 +87,11 @@ export class SchedulesController {
 
   @Patch(':id')
   update(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateScheduleDto,
   ) {
-    return this.schedulesService.update(user.organizationId, id, {
+    return this.schedulesService.update(membership.organizationId, id, {
       title: dto.title,
       date: dto.date,
       endDate: dto.endDate,
@@ -111,9 +111,9 @@ export class SchedulesController {
 
   @Delete(':id')
   remove(
-    @CurrentUser() user: AuthUser,
+    @CurrentMembership() membership: AuthMembership,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.schedulesService.remove(user.organizationId, id);
+    return this.schedulesService.remove(membership.organizationId, id);
   }
 }
