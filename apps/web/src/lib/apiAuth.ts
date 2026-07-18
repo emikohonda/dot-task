@@ -53,11 +53,10 @@ async function bootstrapCurrentUser(): Promise<BootstrapResponse> {
 }
 
 export async function createApiToken() {
-  const { userId, organizationId } = await bootstrapCurrentUser();
+  const { userId } = await bootstrapCurrentUser();
 
   return new SignJWT({
     userId,
-    organizationId,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
