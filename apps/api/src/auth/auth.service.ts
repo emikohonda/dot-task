@@ -8,23 +8,26 @@ import { BootstrapAuthDto } from './dto/bootstrap-auth.dto';
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async bootstrap(dto: BootstrapAuthDto) {
+  private async upsertUser(dto: BootstrapAuthDto) {
     const email = dto.email.trim().toLowerCase();
     const name = dto.name?.trim() || null;
     const image = dto.image?.trim() || null;
 
-    const user = await this.prisma.user.upsert({
+    return this.prisma.user.upsert({
       where: { email },
-      update: {
-        name,
-        image,
-      },
-      create: {
-        email,
-        name,
-        image,
-      },
+      update: { name, image },
+      create: { email, name, image },
     });
+  }
+
+  async syncUser(dto: BootstrapAuthDto) {
+    const user = await this.upsertUser(dto);
+
+    return { userId: user.id };
+  }
+
+  async bootstrap(dto: BootstrapAuthDto) {
+    const user = await this.upsertUser(dto);
 
     const existingMembership =
       await this.prisma.organizationMember.findFirst({
@@ -47,7 +50,7 @@ export class AuthService {
       async (tx) => {
         const organization = await tx.organization.create({
           data: {
-            name: name ? `${name}のワークスペース` : '個人ワークスペース',
+            name: user.name ? `${user.name}のワークスペース` : '個人ワークスペース',
           },
         });
 
