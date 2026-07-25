@@ -1,16 +1,81 @@
 // apps/api/src/organizations/organizations.service.ts
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrgRole } from '@prisma/client';
+import { OrgRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async create(userId: string, dto: CreateOrganizationDto) {
+    const name = dto.name.trim();
+
+    if (!name) {
+      throw new BadRequestException('Organization name is required');
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const existingMembership = await tx.organizationMember.findUnique({
+          where: {
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingMembership) {
+          throw new ConflictException(
+            'User already belongs to an organization',
+          );
+        }
+
+        const organization = await tx.organization.create({
+          data: {
+            name,
+            members: {
+              create: {
+                userId,
+                role: OrgRole.OWNER,
+              },
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        return {
+          id: organization.id,
+          name: organization.name,
+          role: OrgRole.OWNER,
+          createdAt: organization.createdAt,
+          updatedAt: organization.updatedAt,
+        };
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User already belongs to an organization');
+      }
+
+      throw error;
+    }
+  }
 
   async findMe(userId: string, organizationId: string) {
     const membership = await this.prisma.organizationMember.findUnique({
@@ -107,9 +172,7 @@ export class OrganizationsService {
     }
 
     if (membership.role !== OrgRole.OWNER) {
-      throw new ForbiddenException(
-        'Only an OWNER can delete the organization',
-      );
+      throw new ForbiddenException('Only an OWNER can delete the organization');
     }
 
     await this.prisma.$transaction(async (tx) => {

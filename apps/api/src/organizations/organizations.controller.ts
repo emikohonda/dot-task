@@ -1,9 +1,11 @@
+// apps/api/src/organizations/organizations.controller.ts
 import {
   Body,
   Controller,
   Delete,
   Get,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -12,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationMembershipGuard } from '../auth/organization-membership.guard';
 import type { AuthUser } from '../auth/auth-user.type';
 import type { AuthMembership } from '../auth/auth-membership.type';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { OrganizationsService } from './organizations.service';
 
@@ -20,13 +23,21 @@ import { OrganizationsService } from './organizations.service';
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
+  @Post()
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateOrganizationDto) {
+    return this.organizationsService.create(user.userId, dto);
+  }
+
   @Get('me')
   @UseGuards(OrganizationMembershipGuard)
   findMe(
     @CurrentUser() user: AuthUser,
     @CurrentMembership() membership: AuthMembership,
   ) {
-    return this.organizationsService.findMe(user.userId, membership.organizationId);
+    return this.organizationsService.findMe(
+      user.userId,
+      membership.organizationId,
+    );
   }
 
   @Patch('me')
