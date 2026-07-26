@@ -42,6 +42,9 @@ export class OrganizationsService {
         const organization = await tx.organization.create({
           data: {
             name,
+            industry: dto.industry,
+            prefecture: dto.prefecture,
+            employeeRange: dto.employeeRange,
             members: {
               create: {
                 userId,
@@ -52,6 +55,9 @@ export class OrganizationsService {
           select: {
             id: true,
             name: true,
+            industry: true,
+            prefecture: true,
+            employeeRange: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -60,6 +66,9 @@ export class OrganizationsService {
         return {
           id: organization.id,
           name: organization.name,
+          industry: organization.industry,
+          prefecture: organization.prefecture,
+          employeeRange: organization.employeeRange,
           role: OrgRole.OWNER,
           createdAt: organization.createdAt,
           updatedAt: organization.updatedAt,
