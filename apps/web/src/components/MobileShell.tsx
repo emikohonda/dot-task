@@ -64,6 +64,14 @@ export function MobileShell() {
   useEffect(() => {
     setMenuOpen(false);
     setInstallGuideOpen(false);
+
+    if (
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/logout") ||
+      pathname.startsWith("/setup")
+    ) {
+      setOrganization(null);
+    }
   }, [pathname]);
 
   // メニューを開いた時にログイン中ユーザー情報を取得
@@ -114,6 +122,15 @@ export function MobileShell() {
       window.scrollTo(0, scrollY);
     };
   }, [menuOpen]);
+
+  const shouldHideNavigation =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/logout") ||
+    pathname.startsWith("/setup");
+
+  if (shouldHideNavigation) {
+    return null;
+  }
 
   return (
     <>

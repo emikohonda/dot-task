@@ -19,13 +19,22 @@ const navItems = [
 export function HeaderNav() {
   const pathname = usePathname();
 
+  const shouldHideNavigation =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/logout") ||
+    pathname.startsWith("/setup");
+
+  if (shouldHideNavigation) {
+    return null;
+  }
+
   return (
     <nav className="hidden md:flex gap-6 text-sm">
       {navItems.map((item) => {
         const isActive =
           item.href === "/schedules"
             ? pathname.startsWith("/schedules") &&
-              !pathname.startsWith("/schedules/today")
+            !pathname.startsWith("/schedules/today")
             : pathname.startsWith(item.href);
 
         return (
