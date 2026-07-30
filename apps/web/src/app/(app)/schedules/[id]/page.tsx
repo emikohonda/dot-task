@@ -15,7 +15,7 @@ import { CardSection } from "@/components/CardSection";
 import { fetchScheduleById } from "@/lib/fetchers/schedules";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ReactNode } from "react";
-import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
+import { ScheduleTime } from "@/app/(app)/schedules/_components/ScheduleTime";
 import { formatScheduleTitle, formatDateRange } from "@/lib/validations/scheduleSchemas";
 
 function formatDateTime(dateStr: string | null | undefined) {

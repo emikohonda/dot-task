@@ -15,7 +15,7 @@ import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 import { ContractorTagInput } from "./ContractorTagInput";
 import { EmployeeTagInput } from "./EmployeeTagInput";
 import SiteQuickCreateInput from "./SiteQuickCreateInput";
-import CompanyQuickCreateInput from "@/app/sites/_components/CompanyQuickCreateInput";
+import CompanyQuickCreateInput from "@/app/(app)/sites/_components/CompanyQuickCreateInput";
 
 import {
   makeScheduleSchemaWithSiteRange,

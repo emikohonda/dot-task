@@ -20,7 +20,7 @@ import {
   formatScheduleTitle,
   formatDateRangeShort,
 } from "@/lib/validations/scheduleSchemas";
-import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
+import { ScheduleTime } from "@/app/(app)/schedules/_components/ScheduleTime";
 
 // ── ユーティリティ ──
 

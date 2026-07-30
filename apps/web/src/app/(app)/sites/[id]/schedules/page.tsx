@@ -8,7 +8,7 @@ import {
 } from "@/lib/validations/scheduleSchemas";
 import { ArrowUpDown, Calendar, Clock } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
-import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
+import { ScheduleTime } from "@/app/(app)/schedules/_components/ScheduleTime";
 
 // ── ユーティリティ ──
 function safeTime(value?: string | null) {

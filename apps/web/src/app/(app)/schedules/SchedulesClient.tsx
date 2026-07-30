@@ -10,7 +10,7 @@ import { KeywordSearchBox } from "@/components/KeywordSearchBox";
 import { SearchActionRow } from "@/components/SearchActionRow";
 import { Calendar, Clock, MapPin, ArrowUpDown, Sun } from "lucide-react";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
-import { ScheduleTime } from "@/app/schedules/_components/ScheduleTime";
+import { ScheduleTime } from "@/app/(app)/schedules/_components/ScheduleTime";
 import type { Schedule } from "@/lib/fetchers/schedules";
 import type { ComboboxOption } from "@/components/Combobox";
 import { formatScheduleTitle, formatDateRangeShort, } from "@/lib/validations/scheduleSchemas";
