@@ -244,14 +244,14 @@ export function MobileShell() {
 
             {organization ? (
               <div className="mt-2 space-y-1">
-                <p className="text-sm font-semibold text-slate-900">
-                  {organization.user.name ?? "ログイン中ユーザー"}
+                <p className="text-base font-semibold text-slate-900">
+                  {organization.name}
                 </p>
                 <p className="break-all text-xs text-slate-500">
                   {organization.user.email}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {organization.name}
+                  {organization.user.name ?? "ログイン中ユーザー"}
                 </p>
               </div>
             ) : (
