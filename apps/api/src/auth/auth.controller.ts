@@ -25,15 +25,6 @@ export class AuthController {
     }
   }
 
-  @Post('bootstrap')
-  bootstrap(
-    @Headers('x-bootstrap-secret') bootstrapSecret: string | undefined,
-    @Body() dto: BootstrapAuthDto,
-  ) {
-    this.checkBootstrapSecret(bootstrapSecret);
-    return this.authService.bootstrap(dto);
-  }
-
   @Post('sync-user')
   syncUser(
     @Headers('x-bootstrap-secret') bootstrapSecret: string | undefined,

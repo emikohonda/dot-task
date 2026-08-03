@@ -1,6 +1,5 @@
 // apps/api/src/auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
-import { OrgRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BootstrapAuthDto } from './dto/bootstrap-auth.dto';
 
@@ -24,52 +23,5 @@ export class AuthService {
     const user = await this.upsertUser(dto);
 
     return { userId: user.id };
-  }
-
-  async bootstrap(dto: BootstrapAuthDto) {
-    const user = await this.upsertUser(dto);
-
-    const existingMembership =
-      await this.prisma.organizationMember.findFirst({
-        where: {
-          userId: user.id,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
-
-    if (existingMembership) {
-      return {
-        userId: user.id,
-        organizationId: existingMembership.organizationId,
-      };
-    }
-
-    return this.prisma.$transaction(
-      async (tx) => {
-        const organization = await tx.organization.create({
-          data: {
-            name: user.name ? `${user.name}のワークスペース` : '個人ワークスペース',
-          },
-        });
-
-        const membership = await tx.organizationMember.create({
-          data: {
-            userId: user.id,
-            organizationId: organization.id,
-            role: OrgRole.OWNER,
-          },
-        });
-
-        return {
-          userId: user.id,
-          organizationId: membership.organizationId,
-        };
-      },
-      {
-        timeout: 10000,
-      },
-    );
   }
 }
