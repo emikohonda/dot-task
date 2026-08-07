@@ -3,6 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { clearCalendarScheduleCache } from "@/lib/calendarCache";
 
 type OrganizationRole = "OWNER" | "ADMIN" | "MEMBER";
 
@@ -37,7 +38,8 @@ export function OrganizationDeleteSection({
         throw new Error(data?.message ?? "組織の削除に失敗しました");
       }
 
-      router.replace("/logout");
+      clearCalendarScheduleCache();
+      router.replace("/setup/organization");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "組織の削除に失敗しました",
