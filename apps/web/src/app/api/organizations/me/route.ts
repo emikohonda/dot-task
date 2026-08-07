@@ -80,7 +80,7 @@ export async function DELETE() {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { message: "アカウント削除に失敗しました" },
+      { message: "組織の削除に失敗しました" },
       { status: 500 },
     );
   }
