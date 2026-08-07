@@ -1,5 +1,6 @@
 // apps/web/src/app/setup/organization/page.tsx
 import Link from "next/link";
+import { AccountDeleteSection } from "./AccountDeleteSection";
 import { OrganizationSetupForm } from "./OrganizationSetupForm";
 
 export default function OrganizationSetupPage() {
@@ -26,6 +27,8 @@ export default function OrganizationSetupPage() {
           ログアウト
         </Link>
       </div>
+
+      <AccountDeleteSection />
     </div>
   );
 }
