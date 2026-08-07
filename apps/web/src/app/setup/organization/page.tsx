@@ -1,6 +1,5 @@
 // apps/web/src/app/setup/organization/page.tsx
-import Link from "next/link";
-import { AccountDeleteSection } from "./AccountDeleteSection";
+import { AccountActionsToggle } from "./AccountActionsToggle";
 import { OrganizationSetupForm } from "./OrganizationSetupForm";
 
 export default function OrganizationSetupPage() {
@@ -19,16 +18,7 @@ export default function OrganizationSetupPage() {
         <OrganizationSetupForm />
       </section>
 
-      <div className="text-center">
-        <Link
-          href="/logout"
-          className="text-sm font-medium text-slate-500 underline-offset-4 hover:text-slate-700 hover:underline"
-        >
-          ログアウト
-        </Link>
-      </div>
-
-      <AccountDeleteSection />
+      <AccountActionsToggle />
     </div>
   );
 }

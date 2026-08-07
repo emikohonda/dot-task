@@ -3,6 +3,12 @@
 
 import { signOut } from "@/auth";
 
+// 個人アカウント削除成功後のログアウト用
 export async function signOutAfterAccountDeletion() {
+  await signOut({ redirectTo: "/login" });
+}
+
+// 通常ログアウト用
+export async function signOutCurrentUser() {
   await signOut({ redirectTo: "/login" });
 }

@@ -66,20 +66,9 @@ export function AccountDeleteSection() {
 
   return (
     <>
-      <section className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-        <div>
-          <h2 className="text-base font-bold text-rose-700">
-            アカウント削除
-          </h2>
-
-          <p className="mt-1 text-sm leading-6 text-rose-700">
-            .TASKを今後利用しない場合は、個人アカウントを削除できます。
-            この操作は元に戻せません。
-          </p>
-        </div>
-
+      <div className="space-y-2">
         {error && (
-          <div className="rounded-xl bg-white px-3 py-2 text-sm font-medium text-rose-700">
+          <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
             {error}
           </div>
         )}
@@ -88,11 +77,11 @@ export function AccountDeleteSection() {
           type="button"
           onClick={() => setIsDeleteDialogOpen(true)}
           disabled={isDeleting}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 sm:w-auto"
+          className="flex min-h-[44px] w-full items-center justify-center px-4 py-2.5 text-sm font-medium text-rose-600 transition hover:text-rose-700 hover:underline disabled:cursor-not-allowed disabled:text-rose-300"
         >
           アカウントを削除する
         </button>
-      </section>
+      </div>
 
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
